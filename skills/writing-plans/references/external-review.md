@@ -1,0 +1,74 @@
+# Revisão externa read-only
+
+Uma segunda opinião, de outro agente ou outro modelo, sobre a spec e o plano **antes** de executar. Ela não altera nada: produz um relatório com veredito (passa / bloqueia) e a lista de problemas.
+
+Vale quando a feature é grande, quando toca dado de produção, ou quando o usuário pede. Ofereça; não imponha, e não fixe qual agente ou modelo faz o papel. O usuário escolhe.
+
+## O que entregar ao revisor
+
+Três coisas, e o caminho absoluto de cada uma:
+
+1. A spec.
+2. O plano.
+3. O snapshot de evidência da fase 0 (é o que evita o revisor gastar o turno inteiro redescobrindo o schema).
+
+Mais o mandato, abaixo, e o caminho onde ele deve escrever o relatório, **fora do repositório**.
+
+## O mandato read-only
+
+Escreva no briefing, com estas palavras:
+
+- Não editar nenhum arquivo do repositório.
+- Não rodar comando de git.
+- Não aplicar migration, não deployar função, não rodar SQL de escrita.
+- Consulta ao banco: apenas leitura.
+- Pode escrever exatamente um arquivo: o relatório, no caminho indicado, fora do repositório.
+
+Diga também **quais caminhos de acesso ao banco existem** (MCP, CLI, credenciais e onde elas estão), sem colar valor de credencial. Um revisor que não sabe que pode consultar o banco vai devolver hipótese onde você queria evidência.
+
+## Formato do relatório
+
+Peça exatamente isto:
+
+```
+Veredito: PASSA | BLOQUEIA
+Bloqueadores  — impedem executar como está, com arquivo:linha ou query que prova
+Riscos        — não impedem, mas custam se ignorados
+Sugestões     — melhorias opcionais
+```
+
+Exija prova em cada bloqueador. Bloqueador sem `arquivo:linha` nem resultado de query é opinião.
+
+## Verificar que ele foi mesmo read-only
+
+Antes de despachar, guarde o pré-estado:
+
+```bash
+git rev-parse HEAD > /tmp/pre-head.txt
+git status --short > /tmp/pre-state.txt
+```
+
+Depois que o relatório chegar:
+
+```bash
+git rev-parse HEAD                     # tem que ser idêntico
+git status --short | diff - /tmp/pre-state.txt   # tem que ser vazio
+```
+
+Se algo divergir, diga isso ao usuário com o diff, sem suavizar.
+
+**Verifique de novo ao terminar de aplicar o relatório.** Uma checagem feita no instante do `worker_done` não cobre o que o agente escreveu depois dela. Se aparecer arquivo modificado que não é seu, reporte, não commite, e não atribua a si.
+
+## Ao receber o relatório: não valide por deferência
+
+Este é o passo que mais gera valor, e o mais fácil de pular.
+
+1. **Verifique cada bloqueador você mesmo.** Abra o arquivo. Rode a query. Um revisor competente ainda erra de tamanho.
+2. **Separe buraco real de decisão de negócio.** "O resolver descarta a segunda sessão do mesmo dia" é buraco: o código faz isso, está em `arquivo:linha`, e o plano ignorava. "Devemos suportar o terceiro idioma agora?" é decisão de negócio: não tem resposta técnica.
+3. **Redimensione com dado.** Um bloqueador que protege zero usuário hoje não é bloqueador. Traga a contagem, decida com ela, e registre o número no documento para a próxima pessoa não reabrir a discussão.
+4. **Leve as decisões de negócio ao usuário**, com resumo curto e recomendação explícita. Não decida por ele, e não empurre a decisão para dentro do plano disfarçada de detalhe técnico.
+5. **Aplique o que sobrou** na spec e no plano, e diga ao usuário onde você discordou do revisor e por quê.
+
+## Custo
+
+Uma revisão dessas consome um turno inteiro de um modelo caro e costuma levar dezenas de minutos. Para feature pequena, não paga. Diga isso ao usuário quando ele pedir uma revisão para algo que não precisa.
