@@ -12,7 +12,7 @@ description: >-
   feature", "prepara isso pra multi-agente". É o estado terminal da skill
   `brainstorming`: design aprovado, invoque esta. Serve qualquer projeto — as
   regras específicas saem do CLAUDE.md/AGENTS.md do repositório. Ela escreve o
-  plano e para: quem sobe worker é `orchestrating-plans`.
+  plano e para: quem sobe worker é `orchestrating-execute`.
 ---
 
 # Plano de implementação para execução multi-agente
@@ -165,4 +165,4 @@ Siga a convenção do projeto. Procure planos anteriores (`docs/**/plans/`, `doc
 
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
-Depois de escrever, commite o plano e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-plans`.
+Depois de escrever, commite o plano e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.

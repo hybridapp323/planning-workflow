@@ -1,5 +1,5 @@
 ---
-name: orchestrating-plans
+name: orchestrating-execute
 description: >-
   Executa um plano de implementação multi-agente já escrito: pergunta ao usuário
   qual modelo vai em cada nível de complexidade, roda os passos que só o

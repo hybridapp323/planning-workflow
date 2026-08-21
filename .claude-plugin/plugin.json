@@ -9,6 +9,6 @@
   },
   "skills": [
     "./skills/power-plans",
-    "./skills/orchestrating-plans"
+    "./skills/orchestrating-execute"
   ]
 }
