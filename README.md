@@ -2,7 +2,7 @@
 
 Duas skills de Claude Code para o ciclo de implementação de feature depois que o design está aprovado:
 
-- **`writing-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e gates bloqueantes. Não cita orquestrador.
+- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e gates bloqueantes. Não cita orquestrador.
 - **`orchestrating-plans`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas, gates, e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
 
 São genéricas de propósito. As regras específicas de cada repositório saem do `CLAUDE.md` / `AGENTS.md` dele, e de um `.claude/plan-profile.md` opcional.
@@ -10,7 +10,7 @@ São genéricas de propósito. As regras específicas de cada repositório saem 
 ## Onde isso entra
 
 ```
-brainstorming  →  spec aprovada  →  writing-plans  →  plano commitado  →  orchestrating-plans
+brainstorming  →  spec aprovada  →  power-plans  →  plano commitado  →  orchestrating-plans
 ```
 
 ## Instalar em outra máquina
@@ -42,7 +42,7 @@ planning-workflow/
 ├── .claude-plugin/plugin.json
 ├── README.md
 └── skills/
-    ├── writing-plans/
+    ├── power-plans/
     │   ├── SKILL.md
     │   └── references/
     │       ├── plan-template.md

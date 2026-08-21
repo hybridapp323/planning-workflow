@@ -1,5 +1,5 @@
 ---
-name: writing-plans
+name: power-plans
 description: >-
   Escreve o plano de implementação de uma feature já especificada, desenhado
   para execução multi-agente em paralelo: nível de complexidade por tarefa

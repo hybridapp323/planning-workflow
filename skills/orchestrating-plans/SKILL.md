@@ -11,7 +11,7 @@ description: >-
   `orchestration` do Orca para a mecânica de task, dispatch e espera, e
   acrescenta o que é específico de executar um plano: o portão de atribuição de
   modelo, o laço de ondas, o que nunca se delega, e as armadilhas já pagas. Se o
-  plano ainda não existe, a skill é `writing-plans`, não esta.
+  plano ainda não existe, a skill é `power-plans`, não esta.
 ---
 
 # Executar um plano multi-agente
@@ -25,7 +25,7 @@ Leia o plano inteiro antes de qualquer comando. Ele precisa ter, no mínimo:
 - contratos congelados escritos literal;
 - grafo com dependências e passos do coordenador.
 
-Faltando qualquer um, **pare e volte para `writing-plans`**. Executar um plano sem ownership é combinar colisão; sem contrato congelado é combinar divergência. Custa menos consertar o documento agora.
+Faltando qualquer um, **pare e volte para `power-plans`**. Executar um plano sem ownership é combinar colisão; sem contrato congelado é combinar divergência. Custa menos consertar o documento agora.
 
 Confirme também que a árvore está limpa do que interessa, e que você sabe quais arquivos modificados **não** são deste trabalho. Sessões paralelas deixam lixo, e ele acaba num commit errado.
 
