@@ -253,3 +253,15 @@ Complementos: terminal `exited` + task `completed` = worker terminou e saiu
 (não é crash); terminal `exited` + task `dispatched` = morreu no meio — aí
 sim redespache. `check --wait` continua útil como GATILHO barato de "algo
 chegou", mas a decisão de avançar onda se toma no `task-list`.
+
+## Retry de `dispatch --inject` REVOGA o contexto que o worker já recebeu
+
+`dispatch --inject` que responde `agent_prompt_stalled` muitas vezes JÁ
+ENTREGOU o preâmbulo (a TUI estava ocupada só para a confirmação). Re-rodar o
+dispatch cria um contexto novo e revoga o antigo — o worker termina horas
+depois e o `worker_done` dele volta com `Dispatch <ctx> capability is
+revoked`, deixando task e coordenador travados um esperando o outro.
+Regra: depois de um `stalled`, LEIA o terminal; se o worker já está
+trabalhando na task, NÃO redispache. Se a revogação já aconteceu, feche a
+task você mesmo com `task-update --status completed` depois de verificar os
+artefatos em disco — o trabalho não se perde, só o protocolo.
