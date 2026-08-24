@@ -265,3 +265,42 @@ Regra: depois de um `stalled`, LEIA o terminal; se o worker já está
 trabalhando na task, NÃO redispache. Se a revogação já aconteceu, feche a
 task você mesmo com `task-update --status completed` depois de verificar os
 artefatos em disco — o trabalho não se perde, só o protocolo.
+
+## `dispatch` devolve `runtime_error` quando o worker ainda está ocupado
+
+Diferente do `agent_prompt_stalled` (que costuma ter entregado o preâmbulo
+mesmo assim), o `runtime_error` no `dispatch --inject` aparece quando o agente
+está no meio de um turno — a TUI não aceita input novo. Aqui o preâmbulo NÃO
+foi entregue e a task fica `ready`, órfã.
+
+Receita: `terminal wait --for tui-idle --timeout-ms 420000`, e só então
+redespache a MESMA task (`dispatch --task <id>` de novo). Não crie task nova,
+não mande `terminal send` por cima — o `send` num agente ocupado também some.
+Medido em 2026-08-24: dois `runtime_error` seguidos no mesmo worker viraram
+dispatch bem-sucedido depois de um `tui-idle` de ~3 min.
+
+## Um brief longo só existe se estiver na SPEC da task
+
+`orca orchestration dispatch` não tem `--body`/`--brief`: ele injeta o
+preâmbulo mais a `--spec` da task, e `task-update` **não** edita spec (só
+status/result). Ou seja: task criada com spec de uma linha entrega ao worker
+uma linha, por mais contrato que exista no plano.
+
+Crie a task já com o brief inteiro — `--spec "$(cat brief-T1.md)"` — e, se
+você criou tasks curtas antes de escrever os briefs, crie as definitivas e
+marque as antigas como `blocked` com `--result '{"note":"superseded"}'`, para
+o `task-list` não virar um cemitério ambíguo.
+
+## Teste que importa o `index.ts` de uma edge function morre no `serve()`
+
+Worker que escreve uma function nova em Deno tende a proteger o `serve()` com
+`if (import.meta.main)` — justamente porque o teste que importa o módulo
+levanta um listener e falha com `NotCapable: Requires net access to
+0.0.0.0:8000`. Só que no Supabase Edge Runtime não é garantido que o módulo de
+entrada tenha `import.meta.main === true`: a função sobe e não responde nada,
+e o cron vira erro silencioso.
+
+O desenho certo é o que esses repos já usam: **entrada fina** (`index.ts` com
+três linhas: importa `serve`, importa o handler, chama `serve(handler)`) e a
+lógica testável num módulo ao lado. Diga isso NO BRIEF, antes de o worker
+descobrir o conflito sozinho e escolher o `import.meta.main`.
