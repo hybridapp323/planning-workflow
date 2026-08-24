@@ -210,3 +210,46 @@ orca terminal close --terminal <h> --tab --json
 Também medido: o primeiro `close` às vezes responde `ok:false` e o retry
 imediato responde `ok:true` — trate o primeiro `false` como retry, não como
 falha.
+
+## `check --wait` devolve mensagem ANTIGA não-lida, não a próxima nova
+
+Com inbox cheio de ciclos anteriores, `check --wait` retorna imediatamente com
+worker_done velhos e esconde o novo — o coordenador "esperou" e recebeu o
+passado. Filtre por `createdAt >=` do instante do dispatch (grave o timestamp
+num arquivo na hora de despachar), nunca por presença/ausência. Corolário: um
+snapshot de ids "vistos" com `--limit N` desliza quando chegam mensagens novas
+e ressuscita antigas de fora da janela.
+
+## Segundo `worker_done` do mesmo dispatch é rejeitado — o PRIMEIRO vale
+
+Pedir ao worker que "reenvie o worker_done" depois de ele já ter mandado gera
+`Rejected worker_done: Dispatch <ctx> capability is revoked` — a mensagem
+original havia chegado e o dispatch foi consumido. Antes de re-engajar um
+worker "que não reportou", procure o worker_done dele por timestamp no inbox.
+
+## `setsid` retorna na hora — monitore o FILHO, não o pid do wrapper
+
+`setsid nohup cmd & echo $!` imprime o pid do wrapper, que morre em ms; um
+Monitor com `while kill -0 <esse pid>` encerra imediatamente com o trabalho
+vivo. Vigie com `pgrep -f "<assinatura do comando>"`.
+
+## A fonte da verdade de conclusão é `task-list`, NUNCA o inbox
+
+Medido em 24/08: um worker mandou `worker_done`, o runtime marcou a task
+`completed` e fechou o terminal — e o coordenador ficou 20+ min "esperando"
+porque todos os seus vigias olhavam o INBOX (`check --wait`, filtros por id,
+filtros por timestamp), que ora repete mensagem velha, ora perde a nova.
+O laço correto de supervisão é:
+
+```bash
+# 1. Sinal durável: o status da task vira completed/failed quando o
+#    worker_done chega, mesmo que você nunca veja a mensagem.
+orca orchestration task-list --json   # status da SUA task
+# 2. Só então busque o corpo do relatório:
+orca orchestration dispatch-show --task <task_id> --json
+```
+
+Complementos: terminal `exited` + task `completed` = worker terminou e saiu
+(não é crash); terminal `exited` + task `dispatched` = morreu no meio — aí
+sim redespache. `check --wait` continua útil como GATILHO barato de "algo
+chegou", mas a decisão de avançar onda se toma no `task-list`.
