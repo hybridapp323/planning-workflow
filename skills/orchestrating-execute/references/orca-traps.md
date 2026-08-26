@@ -304,3 +304,77 @@ O desenho certo é o que esses repos já usam: **entrada fina** (`index.ts` com
 três linhas: importa `serve`, importa o handler, chama `serve(handler)`) e a
 lógica testável num módulo ao lado. Diga isso NO BRIEF, antes de o worker
 descobrir o conflito sozinho e escolher o `import.meta.main`.
+
+## O ÍNDICE do git é compartilhado entre sessões paralelas, não só o worktree
+
+Sabia-se que `git add -A` varre trabalho alheio. O que não estava escrito: mesmo
+`git add <caminhos explícitos>` seguido de `git commit` pode varrer, porque o
+`.git/index` é o MESMO para todas as sessões no checkout. Se a outra sessão
+estagia os arquivos dela entre o seu `add` e o seu `commit`, eles entram no SEU
+commit com a SUA mensagem.
+
+Medido em 2026-08-25: `git add` de 3 arquivos, `git diff --staged --stat`
+imprimiu 25 arquivos (incluindo uma migration de outra sessão), e o commit levou
+todos. Conserto foi `git reset --soft HEAD~1 && git reset` e recommit — barato só
+porque nada tinha sido empurrado ainda.
+
+Forma imune, use sempre:
+
+```bash
+git commit -F <arquivo-de-mensagem> -- caminho/a.ts caminho/b.ts
+```
+
+O pathspec depois do `--` commita o conteúdo do WORKTREE só daqueles caminhos e
+ignora o índice, sem limpar o que a outra sessão estagiou. Para arquivo novo,
+ainda é preciso `git add` antes (só ele fica no índice), e aí o `--` protege o
+resto.
+
+## Worker que para numa decisão manda `--outcome failed` e CONSOME o dispatch
+
+Um brief que diz "pare e reporte em vez de improvisar" produz exatamente isso: o
+worker termina com `worker_done --outcome failed`, a task vira `failed` e a
+capability do dispatch é revogada. Isso é o worker acertando, não falhando.
+
+Consequência prática: não dá para "responder e continuar" no mesmo dispatch.
+Crie uma task NOVA (`T1-B`, `T2-C`...) com a decisão colada literal e despache
+para o MESMO terminal, que ainda tem todo o contexto e os arquivos meio-escritos
+em disco. O brief da continuação precisa dizer "o que você já escreveu está
+correto e NÃO deve ser revertido", ou o worker recomeça do zero.
+
+Em 2026-08-25 foram 6 continuações assim numa execução de 8 tarefas, e nenhuma
+custou retrabalho — só um dispatch a mais cada.
+
+## `bunx` pode estar quebrado no checkout e derrubar meia onda
+
+Neste repo (caminho com espaço, `node_modules` do Deno), `bunx vitest run`
+responde `error loading current directory` / `CouldntReadCurrentDirectory` e nem
+chega a carregar teste. Dois workers reportaram "bloqueado por ambiente" com o
+código já pronto e correto — dispatch queimado por um comando no brief.
+
+Antes da onda 1, rode o comando de teste do plano UMA VEZ você mesmo. Se falhar,
+descubra a rota que funciona e coloque-a em TODO brief:
+
+```bash
+node node_modules/vitest/vitest.mjs run <caminho>
+```
+
+Corolário: quando um worker disser "bloqueado por ambiente", rode a suíte dele
+você mesmo antes de acreditar. Duas vezes aqui o código estava verde e só o
+runner do brief estava errado.
+
+## Gate que reprova por flakiness pré-existente ainda é reprovação — verifique, não presuma
+
+O critério "qualquer falha na suíte ⇒ reprove" é o certo para escrever no brief,
+mas ele pega flakiness de área que a entrega não toca. Em 2026-08-25 o gate
+reprovou por 11 unhandled errors em `input-otp` e num provider de cache, com
+5.326 testes passando e todos os critérios substantivos verdes.
+
+O que destrava, na ordem, e o que NÃO basta:
+
+1. Rodar os arquivos acusados isolados (passaram).
+2. Conferir que nenhum deles está em `git log --format="" --name-only <base>..HEAD`.
+3. Comparar com uma rodada completa SUA anterior (a minha tinha 0 unhandled).
+
+Só com os três é honesto seguir. "É flaky" sem os três é presunção — e num
+checkout compartilhado a causa pode ser o trabalho da OUTRA sessão, que também
+não é seu, mas que você precisa nomear.
