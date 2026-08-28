@@ -12,7 +12,21 @@ Três coisas, e o caminho absoluto de cada uma:
 2. O plano.
 3. O snapshot de evidência da fase 0 (é o que evita o revisor gastar o turno inteiro redescobrindo o schema).
 
+4. **As suas afirmações de carga, nomeadas uma a uma**, com o pedido explícito de tentar
+   derrubar cada uma. São as afirmações que, se falsas, derrubam uma decisão estrutural do
+   plano, e quase sempre têm forma de invariante ("isso continua garantido", "não existe
+   caminho que faça X"). Sem esta lista o revisor distribui atenção por igual, e a atenção
+   por igual é o que deixa passar o furo caro.
+5. **O que você NÃO conseguiu verificar, e por quê.** Diga também o que o revisor não vai
+   ter: sem acesso ao banco ele marca como hipótese o que você mede numa query. Resolver essas
+   hipóteses depois é seu, não dele.
+
 Mais o mandato, abaixo, e o caminho onde ele deve escrever o relatório, **fora do repositório**.
+
+Ordene as perguntas por importância e termine sempre com esta, que rende mais que as
+específicas: *"o que está faltando aqui que eu não teria como notar, porque fui eu que
+escrevi?"* Peça também que ele diga o que conferiu e achou **correto**: sem isso você não
+sabe distinguir "verificado e são" de "não olhou".
 
 ## O mandato read-only
 

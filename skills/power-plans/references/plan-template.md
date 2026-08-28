@@ -8,7 +8,7 @@ Copie a estrutura, não o conteúdo. Corte seções que a feature não usa, e di
 # <Feature> — plano de implementação (multi-agente)
 
 **Spec:** `<caminho da spec>`
-**Evidência:** `<caminho do snapshot da fase 0>`
+**Evidência:** `<caminho do snapshot da fase 0>` (diagnóstico) + `<fase 0.5>` (prescrição)
 **Escala escolhida:** completa | parcial | mínima — <por quê>
 
 ## 0. Como ler este plano
@@ -18,6 +18,20 @@ Nenhuma tarefa toca arquivo de outra (§3). Nenhuma tarefa inventa formato que
 já esteja congelado (§4).
 
 Um worker que precisar sair do seu escopo escala, não improvisa.
+
+## 0.1 Afirmações de carga (o que derruba este plano se for falso)
+
+Cada linha é uma afirmação que sustenta uma decisão ESTRUTURAL, com a refutação que foi
+tentada e o resultado. Quem executar e descobrir que uma delas é falsa **para e escala**: não
+é ajuste de tarefa, é redesenho.
+
+| # | Afirmação | Como tentei derrubar | Resultado |
+|---|---|---|---|
+| A1 | <ex.: "desativar Z é seguro porque Z é a única porta"> | <o falsificador que busquei, com `arquivo:linha`> | `[LIDO:]` / `[MEDIDO:]` |
+
+**Revisão externa:** <quem revisou, quando, caminho do relatório> · <N bloqueadores, N aceitos>
+· <o que foi recusado e por quê>. Se ainda não houve revisão, escreva "não revisado" em vez de
+deixar o campo em branco.
 
 ## 1. Níveis de complexidade
 
@@ -91,6 +105,11 @@ Escritos em C0, antes da onda 1. Ninguém altera sem passar pelo coordenador.
 **O que fazer:** <objetivo, em uma ou duas frases>
 
 **Contratos que ela consome:** §4.1, §4.2
+
+**Assume que:** <um fato por linha, cada um com `[MEDIDO: cmd -> resultado]`, `[LIDO:
+arquivo:linha]` ou `[SUPOSTO: o que o falsifica]`. Nenhum `[SUPOSTO:]` pode sustentar a
+implementação: se sustentar, o primeiro passo desta tarefa e medi-lo, e "se der diferente,
+PARE e escale">
 
 **Pronto quando:** <critério verificável, não "quando funcionar">
 

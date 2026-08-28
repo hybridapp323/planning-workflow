@@ -245,9 +245,29 @@ O laço correto de supervisão é:
 # 1. Sinal durável: o status da task vira completed/failed quando o
 #    worker_done chega, mesmo que você nunca veja a mensagem.
 orca orchestration task-list --json   # status da SUA task
-# 2. Só então busque o corpo do relatório:
-orca orchestration dispatch-show --task <task_id> --json
+# 2. O CORPO do relatório vive SÓ na caixa, e ler não dá ack:
+orca orchestration inbox --limit 200 --json   # filtre por payload.taskId
 ```
+
+**CORREÇÃO de 26/08/2026 — este bloco mandava buscar o corpo em
+`dispatch-show --task`, e isso está ERRADO.** Medido contra um `worker_done`
+real: `dispatch-show` devolve só metadados do dispatch (`status`,
+`assignee_handle`, `dispatched_at`, `completed_at`, `capability_hash`) e
+**nenhum** campo do relatório — sem `body`, sem `filesModified`, sem
+`reportPath`, sem `outcome`. Quem seguia a receita à risca terminava com ZERO
+material de revisão e reconstruía tudo por `git diff` e scrollback.
+
+O estrago medido no run `run_544ce7e1694d`: **36 `worker_done` + 5 `question` +
+4 `escalation` chegaram e nenhum foi lido**; duas perguntas nunca receberam
+`reply` e uma delas fez um worker fechar `--outcome failed` por bloqueio que se
+destravava em trinta segundos.
+
+O certo é usar os DOIS canais: `task-list` para saber que acabou (autoritativo,
+não-consumidor) e a CAIXA para saber o que aconteceu. `inbox`, `check --peek` e
+`check --all` **não dão `ack`** e por isso não competem com sentinela nenhuma —
+a objeção "check compete com o coordenador" vale só para `check`/`check --wait`,
+que fixam a Delivery. A skill `orchestration` traz o mecanismo pronto
+(`scripts/wave.sh`).
 
 Complementos: terminal `exited` + task `completed` = worker terminou e saiu
 (não é crash); terminal `exited` + task `dispatched` = morreu no meio — aí
@@ -378,3 +398,172 @@ O que destrava, na ordem, e o que NÃO basta:
 Só com os três é honesto seguir. "É flaky" sem os três é presunção — e num
 checkout compartilhado a causa pode ser o trabalho da OUTRA sessão, que também
 não é seu, mas que você precisa nomear.
+
+## `reply` pode ficar órfã: o `ask` do worker expira e ele abre thread NOVA
+
+Medido em 2026-08-26 no ciclo `citycar-ajustes-ia`. O worker (Codex) mandou `ask`, o
+coordenador respondeu com `orchestration reply --id <msg_id>` ~2 min depois, e a resposta
+**nunca chegou ao worker**: o `ask` dele já tinha expirado, e em vez de retomar por
+`ask --resume <message_id>` ele abriu uma **pergunta nova**, com id novo. A reply do
+coordenador ficou pendurada na thread velha, e a mesma pergunta voltou 15 minutos depois.
+
+Custo: dois ciclos de espera armada e ~20 min de worker parado numa decisão de uma linha.
+
+Duas defesas, use as DUAS:
+
+1. **Responda na thread MAIS RECENTE**, não na que você viu primeiro. Reconsulte
+   `orchestration inbox --limit 3 --json` e pegue o `question` do topo antes de responder.
+2. **Mande a mesma resposta também para `--to dispatch:<ctx_id>`**, que é mail durável do
+   dispatch e não depende de um `ask` vivo:
+
+```bash
+orca orchestration reply --id "$MSG" --body "$ANS" --json
+orca orchestration send --to dispatch:<ctx_id> --type dispatch --subject '<assunto>' --body "$ANS" --json
+```
+
+Sintoma que denuncia o problema: uma `escalation` chega DEPOIS da sua reply repetindo a
+mesma dúvida, com o texto "pergunta enviada ao coordenador". Isso não é o worker sendo
+redundante; é ele não tendo recebido nada.
+
+## O guard de posse do `wave.sh adopt` não funciona para terminal de agente
+
+`wave.sh adopt <handle> '<titulo>'` compara o título que você deu no `terminal create` com
+o que está no ar. **Os CLIs de agente renomeiam o pane assim que sobem**: um terminal
+criado com `--title CITYCAR-T3` aparece como `Claude Code`; com `--title CITYCAR-T2`,
+como `auto_pilot_crm`. O adopt recusa os três, corretamente do ponto de vista dele.
+
+Consequência: `wave close` e `wave sweep` não conseguem fechar terminal de worker criado
+pelo caminho baixo nível (`terminal create --command '<agente ...>'` + `dispatch --inject`),
+que é justamente o caminho obrigatório quando você precisa fixar modelo e effort do Codex.
+
+Saídas, em ordem de preferência:
+
+1. `worker-start` quando o modelo/effort couber no que ele expressa — aí o Orca cria e
+   POSSUI o terminal, e o sweep funciona.
+2. Caminho baixo nível: **anote os handles que o seu próprio `terminal create` devolveu**
+   e feche com `orca terminal close --terminal <h> --tab` no fim. A proveniência é sua,
+   veio da sua própria chamada; o que falta é o Orca saber disso.
+
+Não adote pelo título "de trás para frente" (lendo o título que o agente pôs e passando
+esse): isso derruba a única defesa que existe contra fechar a sessão do usuário.
+
+## `wave wait` acorda com escalação de OUTRA run — e pode consumi-la
+
+Medido em 2026-08-27, durante o Ciclo 1 do desacoplamento do Hybrid Fit: um
+`wave wait` armado para a minha run acordou com um `### EVENTO ###` vazio, e o
+`inbox` mostrou logo em seguida uma escalação de outro projeto ("T3b requer
+consumidor em index.ts fora do ownership" — trabalho de automações WhatsApp,
+outra run, mesmo runtime). O corpo não foi impresso, mas o ciclo de
+drenar-e-ack do `wave wait` roda `check --ack`, que consome a Delivery.
+
+Efeito colateral: o coordenador legítimo daquela run pode nunca ver a
+escalação, e o worker dele fica parado esperando resposta que não vem.
+
+Isto CONFIRMA e amplia a entrada "Mensagens de orquestração são GLOBAIS do
+runtime" logo acima: não vale só para sentinelas, vale para o próprio
+`wave wait` do coordenador.
+
+Mitigação, enquanto não houver filtro por run no `check`:
+- Depois de todo `wave wait` que acorde com evento que NÃO é de uma task sua,
+  rode `orca orchestration inbox --limit 5 --json` e confira o `task-id` de
+  cada mensagem contra o seu `task-list`.
+- Mensagem que não é sua: avise no relato ao usuário que ela passou pela sua
+  caixa, para que a outra sessão possa ser reativada. Não há como devolver a
+  mensagem à fila.
+
+## O Codex sobrescreve o título do terminal, e o `wave adopt` recusa
+
+Medido em 2026-08-27. `orca terminal create --title 'X worker' --command 'codex …'` cria o
+terminal com o título certo, mas o TUI do Codex o reescreve para o **basename do cwd**. Na
+volta, `wave.sh adopt <handle> 'X worker'` recusa:
+
+```
+RECUSADO: o titulo nao bate.
+  esperado: 'CTWA-LOTE Terra worker'
+  no ar   : 'atribuiton_ads'
+```
+
+Não é ambiguidade real — o handle veio do recibo do `create`, não de comparar `terminal list`.
+Mas o guard não tem como saber disso, e ele está certo em recusar.
+
+Saídas, em ordem de preferência:
+1. `orchestration worker-start --agent codex --model <id> --effort <id>`, que dá posse de
+   verdade (`ownershipState: "owned"`) — use quando não precisar de argv custom.
+2. Precisando de argv custom (o caso do Codex com `-c model_reasoning_effort`), aceite que o
+   terminal fica `unproven`, **guarde o handle do recibo do `create`** e feche no fim por esse
+   handle, com `--tab`. Não tente adotar pelo título: ele não sobrevive.
+
+Consequência prática: `wave sweep` não fecha esses terminais. O fechamento é manual e
+explícito, e só vale para o handle que VOCÊ anotou na criação.
+
+## `.env.local` não está no worktree — e sem ele o Supabase CLI parece sem permissão
+
+Em repositório com worktrees do Orca, o `.env.local` (gitignored) vive só no **checkout
+principal**. Rodar `supabase db query --linked` de dentro do worktree responde:
+
+```
+LegacyPlatformAuthRequiredError: Access token not provided.
+```
+
+Isso parece falta de permissão e não é: é falta de `SUPABASE_ACCESS_TOKEN` no ambiente. O
+worker conclui "não tenho banco" e devolve hipótese onde daria para ter evidência — exatamente
+o modo de falha que a seção da sessão headless já descreve, por outra porta.
+
+Conserto, e passe isto NO BRIEF do worker em vez de deixá-lo descobrir:
+
+```bash
+set -a; . <checkout-principal>/.env.local; set +a
+supabase db query --linked "select …;"
+```
+
+Confirme o caminho e teste UM select antes de despachar. Vale também para o MCP do Supabase,
+que sobe `not logged in` nos Codex e faz o worker achar que está cego.
+
+## "tsc passou" pode ser um tsconfig que não compila nada
+
+Medido em 2026-08-27, num repo Vite + TS com project references. O worker relatou "tsc e lint
+passaram" e havia um `TS2304: Cannot find name '<x>'` no arquivo que ele acabara de editar —
+um `ReferenceError` garantido em runtime para três verticais de cliente real.
+
+Causa: `tsconfig.json` na raiz continha só `references` e nenhum `include`/`files`. Então:
+
+```bash
+npx tsc --noEmit -p tsconfig.json     # exit 0, e NÃO compilou nada
+npx tsc --noEmit -p tsconfig.app.json # pega o TS2304
+```
+
+Duas lições, e a segunda é a que se repete:
+
+1. Quando o brief exigir typecheck, **nomeie o comando exato**, com o projeto certo. "Rode o
+   tsc" delega ao worker uma escolha que ele não tem como fazer bem.
+2. Repo grande costuma ter milhares de erros pré-existentes nesse projeto (aqui: ~2.800). Um
+   worker que rode o comando certo e veja a enxurrada conclui "já estava quebrado" e segue.
+   Exija o filtro: `... 2>&1 | grep <ArquivoDele>` **não imprime nada**, e peça a saída vazia
+   colada no relatório.
+
+Mesma família do `deno check --no-lock --node-modules-dir=auto <fn>/index.ts` que este projeto
+já documenta: a suíte com `--no-check` não pega `TS2304`, e a revisão estática humana também
+não — conferir colunas não é conferir escopo de identificador.
+
+## Dispatch entregue não se cancela: o worker ocupado não recebe a interrupção
+
+Medido em 2026-08-27. O coordenador despachou uma tarefa de nível MÉDIA para o worker do nível
+BAIXA (terminal livre na hora, tabela de atribuição esquecida). A tentativa de cancelar falhou:
+
+```
+orca terminal send --terminal <h> --text 'PARE...' --enter
+=> ok:false  code: "agent_prompt_stalled"
+```
+
+`terminal send` só entrega quando o TUI está ocioso. Worker ocupado **não tem caixa de
+entrada** para interrupção — `orchestration send --to dispatch:<id>` também só é lido quando
+ELE roda `check`, o que um worker no meio da tarefa não faz.
+
+Duas conclusões:
+
+1. **Confira a tabela de atribuição ANTES de cada `dispatch`, não só no começo da onda.**
+   "O terminal está livre" é a pergunta errada; a certa é "de quem é esta tarefa". Terminal
+   livre do worker errado é armadilha, não oportunidade.
+2. Quando já aconteceu, **não mate o worker no meio**. Deixe terminar e mande o resultado para
+   o gate adversarial, que já existe para isso. Matar custa o trabalho inteiro e deixa arquivo
+   pela metade no disco; revisar custa uma leitura.

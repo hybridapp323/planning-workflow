@@ -85,6 +85,31 @@ Para cada onda:
 
 Um `check --wait` que volta só com keepalive e sai não é falha: é ponto de checagem. Confirme que o worker está vivo e rearme a espera.
 
+## O gate adversarial tem um teto, e ele se chama "mesmo emissor de novo"
+
+Medido no ciclo `2026-08-27-canais-sociais-whatsapp`: o gate (revisor read-only, modelo forte,
+esforço máximo) **reprovou quatro vezes**, e as quatro acharam defeito real que a suíte verde
+não pegava. Mas a rodada 4 reprovou justamente as correções da rodada 3, e **três dos seis
+bloqueantes novos eram a MESMA invariante vazando por emissores diferentes**.
+
+Isso não é sinal de que faltava mais revisão. É sinal de que o fix estava indo para o lugar
+errado: call site por call site, quando o problema é que existem N emissores. Cada rodada
+consertava o emissor citado e o seguinte nascia intacto.
+
+**Quando a segunda rodada do gate devolve a mesma família de achado num arquivo diferente,
+pare de despachar correção pontual.** O brief da onda seguinte tem de proibir o remendo por
+call site e exigir um **ponto de estrangulamento**: um único lugar, o mais tarde possível no
+fluxo, que decide sobre o ESTADO já persistido em vez de depender de cada emissor ter
+lembrado de propagar um sinal. Foi o que fechou o ciclo em uma onda.
+
+Sintoma para reconhecer cedo: você se pega escrevendo, pela terceira vez, "e este caminho
+também precisa propagar X".
+
+**E há um custo de tempo real:** cada rodada de gate custou ~20-40 min de revisão mais uma
+onda de correção. Duas rodadas a mais do que o necessário é meia sessão. Se o usuário pedir
+para reduzir o ciclo de revisão, a resposta certa não é revisar menos — é fazer a revisão
+seguinte julgar um fix ESTRUTURAL em vez de N fixes locais.
+
 ## Gates
 
 Um gate tem `worker_done` como qualquer tarefa, mas o que ele autoriza é um passo **seu**, não a próxima onda.
