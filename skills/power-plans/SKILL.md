@@ -10,7 +10,7 @@ description: >-
   ouvir "escreve o plano", "plano de implementação", "como a gente paraleliza
   isso", "divide entre os agentes", "quantos workers", "monta o plano dessa
   feature", "prepara isso pra multi-agente". É o estado terminal da skill
-  `brainstorming`: design aprovado, invoque esta. Serve qualquer projeto — as
+  `spec-interview`: design aprovado, invoque esta. Serve qualquer projeto — as
   regras específicas saem do CLAUDE.md/AGENTS.md do repositório. Ela escreve o
   plano e para: quem sobe worker é `orchestrating-execute`.
 ---
