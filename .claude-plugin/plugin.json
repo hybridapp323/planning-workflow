@@ -1,14 +1,16 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "planning-workflow",
-  "version": "0.1.0",
-  "description": "Escreve planos de implementacao multi-agente (niveis de complexidade, ownership de arquivo, contratos congelados, ondas e gates) e os executa via Orca orchestration.",
+  "version": "0.2.0",
+  "description": "Ciclo completo de feature: entrevista em rodadas ate a spec fechar, plano de implementacao multi-agente (niveis, ownership de arquivo, contratos congelados, ondas e gates), execucao via Orca orchestration, e depuracao com causa raiz antes de conserto.",
   "author": {
     "name": "hybridapp323",
     "email": "255359676+hybridapp323@users.noreply.github.com"
   },
   "skills": [
+    "./skills/spec-interview",
     "./skills/power-plans",
-    "./skills/orchestrating-execute"
+    "./skills/orchestrating-execute",
+    "./skills/systematic-debugging"
   ]
 }
