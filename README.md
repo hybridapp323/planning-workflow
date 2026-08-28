@@ -47,6 +47,9 @@ cd ~/.claude/skills/planning-workflow && git add <caminhos> && git commit && git
 planning-workflow/
 ├── .claude-plugin/plugin.json
 ├── README.md
+├── hooks/
+│   ├── hooks.json          # SessionStart: injeta o roteador do ciclo
+│   └── session-start.md    # o texto injetado
 └── skills/
     ├── spec-interview/
     │   └── SKILL.md
@@ -62,6 +65,22 @@ planning-workflow/
     │       └── orca-traps.md
     └── systematic-debugging/
         └── SKILL.md
+```
+
+## O gancho de roteamento
+
+`hooks/hooks.json` injeta `hooks/session-start.md` no começo de cada sessão (`startup`, `clear`, `compact`). São ~20 linhas: a tabela pedido → skill, e a regra de que a decisão vem **antes** da primeira ferramenta.
+
+A descoberta da skill já funciona sem ele — toda `description` entra na lista da sessão de qualquer forma. O gancho existe para o caso ambíguo, em que o agente racionaliza ("isso é simples", "deixa eu só olhar o código") e começa a implementar sem passar pelo ciclo.
+
+Se em alguma máquina o gancho não carregar (o carregamento de `hooks/` de um plugin instalado por diretório depende da versão do Claude Code), o mesmo efeito sai de seis linhas no `~/.claude/settings.json` daquela máquina, apontando para o mesmo arquivo:
+
+```json
+"SessionStart": [
+  { "matcher": "startup|clear|compact", "hooks": [
+    { "type": "command", "shell": "bash",
+      "command": "cat \"$HOME/.claude/skills/planning-workflow/hooks/session-start.md\"" } ] }
+]
 ```
 
 ## Documentação viva
