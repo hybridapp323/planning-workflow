@@ -141,7 +141,7 @@ Apresente o design em seções, cada uma dimensionada pela própria complexidade
 
 ## Fase 4 — escrever a spec (só no caminho arquitetural)
 
-Salve seguindo a convenção do projeto. Procure specs anteriores (`docs/**/specs/`, `docs/superpowers/specs/`, `specs/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga ao usuário que você criou a convenção.
+Salve seguindo a convenção do projeto. Procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga ao usuário que você criou a convenção.
 
 Além do design, a spec registra duas coisas que o plano vai precisar e ninguém mais vai lembrar:
 

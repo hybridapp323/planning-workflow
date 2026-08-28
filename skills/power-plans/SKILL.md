@@ -440,7 +440,7 @@ Se o projeto não tiver esses arquivos, pergunte ao usuário estas quatro coisas
 
 ## Onde salvar
 
-Siga a convenção do projeto. Procure planos anteriores (`docs/**/plans/`, `docs/superpowers/plans/`, `plans/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/plans/AAAA-MM-DD-<topico>.md` e diga ao usuário que você criou a convenção.
+Siga a convenção do projeto. Procure planos anteriores (`docs/plans/`, `docs/**/plans/`, `plans/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/plans/AAAA-MM-DD-<topico>.md` e diga ao usuário que você criou a convenção.
 
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
