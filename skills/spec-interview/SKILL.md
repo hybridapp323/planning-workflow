@@ -97,7 +97,7 @@ Corte sem dó o que ninguém pediu (YAGNI). Uma opção que você acha "legal te
 
 Este é o ponto onde uma entrevista boa se distingue de um questionário. A tentação é parar na primeira rodada em que você já consegue escrever *alguma* spec — e é exatamente aí que as decisões não feitas viram decisões suas, tomadas em silêncio, descobertas na implementação.
 
-**A entrevista não acaba quando você já dá conta de escrever. Acaba quando a fronteira esvazia.**
+**A entrevista não acaba quando você já dá conta de escrever. Acaba quando a fronteira esvazia e a varredura de cobertura não acusa categoria ausente.**
 
 ### O teste de fechamento
 
@@ -106,8 +106,9 @@ Antes de declarar a entrevista encerrada, faça este exercício, sempre, e por e
 1. **Liste toda decisão que você tomou sozinho** para conseguir descrever a solução — formato, nome, ordem, default, limite, o que acontece no caso vazio, onde o arquivo mora.
 2. **Cada item dessa lista é uma pergunta que faltou.** Ou ela vira pergunta na próxima rodada, ou ela vira uma linha explícita no design: *"assumi X; se não for, me diz."*
 3. **Silêncio nunca conta como resposta.** Uma decisão que o usuário não viu não está aprovada só porque ele não reclamou.
+4. **Percorra a varredura de cobertura** (`references/coverage-scan.md`), marcando cada categoria Claro / Parcial / Ausente. Os passos 1 a 3 são introspectivos: acham o que você decidiu. Não acham o que você **não pensou**, porque nenhum galho da árvore levava até lá. A varredura é a lista externa que acha isso. Todo Parcial ou Ausente vira pergunta da próxima rodada, ou uma linha explícita na spec: *"não se aplica porque X"*.
 
-Se a lista do passo 1 tem mais de duas ou três linhas, você parou cedo: monte a próxima rodada com elas.
+Se a lista do passo 1 tem mais de duas ou três linhas, ou a varredura do passo 4 deixou categoria sem resposta, você parou cedo: monte a próxima rodada com elas.
 
 ### Regra das rodadas
 
@@ -143,6 +144,8 @@ Apresente o design em seções, cada uma dimensionada pela própria complexidade
 
 Salve seguindo a convenção do projeto. Procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga ao usuário que você criou a convenção.
 
+Esqueleto pronto para copiar: `references/spec-template.md`. Copie a estrutura, não o conteúdo; corte seção que a feature não usa e diga que cortou. Três coisas do esqueleto não são opcionais, porque o plano vai citá-las: requisito com id (`FR-n`) e pelo menos um cenário de aceitação (*dado / quando / então*); critério de sucesso com id (`SC-n`), número e baseline; e a lista de quem mais consome e emite o que muda, nas duas direções. A regra existia em prosa e não segurou. Medido em 2026-09-02: de duas specs arquiteturais do mesmo ciclo, uma saiu com 14 seções e a outra com 4, sem decisão com autoria nem alternativa descartada.
+
 Além do design, a spec registra duas coisas que o plano vai precisar e ninguém mais vai lembrar:
 
 - **O que foi descartado, e por quê.** Sem isso, o primeiro implementador que achar a alternativa "melhor" vai implementá-la.
@@ -153,10 +156,16 @@ Além do design, a spec registra duas coisas que o plano vai precisar e ninguém
 Releia com olhos frios e conserte na hora:
 
 1. **Placeholder** — sobrou "TBD", "a definir", seção vazia, requisito vago?
-2. **Contradição** — alguma seção briga com outra? A arquitetura bate com a descrição das features?
+2. **Contradição** — alguma seção briga com outra? A arquitetura bate com a descrição das features? Resposta de rodada que invalidou uma frase anterior **substitui** a frase; nada contraditório sobrevive "para contexto".
 3. **Escopo** — isso cabe em um plano de implementação só, ou precisa ser decomposto?
-4. **Ambiguidade** — algum requisito comporta duas leituras? Escolha uma e escreva explícito.
+4. **Ambiguidade** — algum requisito comporta duas leituras? Escolha uma e escreva explícito. Procure token a token, não por impressão geral:
+   - adjetivo sem número: rápido, robusto, intuitivo, "em tempo real", grande, muitos, poucos;
+   - requisito com verbo e sem objeto mensurável ("o sistema deve suportar X");
+   - recurso citado sem o que acontece quando ele falha, está vazio ou demora;
+   - o mesmo conceito com dois nomes;
+   - "por padrão", "provavelmente", "algo como", "etc.", "e afins".
 5. **Decisão órfã** — sobrou decisão marcada "assumida por mim" que devia ter virado pergunta?
+6. **Rastreabilidade** — todo FR tem cenário de aceitação e uma linha em "como se prova"? Todo SC tem número e baseline?
 
 Conserte inline. Não precisa revisar de novo.
 
@@ -185,12 +194,13 @@ Espere. Se ele pedir mudança, mude e refaça a auto-revisão. Só avance com o 
 | "Pergunto ao usuário se essa tabela já existe" | Fato é trabalho seu. Despache um subagente e descubra. |
 | "Faço uma pergunta por mensagem pra não sobrecarregar" | A fronteira inteira vai numa rodada. Perguntar em fila multiplica as idas e voltas por dez. |
 | "Já tenho o suficiente pra escrever a spec" | Suficiente para escrever não é o critério. Rode o teste de fechamento. |
+| "Percorri a árvore inteira, então cobri tudo" | A árvore só tem os galhos que alguém abriu. Rode a varredura de cobertura. |
 | "Isso é detalhe, decido na implementação" | Detalhe decidido na implementação é decisão do usuário tomada por você às escondidas. |
 | "Ele não questionou, então concordou" | Silêncio não é aval. Ele só viu o que você mostrou. |
 
 ## Documentação viva
 
-Esta skill melhora com o uso. Quando uma sessão revelar uma pergunta que **faltou** e custou retrabalho depois, ela entra aqui — na lista da Fase 2, nos sinais de parada precoce, ou na tabela acima — **no mesmo trabalho**, não "depois".
+Esta skill melhora com o uso. Quando uma sessão revelar uma pergunta que **faltou** e custou retrabalho depois, ela entra aqui — na lista da Fase 2, numa categoria de `references/coverage-scan.md`, numa seção de `references/spec-template.md`, nos sinais de parada precoce, ou na tabela acima — **no mesmo trabalho**, não "depois".
 
 O critério para entrar é um só: **custou.** Uma pergunta esquecida que virou bug, escopo refeito, ou uma discussão que se repetiu pela segunda vez. Preferência de estilo e ideia não testada ficam de fora — a skill perde o fio se virar depósito.
 
