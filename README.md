@@ -1,6 +1,8 @@
 # planning-workflow
 
-Skills de Claude Code para o ciclo de vida de uma feature, da ideia crua até a execução — e a depuração de quando algo quebra no caminho.
+Skills para o ciclo de vida de uma feature, da ideia crua até a execução, e a depuração de quando algo quebra no caminho.
+
+Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: três das quatro skills não dependem de nenhuma ferramenta específica e rodam em qualquer agente que aceite instruções em arquivo. Ver [Usar em outro agente](#usar-em-outro-agente-ou-outro-cli).
 
 - **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria) e aprovada.
 - **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e gates bloqueantes. Não cita orquestrador.
@@ -19,33 +21,58 @@ ideia  →  spec-interview  →  spec aprovada  →  power-plans  →  plano com
 
 `spec-interview` e `power-plans` param sozinhas: uma entrega a spec, a outra entrega o plano. Quem sobe worker é `orchestrating-execute`, e só quando o usuário mandar.
 
-## Instalar em outra máquina
+## Instalar
 
-O diretório precisa ser filho direto de `~/.claude/skills/`:
+### Claude Code, pelo marketplace (recomendado)
+
+Dentro de uma sessão:
+
+```
+/plugin marketplace add hybridapp323/planning-workflow
+/plugin install planning-workflow@planning-workflow
+```
+
+O repositório é o próprio marketplace (`.claude-plugin/marketplace.json` na raiz). Atualizar depois é `/plugin marketplace update planning-workflow`.
+
+### Claude Code, por clone
+
+Serve quando você quer editar as skills e versionar as mudanças de volta. O diretório precisa ser filho direto de `~/.claude/skills/`:
 
 ```bash
 git clone https://github.com/hybridapp323/planning-workflow.git ~/.claude/skills/planning-workflow
 ```
 
-Carrega na sessão seguinte como `planning-workflow@skills-dir`, ou imediatamente com `/reload-plugins`.
+Carrega na sessão seguinte, ou imediatamente com `/reload-plugins`. Atualizar: `git pull` nesse diretório. Depois de editar, `git add <caminhos> && git commit && git push` — nunca `git add -A`, porque as skills são documentação viva e costumam ter mudança de mais de uma sessão na árvore.
 
-## Atualizar
+## Usar em outro agente ou outro CLI
 
-```bash
-cd ~/.claude/skills/planning-workflow && git pull
-```
+O núcleo é markdown com frontmatter YAML (`name`, `description`) e não tem código. O que muda de agente para agente é só como ele **descobre** e **carrega** o arquivo.
 
-E depois de editar, daqui:
+**Portabilidade, honestamente:**
 
-```bash
-cd ~/.claude/skills/planning-workflow && git add <caminhos> && git commit && git push
-```
+| Skill | Portável? | O que prende |
+| --- | --- | --- |
+| `power-plans` | **sim, inteira** | nada. Ela se recusa de propósito a citar orquestrador: entrega um grafo com níveis, donos e contratos congelados |
+| `systematic-debugging` | **sim, inteira** | nada |
+| `spec-interview` | **sim, com um detalhe** | prefere a ferramenta de pergunta em modal do harness (`AskUserQuestion`); sem ela, a própria skill traz o formato em texto numerado |
+| `orchestrating-execute` | **parcialmente** | a mecânica é do Orca (`orca`, `wave.sh`), a camada de orquestração usada aqui. A skill diz o que fazer sem ele: *"o plano continua válido, é um grafo com níveis, donos e contratos; execute com o mecanismo de subagente que houver"*. Já `references/orca-traps.md` é 100% específico e não serve fora do Orca |
+
+**Receita mínima em outro agente:**
+
+1. Copie `skills/<nome>/SKILL.md` e o `references/` dele para onde aquele agente lê instrução (pasta de skills, regras, ou system prompt).
+2. Se o agente **não** faz seleção automática por `description`, cole `hooks/session-start.md` no prompt de sistema. São ~20 linhas com a tabela pedido → skill, e é o que faz o agente escolher a skill certa antes da primeira ferramenta.
+3. Ignore `.claude-plugin/` e `hooks/hooks.json`: são formato de Claude Code e não têm equivalente garantido em outro lugar.
+
+O ciclo em si — spec fecha antes do plano, plano fecha antes da execução, e cada um para no próprio portão — não depende de ferramenta nenhuma.
 
 ## Estrutura
 
 ```
 planning-workflow/
-├── .claude-plugin/plugin.json
+├── .claude-plugin/
+│   ├── plugin.json         # manifesto do plugin
+│   └── marketplace.json    # o repo e o proprio marketplace: /plugin marketplace add
+├── LICENSE                 # MIT, + atribuicao do material de terceiro
 ├── README.md
 ├── hooks/
 │   ├── hooks.json          # SessionStart: injeta o roteador do ciclo
@@ -98,6 +125,10 @@ As quatro skills são documentação viva do próprio processo, e cada uma diz n
 | `systematic-debugging` | Armadilha de diagnóstico que custou tempo real e vai custar de novo — camada que engole erro, log que mente | Bug específico de um repositório (isso é do `CLAUDE.md` dele) |
 
 Regra comum: a edição entra **no mesmo trabalho** em que o aprendizado aconteceu, nunca "depois". Doc desatualizada é pior que doc ausente — a próxima sessão segue a instrução errada com confiança.
+
+## Licença
+
+MIT, ver [`LICENSE`](LICENSE). `spec-interview` e `systematic-debugging` adaptam material MIT de terceiro; a atribuição está no arquivo de licença e nos créditos abaixo.
 
 ## Créditos
 

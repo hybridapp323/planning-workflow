@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "planning-workflow",
+  "owner": {
+    "name": "hybridapp323"
+  },
+  "metadata": {
+    "description": "Ciclo de vida de uma feature: spec por entrevista, plano multi-agente, execucao e depuracao por causa raiz."
+  },
+  "plugins": [
+    {
+      "name": "planning-workflow",
+      "source": "./",
+      "description": "Da ideia crua a execucao: entrevista em rodadas ate a spec fechar, plano de implementacao multi-agente (niveis, ownership de arquivo, contratos congelados, ondas e gates), execucao, e depuracao com causa raiz antes de conserto."
+    }
+  ]
+}

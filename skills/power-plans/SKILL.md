@@ -70,14 +70,14 @@ A Fase 0 valida **a spec**: o que o problema é, onde ele mora, quanto dado ele 
 metade. A outra metade nasce depois, quando você desenha a correção, e **não passa por
 evidência nenhuma** se você não voltar de propósito.
 
-Medido no ciclo `2026-08-26-auditoria-nome-removido`: o snapshot de evidência tinha 17 KB, media o
+Medido num ciclo de auditoria de turno de atendimento: o snapshot de evidência tinha 17 KB, media o
 problema ao segundo, citava `arquivo:linha` e contava frequência em produção. Ainda assim o
 plano saiu com **três afirmações falsas**, e as três eram do lado da *prescrição*:
 
 | afirmação do plano | realidade | custo |
 |---|---|---|
 | "corte em `ai_audit_logs.created_at`" | é quando o turno **fechou**, ~13 s DEPOIS do inbound a recuperar. O corte cru excluiria exatamente a mensagem alvo | **o fix seria um no-op, e passaria verde** |
-| "a [nome removido] aparece em `flag_y`" | `max=20000` é plausível e não bate em nenhum dos 3 critérios congelados | um worker gastou um ciclo de dispatch para escalar |
+| "o registro auditado aparece na flag de teto impossível" | `max=20000` é plausível e não bate em nenhum dos 3 critérios congelados | um worker gastou um ciclo de dispatch para escalar |
 | `node scripts/run-e2e.mjs` | o caminho é `.claude/skills/ai-chat-e2e/scripts/run-e2e.mjs` | comando quebrado no passo do coordenador |
 
 Nenhuma das três estava no snapshot — porque nenhuma existia quando a Fase 0 rodou. A regra
@@ -157,8 +157,8 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
 1. **Semântica de coluna, flag ou campo. NUNCA infira pelo nome.** `created_at` de uma tabela
    de auditoria parece "quando aconteceu" e significa "quando fechou". Abra a linha e compare
    com um caso conhecido. Este projeto tem uma família inteira de bugs assim
-   (`campo_a`, `campo_b`, `campoC`: booleano cujo nome descreve o
-   que o lead **disse**, lido como "o estágio **entregou**"). O plano de 26/08 reproduziu, na
+   (um booleano cujo nome descreve o que o lead **disse**, lido como "o que o estágio
+   **entregou**"). O plano de 26/08 reproduziu, na
    camada de planejamento, exatamente o defeito que ele fora escrito para corrigir.
 
    A verificação inteira é **uma query**, e ela devolve o veredito sem interpretação:
@@ -173,7 +173,7 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
    where a.conversation_id = '<a conversa do caso>' order by a.created_at;
    ```
 
-   Resultado real do turno da [nome removido]: `created_at 22:58:15.38`, `processing_time_ms 14493`,
+   Resultado real do turno auditado: `created_at 22:58:15.38`, `processing_time_ms 14493`,
    `turno_comecou 22:58:00.888`, e o inbound engolido em `22:58:02.586`. Ou seja: o inbound é
    **posterior ao início** do turno (logo invisível ao motor, e recuperável) mas **anterior ao
    `created_at`** por 13,0 s — cortar no `created_at` o classificaria como "já visto" e o fix
@@ -186,8 +186,8 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
    um campo que já vem preenchido. **No-op passa verde** — é a pior falha possível, porque
    produz teste, relatório e commit sem produzir efeito.
 3. **O caso prometido realmente dispara o critério novo?** Se o plano diz "o lead X vai
-   aparecer na flag Y", rode os critérios de Y contra X **agora**. Foi assim que a [nome removido]
-   entrou num item de gate que ela não satisfazia.
+   aparecer na flag Y", rode os critérios de Y contra X **agora**. Foi assim que o registro
+   entrou num item de gate que ele não satisfazia.
 4. **Caminho, comando e nome existem?** `ls` no script, `--help` no subcomando, `\d` na
    tabela. Custa segundos e aparece no passo do coordenador, que é onde ninguém testa antes.
 
@@ -226,14 +226,14 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
     A ordem de resolução do alvo não é o inventário do módulo. O módulo substituído tem
     **gatilhos** (quando ele age sem ninguém pedir), e cada um é um item da matriz de
     consumidores, com decisão escrita: "mantido", "removido porque X", "coberto por Y".
-    Medido em 2026-09-01/02 (ciclo `vertical-nova-isolamento-vertical`): o plano do pré-LLM
-    próprio de vertical-nova listou a ordem do alvo (vínculo → opção ativa → texto) e os
-    gatilhos de pedido de foto e de nome no texto, e omitiu o gatilho
-    `gatilho_x` do módulo da vertical antiga que estava sendo substituído (lead já
-    vinculado + zero opção → apresentar com foto). Um gate adversarial, sete tarefas, suíte
+    Medido em 2026-09-01/02, num ciclo que isolava uma vertical de negócio nova: o plano do
+    pré-LLM próprio da vertical listou a ordem do alvo (vínculo → opção ativa → texto) e os
+    gatilhos de pedido de foto e de nome no texto, e omitiu o gatilho "interesse já vinculado"
+    do módulo da vertical antiga que estava sendo substituído (lead já vinculado + zero opção
+    → apresentar com foto). Um gate adversarial, sete tarefas, suíte
     verde por nome e três cenários novos pagos passaram; quem achou foi o cenário de REGRESSÃO
-    da vertical (`cenario_z`), que reprovou no turno 3 porque uma flag de entrega
-    (`flag_entrega`) só era gravada por um caminho que a mudança tornara raro. A lista
+    da vertical, que reprovou no turno 3 porque uma flag de entrega só era gravada por um
+    caminho que a mudança tornara raro. A lista
     de gatilhos custa um `grep` por `reason:` no módulo antigo; a omissão custou um run pago,
     uma onda de correção e um redeploy.
 
