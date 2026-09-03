@@ -4,8 +4,7 @@
   "version": "0.2.0",
   "description": "Ciclo completo de feature: entrevista em rodadas ate a spec fechar, plano de implementacao multi-agente (niveis, ownership de arquivo, contratos congelados, ondas e gates), execucao via Orca orchestration, e depuracao com causa raiz antes de conserto.",
   "author": {
-    "name": "hybridapp323",
-    "email": "255359676+hybridapp323@users.noreply.github.com"
+    "name": "hybridapp323"
   },
   "skills": [
     "./skills/spec-interview",
