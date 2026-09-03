@@ -153,6 +153,12 @@ sobrevive a uma mudança de linguagem; o do plano é o que dois workers em paral
 **§5 e §7 são a matriz de consumidores que o plano hoje conserta a posteriori.** Escritas aqui,
 elas chegam ao plano prontas, em vez de aparecerem na validação da spec como lacuna.
 
+**§7 nomeia o ponto de inserção; ela não audita o hospedeiro.** "`X.tsx` — novo consumidor: uma
+linha de inserção" registra onde a peça entra e não diz nada sobre o que a tela já faz com os
+valores que a peça vai consumir. Uma peça nova pode nascer correta e herdar a data errada, o fuso
+errado ou a unidade errada de quem a hospeda. Quando a linha da matriz for "insere aqui", leia o
+hospedeiro antes de fechar a spec.
+
 **A etiqueta de procedência é a mesma do plano** (`[MEDIDO:]`, `[LIDO:]`, `[SUPOSTO:]`, ver
 `power-plans`). Uma spec que já etiqueta as premissas diz à fase de evidência do plano o que
 ainda precisa ser medido, sem obrigar a reler tudo.

@@ -23,9 +23,23 @@ Leia o plano inteiro antes de qualquer comando. Ele precisa ter, no mínimo:
 - nível de complexidade em cada tarefa;
 - matriz de ownership de arquivo;
 - contratos congelados escritos literal;
-- grafo com dependências e passos do coordenador.
+- grafo com dependências e passos do coordenador;
+- **um `Pronto quando` por tarefa, copiado de um cenário de aceitação da spec.**
 
-Faltando qualquer um, **pare e volte para `power-plans`**. Executar um plano sem ownership é combinar colisão; sem contrato congelado é combinar divergência. Custa menos consertar o documento agora.
+Faltando qualquer um, **pare e volte para `power-plans`**. Executar um plano sem ownership é combinar colisão; sem contrato congelado é combinar divergência; **sem critério de pronto é combinar que o coordenador invente um — e ele vai inventar relendo a spec, que é exatamente onde o sentido se perde.** Custa menos consertar o documento agora.
+
+O quinto item tem uma verificação mecânica, e ela custa segundos:
+
+```bash
+for n in $(grep -o 'FR-[0-9]\+' <spec> | sort -u -V); do
+  printf '%-6s plano=%s\n' "$n" "$(grep -cw "$n" <plano>)"
+done
+```
+
+**`-w` não é enfeite:** sem ele `FR-1` casa dentro de `FR-10`, e o requisito que ninguém
+citou aparece como coberto. Medido no próprio ciclo que originou este item.
+
+Medido em 2026-09-03 (ciclo `contador-agua`): a spec tinha 13 FRs com cenário executável; o plano citava **6 deles zero vezes** e não tinha nenhum `Pronto quando`. O coordenador escreveu o critério de cada briefing de cabeça, e um campo que a spec mandava tratar como *"desconhecido, nunca zero"* virou "zero" no briefing — dias de descanso ganharam 300 ml que não existiam, e o defeito só apareceu na revisão adversarial do fim. `plano=0` num FR é um requisito que nenhum worker vai ver.
 
 Confirme também que a árvore está limpa do que interessa, e que você sabe quais arquivos modificados **não** são deste trabalho. Sessões paralelas deixam lixo, e ele acaba num commit errado.
 
@@ -119,7 +133,7 @@ Todo worker recebe, sem exceção:
 - **Os contratos que ele consome**, colados literal no dispatch, não por referência. Worker não deve depender de achar a seção certa.
 - **O que este projeto proíbe delegar.** Tipicamente git. Diga com essas palavras: não rode comando de git, quem commita é o coordenador.
 - **Escalar em vez de improvisar.** Se a tarefa exigir sair do escopo, mudar contrato, ou tocar arquivo de outro, ele manda `escalation` e para. Um worker que improvisa custa mais que um worker que espera.
-- **Pronto quando:** o critério verificável da tarefa, copiado do plano.
+- **Pronto quando:** o critério da tarefa, **copiado do plano — que por sua vez copiou o cenário da spec**. Se o plano não tem esse critério, você não o escreve de cabeça: volte ao plano (ver *Preflight*). Coordenador improvisando critério de pronto é o defeito, não o conserto.
 
 Worker que recebe contrato por referência e não por valor inventa o contrato. Cole.
 

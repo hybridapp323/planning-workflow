@@ -166,6 +166,14 @@ Releia com olhos frios e conserte na hora:
    - "por padrão", "provavelmente", "algo como", "etc.", "e afins".
 5. **Decisão órfã** — sobrou decisão marcada "assumida por mim" que devia ter virado pergunta?
 6. **Rastreabilidade** — todo FR tem cenário de aceitação e uma linha em "como se prova"? Todo SC tem número e baseline?
+7. **Exemplo é asserção, não ilustração** — toda tabela de valores de referência foi
+   **calculada** a partir da regra que a spec enuncia, ou foi escrita à mão? Regra mais exemplos
+   é uma redundância *derivável*, e ninguém pega a contradição lendo: só computando. Medido em
+   2026-09-03: uma tabela de 6 perfis de referência trazia 3 linhas que nenhuma regra única de
+   arredondamento produzia; passou pela aprovação do usuário e só caiu na implementação, quando
+   um worker calculou os 6 e escalou em vez de dobrar o código para caber na tabela. Calcule
+   antes de publicar, e **mostre a coluna intermediária** — erro que fica visível não sobrevive à
+   revisão seguinte.
 
 Conserte inline. Não precisa revisar de novo.
 

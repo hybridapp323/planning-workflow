@@ -65,6 +65,15 @@ inteira descoberta na fase de plano, onde a mesma pergunta já custa uma reescri
 - cenários negativos
 - limites, throttling, cota
 - **concorrência e conflito**: duas ações ao mesmo tempo, retry, idempotência, ordem de eventos
+- **idempotência é por SUPERFÍCIE DE ESCRITA, não por feature.** Enumere cada botão, endpoint e
+  job que grava, e responda *"e se disparar duas vezes?"* para **cada um**. A resposta muda entre
+  superfícies da mesma feature, e é por isso que a pergunta feita uma vez só engana: no botão
+  principal, dois toques costumam ser duas intenções legítimas; no **"tentar de novo"** de um
+  erro, dois toques são **uma** intenção. Medido em 2026-09-03: a spec respondeu a pergunta uma
+  vez, para o botão principal, e concluiu "duas linhas, deliberado" — o que estava **certo**. A
+  superfície de retry herdou essa resposta sem nunca ter sido perguntada, e dois toques gravaram
+  o dobro do valor. Categoria respondida globalmente é categoria que passa; obrigação por
+  artefato força a enumeração.
 - **quem já está no meio do fluxo** quando a mudança entra
 
 ### Comportamento removido ou substituído

@@ -104,6 +104,8 @@ Escritos em C0, antes da onda 1. Ninguém altera sem passar pelo coordenador.
 
 **O que fazer:** <objetivo, em uma ou duas frases>
 
+**Cobre:** FR-<n>, FR-<m> — ou *"infra, sem FR"* dito com essas palavras
+
 **Contratos que ela consome:** §4.1, §4.2
 
 **Assume que:** <um fato por linha, cada um com `[MEDIDO: cmd -> resultado]`, `[LIDO:
@@ -111,7 +113,9 @@ arquivo:linha]` ou `[SUPOSTO: o que o falsifica]`. Nenhum `[SUPOSTO:]` pode sust
 implementação: se sustentar, o primeiro passo desta tarefa e medi-lo, e "se der diferente,
 PARE e escale">
 
-**Pronto quando:** <critério verificável, não "quando funcionar">
+**Pronto quando:** <o cenário de aceitação do FR, COPIADO da spec: dado / quando / então. Não
+parafraseie — o worker recebe esta frase literal no briefing. Se não existe cenário para copiar,
+o buraco é na spec, e é lá que se conserta>
 
 **Não faça:** <o que pertence a outra tarefa e vai dar vontade de fazer aqui>
 
@@ -122,6 +126,29 @@ PARE e escale">
 **Cobre:** <o que exatamente é revisado>
 
 **C<z> não acontece sem o resultado deste gate.**
+
+## 5.1 Rastreabilidade (mecânica, não decorativa)
+
+Preencha **depois** de escrever as tarefas, e **rode o grep** — não confie na leitura, que é
+justamente o que aprova o próprio texto.
+
+| FR | Cenário que vira o "Pronto quando" | Tarefa |
+| --- | --- | --- |
+| FR-1 | <dado / quando / então, resumido> | T2 |
+| FR-2 | <...> | T5 |
+
+```bash
+for n in $(grep -o 'FR-[0-9]\+' <spec> | sort -u -V); do
+  printf '%-6s plano=%s\n' "$n" "$(grep -cw "$n" <plano>)"
+done
+```
+
+Qualquer `plano=0` é um requisito que nenhum worker vai ver. **`-w` não é enfeite:** sem ele `FR-1` casa dentro de `FR-10`, e o requisito que ninguém
+citou aparece como coberto. Medido no próprio ciclo que originou este item.
+
+E os **casos de borda da spec (§5 de lá) são itens de trabalho, não documentação**: cada linha
+recebe uma tarefa dona, ou a marca *"sem código, já coberto por FR-n"*. Linha de borda sem dono é
+comportamento que a spec descreveu certo e ninguém implementou.
 
 ## 6. Passos exclusivos do coordenador
 
@@ -155,7 +182,12 @@ Só o coordenador roda estes. Nenhum worker.
 
 ## Notas sobre o esqueleto
 
-**"Pronto quando" tem que ser verificável.** "Quando a tela funcionar" não é critério. "Quando `bunx vitest run caminho/x.test.ts` passar com os 6 casos da fixture" é.
+**"Pronto quando" é cópia, não paráfrase.** Verificável não basta: *"quando `bunx vitest run
+caminho/x.test.ts` passar"* é verificável e ainda assim não diz **o que** o teste tem de afirmar —
+quem escreve o teste decide isso, pelo que entendeu. Cole o cenário da spec dentro do critério e as
+duas coisas viram a mesma. E se você compactar as tarefas numa tabela em vez de um bloco por
+tarefa, a tabela precisa carregar as colunas `FR` e `Pronto quando`: **coluna que não existe não é
+preenchida**, e foi assim que um plano inteiro saiu com zero critérios de pronto.
 
 **"Não faça" evita mais colisão que qualquer tabela.** O worker que termina cedo procura o que fazer a seguir. Diga a ele o que é dos outros.
 

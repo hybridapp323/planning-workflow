@@ -103,6 +103,17 @@ pode ser suposto; fato que sustenta um fix, não.
 
 Isso é barato. As três falhas acima custavam um `ls` e duas queries.
 
+**Norma citada não é fato verificado.** Quando o plano invoca uma regra da documentação do
+projeto ("o checklist manda X", "a convenção aqui é Y"), `[LIDO: checklist.md:44]` prova que o
+**documento** diz — não que o **código** faz. Documentação envelhece; o código é a verdade. Norma
+que decide uma tarefa vira `[MEDIDO:]` contra o repositório antes de entrar no plano.
+
+Medido em 2026-09-03: um plano citou a regra "não use chave estrangeira para a tabela de usuários
+do auth", vinda do checklist de segurança do próprio projeto. A medição no schema devolveu **7 de
+7 tabelas comparáveis fazendo exatamente isso, e nenhuma fazendo o contrário**. Obedecer o
+documento teria feito da tabela nova a única exceção do banco. Quem estava errado era o documento,
+e ele foi corrigido no mesmo trabalho. Custo da verificação: uma query.
+
 ### A carga do plano: liste o que ele SUSTENTA, e tente derrubar
 
 A etiqueta acima prova que você **olhou**. Ela não prova que você olhou o caminho inteiro, e
@@ -226,6 +237,17 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
     de gatilhos custa um `grep` por `reason:` no módulo antigo; a omissão custou um run pago,
     uma onda de correção e um redeploy.
 
+11. **Tarefa que INSERE uma peça nova dentro de tela, página ou módulo que já existe.** A matriz
+    de consumidores registra o ponto de inserção ("`X.tsx` — novo consumidor: uma linha") e isso
+    *parece* resolver o item. Não resolve: **o que você insere herda o estado do hospedeiro**, com
+    os defeitos dele junto. Antes de dimensionar a tarefa, leia o que o hospedeiro já faz com os
+    valores que a sua peça vai consumir — a data, o fuso, o usuário, o filtro, a unidade.
+    Medido em 2026-09-03: a spec descrevia a virada de meia-noite **corretamente** (*"a data é
+    resolvida a cada consulta pelo fuso do aparelho"*), e a tela hospedeira fixava a data no
+    `mount` desde muito antes da branch. O card novo nasceu certo e herdou o defeito: com o app
+    aberto na virada, o registro ia para o dia anterior. Nenhum FR falhou, nenhum contrato foi
+    violado — o hospedeiro é que não tinha sido lido. Custa um `git show <merge-base>:<arquivo>`.
+
 ### O que NÃO dá para decidir no plano — diga isso em vez de fingir
 
 Rigor não é prometer que o plano prevê tudo; é separar o decidível do emergente e escrever a
@@ -326,6 +348,32 @@ Quem escreve é o coordenador, num passo próprio antes de despachar qualquer wo
 
 Escreva literal, em bloco de código completo. Contrato descrito em prosa é contrato não congelado.
 
+### Critério de pronto: é contrato também, e cola literal
+
+O `Pronto quando` de cada tarefa **é o cenário de aceitação do FR**, copiado da spec, não uma
+paráfrase escrita agora. Vale aqui a frase da seção acima, sem mudar uma palavra: descrito em
+prosa, ele é reinventado por quem despacha.
+
+**"Verificável" não basta.** *"Quando `vitest run x.test.ts` passar"* é verificável e não diz
+**o que** o teste tem de afirmar — quem escreve o teste decide, pelo que entendeu. *"Dado o aviso
+visível, quando tocar Desfazer, então **aquela linha** é apagada"* é o mesmo critério com a
+semântica dentro, e é a diferença entre apagar por identidade e apagar por predicado.
+
+Medido em 2026-09-03 (ciclo `contador-agua`): a spec tinha 13 FRs, cada um com cenário
+executável, e cobria corretamente virada de meia-noite, duplicação de fórmula e semântica de
+campo nulo. O plano citava **6 dos 13 FRs zero vezes** e não tinha **nenhum** `Pronto quando` —
+porque as tarefas foram compactadas numa tabela (`| id | tarefa | nível | dono | arquivos |`), e
+coluna que não existe não é preenchida. O coordenador então escreveu o critério de cada briefing
+de cabeça, relendo a spec. Foi nessa releitura que nasceu o defeito mais caro do ciclo: um campo
+que a spec mandava tratar como *"desconhecido, nunca zero"* virou "zero" no briefing, e dias de
+descanso ganharam 300 ml que não existiam.
+
+> **Coordenador improvisando critério de pronto É o defeito.** E ele só improvisa quando não há
+> o que copiar. O lugar de consertar isso é aqui, não lá.
+
+Compactar tarefas em tabela é legítimo, densidade ajuda. Mas então **a tabela carrega as colunas
+`FR` e `Pronto quando`**. O formato é escolha sua; as duas colunas não são.
+
 ## Fase 2 — o grafo
 
 **Ondas.** Uma onda termina exatamente onde o coordenador precisa agir. Descubra o que este projeto proíbe delegar (ver *Regras do projeto*, abaixo): tipicamente git, migration, deploy e publicação. Esses passos viram passos do coordenador, e são eles que definem onde a onda quebra. Não é escolha estética.
@@ -424,6 +472,23 @@ sendo plano falso.
 
 **Estrutura:**
 
+- **Mecânico, e é o único desta lista que devolve número em vez de opinião:** todo `FR-n` da spec
+  aparece em pelo menos uma tarefa, e toda tarefa tem `Pronto quando` copiado de um cenário — ou
+  a marca explícita *"infra, sem FR"*?
+
+  ```bash
+  for n in $(grep -o 'FR-[0-9]\+' <spec> | sort -u -V); do
+    printf '%-6s plano=%s\n' "$n" "$(grep -cw "$n" <plano>)"
+  done
+  ```
+
+  **`-w` não é enfeite:** sem ele `FR-1` casa dentro de `FR-10`, e o requisito que ninguém citou
+  aparece como coberto — o falso passe cai justamente no FR de número baixo, que costuma ser o
+  comportamento central da feature.
+
+  Os outros itens são de julgamento, e julgamento aprova o que ele mesmo escreveu. `plano=0` é um
+  requisito que nenhum worker vai ver. Rode antes de entregar o plano, e de novo no preflight da
+  execução.
 - Toda tarefa tem nível, dono e dependências explícitas?
 - Todo arquivo tocado aparece na matriz de ownership, com um dono só, **derivado do traçado
   do caminho** e não da memória do que você leu?
