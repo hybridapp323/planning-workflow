@@ -43,6 +43,55 @@ O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` justam
 
 Se o usuário atribuir um modelo por tarefa em vez de por nível, aceite: a granularidade é dele.
 
+### A atribuição vale para a execução INTEIRA, não só para a onda 1
+
+O time que o usuário definiu governa **toda tarefa que você despachar até o fim do ciclo**: as
+ondas seguintes, os gates, e principalmente os **reparos** — worker que morreu, tarefa refeita,
+correção de achado, continuação de trabalho parcial. Uma tarefa complexa refeita continua
+complexa: ela volta no modelo de complexa, não no que estiver à mão.
+
+Nunca introduza um modelo que o usuário não listou. Se o time não cobre um caso (um revisor
+read-only, por exemplo, quando só foram nomeados implementadores), **pergunte** em vez de
+escolher: acrescentar um modelo por conta própria é decisão do usuário sendo tomada por você,
+e ele descobre depois, pela fatura ou pela qualidade.
+
+### `--model` é OBRIGATÓRIO no `--command`, e você tem que CONFERIR
+
+Esta é a forma mais fácil de violar a regra acima sem perceber, e ela já aconteceu
+(2026-09-02, ciclo `corrida-frequencia-e-ritmo-alvo`):
+
+```bash
+# ERRADO — sobe no default do CLI, seja ele qual for
+orca terminal create --command "claude --permission-mode bypassPermissions"
+
+# CERTO — modelo explícito
+orca terminal create --command "claude --model claude-opus-5 --permission-mode bypassPermissions"
+```
+
+Sem `--model`, o TUI sobe no **default da instalação** e nada avisa. No caso medido, três
+workers de tarefa complexa (T7, T7b, T8) rodaram em Fable enquanto o coordenador **relatava ao
+usuário que estavam em Opus 5** — porque ele confundiu a própria intenção com o que tinha
+digitado. Quem descobriu foi o usuário, olhando os terminais.
+
+Por isso o `--model` não basta: **confira o modelo no TUI depois de `terminal wait`, antes de
+despachar.** É o mesmo cuidado que a armadilha do Codex já exigia (`gpt-5.6` puro sobe e só
+falha no primeiro request), e ele vale para todo provedor:
+
+```bash
+orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 120000
+orca terminal read --terminal <handle>    # o rodapé/cabeçalho tem que mostrar o modelo pedido
+```
+
+Se o que aparecer não for o que o usuário pediu, **feche o terminal e recrie**. Não despache
+"só para não perder o boot": um worker no modelo errado produz trabalho que você vai ter de
+descartar, e descartar custa mais que recriar.
+
+**Quando descobrir tarde**, com o worker já trabalhando: pare o worker, **salve o diff** no
+scratchpad antes de reverter (ele pode conter achados reais que valem para o brief novo),
+restaure os arquivos, e refaça a tarefa no modelo certo com um brief que já incorpore o que
+foi aprendido. Feche a task antiga com o motivo escrito — `task-list` é a fonte de verdade da
+invariante de fim de turno, e uma task fechada sem motivo vira confusão na próxima sessão.
+
 ## Mecânica: use a skill `orchestration`
 
 Não redocumente o Orca. Para criar run, criar task com dependência, despachar com preâmbulo injetado e esperar `worker_done` / `escalation` / `decision_gate`, siga a skill `orchestration`. Esta aqui só acrescenta o que é específico de executar um plano.
@@ -51,7 +100,7 @@ Sequência por worker, na ordem:
 
 1. `run-create` uma vez, no começo. Sem run vinculada, `task-list` falha.
 2. `task-create` para cada tarefa, com `--deps` refletindo o grafo do plano. O grafo vira estado, não fica só no documento.
-3. `terminal create`, com o flag de bypass de permissão **dentro** da string de `--command`.
+3. `terminal create`, com o flag de bypass de permissão **e o `--model` do nível** dentro da string de `--command`. Confira o modelo no TUI antes do dispatch (ver *Portão de atribuição de modelo*).
 4. `terminal wait --for tui-idle` antes de despachar. Terminal que ainda está subindo engole o dispatch.
 5. `dispatch --inject` com o preâmbulo abaixo.
 6. `check --wait --types worker_done,escalation,decision_gate`.
@@ -73,6 +122,43 @@ Todo worker recebe, sem exceção:
 - **Pronto quando:** o critério verificável da tarefa, copiado do plano.
 
 Worker que recebe contrato por referência e não por valor inventa o contrato. Cole.
+
+### A prova de neutralização só pode tocar arquivo que o worker POSSUI
+
+Peça sempre a prova de neutralização (neutralize o fix, confirme que o teste falha, restaure).
+Ela é o que separa teste que trava o defeito de teste decorativo. Mas ela **muta o código de
+produção por alguns minutos**, e é aí que mora a armadilha:
+
+> **Se o alvo da neutralização não é um arquivo do worker, a prova é do COORDENADOR, numa cópia
+> isolada — nunca do worker, nunca na árvore compartilhada.**
+
+Medido em 2026-09-01. Um brief mandava "remova o `EdgeRuntime.waitUntil` e confirme que a
+asserção falha" e, na mesma página, "não edite `handoff-side-effects.ts`". As duas instruções
+eram incompatíveis: uma extração anterior tinha **mudado o `waitUntil` de arquivo**, e o brief
+foi escrito contra o mapa antigo. O worker fez o razoável, editou o arquivo alheio — e **morreu
+no meio** (print mode, `timeout waiting for response`).
+
+O que ficou na árvore: produção sem o `waitUntil`, ou seja, o isolate podendo morrer com a
+resposta HTTP e engolir a notificação ao atendente. **E a suíte inteira passava verde**, porque
+o único teste que observava aquilo era o que o próprio worker estava escrevendo. Só a medição
+isolada do coordenador denunciou.
+
+Três consequências para quem escreve o brief:
+
+1. **Antes de mandar neutralizar, confira em qual arquivo o alvo mora HOJE.** Depois de uma
+   extração ou refatoração, o mapa da sua cabeça está velho. Um `grep` resolve.
+2. **Neutralização e ownership têm de bater.** Se não batem, o brief está errado — não é o
+   worker que tem de escolher qual das duas instruções obedecer.
+3. **Trate a árvore como suja até provar o contrário** quando um worker morre. Não confie no
+   verde: rode a suíte numa cópia do HEAD limpo mais só os arquivos daquele worker, e compare
+   por nome. Verde numa árvore que contém uma neutralização esquecida é verde pelo motivo
+   errado.
+
+A regra maior, e ela vale além disto: **restauração que depende de alguém lembrar não é
+restauração, é intenção.** A contraparte disso na mecânica de terminais está em
+[`references/orca-traps.md`](references/orca-traps.md) (terminal que sobrevive ao
+`worker-release`), e a contraparte em dado é `deactivate_stages` nos cenários de E2E, que
+restaura sempre, inclusive quando o cenário falha.
 
 ## O laço de ondas
 
@@ -104,6 +190,33 @@ lembrado de propagar um sinal. Foi o que fechou o ciclo em uma onda.
 
 Sintoma para reconhecer cedo: você se pega escrevendo, pela terceira vez, "e este caminho
 também precisa propagar X".
+
+### O caso mais barato de prevenir: mudou um TIPO compartilhado
+
+Medido em 2026-08-28. Uma tarefa acrescentou um valor a um enum (`execution_status`) para
+consertar uma MÉTRICA. Esse enum era lido por **cinco** lugares por igualdade literal; a entrega
+verificou um. As revisões seguintes acharam os outros quatro, e dois eram defeito de produção —
+um deles invertia exatamente o dedupe que o sistema existe para garantir.
+
+A prevenção não é mais revisão, é uma linha no spec. Quando a tarefa acrescenta valor a um enum,
+campo a um contrato, ou estado a uma máquina de estados, exija como ENTREGÁVEL:
+
+> O inventário dos consumidores, obtido por `grep`, com a decisão explícita para cada um.
+> `grep -rn '"<valor-antigo>"' <raiz> --include=*.ts`
+
+E prefira, quase sempre, a regra que torna o inventário inofensivo:
+
+> **Rótulo novo não muda comportamento.** Se o valor existe para relatório ou telemetria, o
+> sistema tem de se comportar byte a byte como antes; quem responde a pergunta semântica é um
+> predicado único, e as igualdades literais que sobrarem são exceções DECLARADAS, com o motivo
+> escrito ao lado.
+
+Com essa regra, achar um sexto consumidor depois vira anotação; sem ela, vira incidente.
+
+E a nota que fecha o ciclo: **o quinto consumidor foi encontrado pela DOCUMENTAÇÃO.** Ao
+atualizar a skill do projeto no fim do trabalho, o coordenador leu uma frase que ela já afirmava
+e que nomeava um leitor fora do inventário. Atualizar documentação no mesmo ciclo não é só
+higiene: é uma passada de revisão sobre uma descrição do sistema que ninguém tinha relido.
 
 **E há um custo de tempo real:** cada rodada de gate custou ~20-40 min de revisão mais uma
 onda de correção. Duas rodadas a mais do que o necessário é meia sessão. Se o usuário pedir

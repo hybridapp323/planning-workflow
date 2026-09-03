@@ -154,6 +154,38 @@ push."` (um dry-run imprime `DRY RUN: migrations will *not* be pushed`).
 Instrução no brief não basta para passo irreversível. **Terminal de gate não
 deve ter credencial de banco no ambiente.**
 
+## Terminal `claude` sem `--model` sobe no default e NADA avisa (2026-09-02)
+
+A armadilha irmã da do Codex logo abaixo, e mais silenciosa: o Codex ao menos devolve `400` no
+primeiro request, enquanto o `claude` sem `--model` **funciona perfeitamente** — só que no
+modelo errado.
+
+```bash
+# ERRADO — herda o default da instalação
+orca terminal create --command "claude --permission-mode bypassPermissions"
+
+# CERTO
+orca terminal create --command "claude --model claude-opus-5 --permission-mode bypassPermissions"
+```
+
+Medido no ciclo `corrida-frequencia-e-ritmo-alvo`: três workers de tarefa **complexa** (T7, T7b,
+T8) rodaram em **Fable** durante horas, enquanto o coordenador relatava ao usuário "T7 com Opus
+5". Ele não mentiu de propósito: escreveu a intenção no resumo sem nunca ter passado a flag, e
+depois leu o próprio resumo como se fosse o comando. Quem pegou foi o usuário, olhando os
+terminais.
+
+Duas consequências que valem para qualquer provedor:
+
+1. **`--model` sempre explícito**, em todo `terminal create`. Default de instalação não é
+   decisão do coordenador, é acidente.
+2. **Confira no TUI antes de despachar.** `terminal wait --for tui-idle` e depois
+   `terminal read`: o cabeçalho mostra o modelo real (`Opus 5 with high effort`,
+   `gpt-5.6-sol max`). Um dispatch a mais custa segundos; um worker no modelo errado custa a
+   tarefa inteira, porque o trabalho tem de ser descartado.
+
+E ao relatar ao usuário qual modelo fez o quê, **cite o que está no comando ou no TUI**, nunca
+o que você pretendia. Resumo não é evidência.
+
 ## Modelo Codex: `gpt-5.6` puro NÃO existe — é `-sol`/`-terra`/`-luna`, e o effort é argumento separado
 
 `codex --model gpt-5.6` sobe o TUI normalmente (rodapé até mostra "gpt-5.6
@@ -175,6 +207,102 @@ Cheque duas coisas depois de criar o terminal: o rodapé mostra
 `gpt-5.6-sol max`, E — como o rodapé mente para modelo inválido — que após o
 dispatch o terminal mostra atividade real ("Working…/Exploring"), não um erro
 400 no tail.
+
+## Sentinela que vigia STATUS não vê worker BLOQUEADO — e ele fecha sozinho, calado (2026-09-03)
+
+Custou o relatório inteiro de um revisor adversarial, e o modo de falha é elegante demais para
+não estar escrito.
+
+O `Monitor` vigiava duas coisas: o status da task (`task-list`) e sinal de vida no terminal
+(`esc to interrupt`). Um revisor `codex` levantou uma `escalation` legítima — *"o checkout mudou
+de X para Y durante a revisão read-only; entrego o relatório do snapshot inicial ou reaudito?"* —
+porque a onda de correção comitou embaixo dele. Para a sentinela, nada aconteceu: a task seguia
+`dispatched` (correto) e o terminal seguia vivo (correto, ele estava esperando resposta). Passados
+alguns minutos ele **encerrou sozinho com `completed`**, sem nunca escrever o arquivo.
+
+O coordenador só descobriu depois, procurando o relatório que não existia, e aí o terminal já
+tinha sido fechado. **Não havia como recuperar.**
+
+Duas correções, e as duas são baratas:
+
+1. **A sentinela tem de olhar a CAIXA, não só o status.** `inbox --limit N --json` não consome e
+   não compete com ninguém (a objeção de disputa vale para `check`/`check --wait`, não para
+   `inbox`). Emita evento para todo `question` e `escalation` que apareça:
+
+   ```bash
+   orca orchestration inbox --limit 40 --json 2>/dev/null \
+     | jq -r '.result.messages[]? | select(.type=="question" or .type=="escalation") | "\(.id)"'
+   ```
+   Guarde os ids já vistos e emita só os novos.
+
+2. **Dois revisores com o MESMO `--report-path` sobrescrevem um ao outro.** Os dois briefs deste
+   ciclo sugeriam `/tmp/revisao-contador-agua.md`. Só um arquivo existiu no fim. Sempre inclua o
+   id da task ou do dispatch no caminho: `/tmp/revisao-<task_id>.md`.
+
+E a regra maior, que vale além da sentinela: **a sua onda de correção comitando embaixo de um
+revisor read-only é uma mudança de contrato para ele.** Se você vai despachar correções enquanto
+alguém ainda revisa, diga isso no brief dele desde o começo ("o alvo é o commit X; a árvore pode
+mudar; entregue sobre X"), ou espere. Não deixe o worker descobrir sozinho e ter de perguntar.
+
+## `arm-external` sem bind escreve o lock em `norun-<uid>` e o portão te bloqueia (2026-09-03)
+
+Segundo sintoma da armadilha logo abaixo, e ele engana mais do que o primeiro porque **tudo
+parece certo**. Depois de registrar um `Monitor persistent` com `wave.sh arm-external <pid>`, o
+comando respondeu `espera externa registrada`, o `wave gate` respondeu `ha espera VIVA` e o
+turno seguiu. Dois turnos depois o hook `Stop` bloqueou com **"NENHUMA espera armada"** — com o
+Monitor vivo, correto e no pid registrado.
+
+A causa está no nome do arquivo de lock. `wave.sh` escopa o lock por Run
+(`orca-wave-armed.<run_id>.lock`), e resolve o `run_id` chamando o Orca. Numa shell **sem bind**,
+essa resolução devolve vazio e ele cai no fallback `norun-<uid>`:
+
+```
+-rw-r--r-- 76 Sep  3 03:30 ~/.claude/orca-wave-armed.norun-997.lock      <- onde foi escrito
+-rw-r--r-- 76 Sep  3 03:34 ~/.claude/orca-wave-armed.run_8a3ea4f46f62.lock <- onde o hook procura
+```
+
+O `gate` rodado na MESMA shell sem bind lê o mesmo `norun-*` e concorda que está armado — por
+isso a confirmação mente. O hook `Stop` roda noutro processo, resolve a Run corretamente, procura
+o lock certo, não acha, e bloqueia.
+
+Sinal de que é isto, e não outra coisa: a linha do `gate` termina com `(run )`, com o nome vazio
+entre parênteses. Quando está certo ela traz `(run run_8a3ea4f46f62)`.
+
+**Conserto: `run-use` e `arm-external` na MESMA linha de shell**, e confira o `(run …)` da saída.
+
+```bash
+orca orchestration run-use --id <run_id> --json >/dev/null 2>&1 && \
+  wave.sh arm-external <pid> '<descricao>'
+orca orchestration run-use --id <run_id> --json >/dev/null 2>&1 && wave.sh gate   # tem de imprimir (run <run_id>)
+```
+
+Vale para `wave wait`, `wave close` e qualquer subcomando que dependa da Run: sem o bind na mesma
+shell, eles operam num escopo fantasma.
+
+## Depois de um restart, o bind da Run não sobrevive de UMA CHAMADA para a OUTRA (2026-09-03)
+
+Complemento medido da armadilha logo abaixo, e o modo de falha é pior porque é
+**intermitente e fail-open**. Depois que a sessão do Claude Code caiu e voltou (workers
+seguiram vivos), `run-use --id <run>` respondeu `ok:true` e o `task-list` **do mesmo
+comando** funcionou. O `task-list` da chamada SEGUINTE respondeu `run_required` de novo.
+
+Cada invocação do Bash tool é um shell novo, e o bind é por terminal invocante: ele não
+persiste entre chamadas. O estrago não é o erro — é o `wave.sh gate`, que nesse estado
+imprime **"SEM RUN VINCULADA - nada a supervisionar. TURNO PODE ENCERRAR."** com duas tasks
+`dispatched` e dois workers trabalhando. O portão que existe para impedir o coordenador de
+sumir passa a **autorizar** exatamente isso, porque ele é fail-open quando não há Run.
+
+Conserto: **prefixe o rebind em toda chamada de orquestração**, na mesma linha de shell.
+
+```bash
+orca orchestration run-use --id <run_id> --json >/dev/null 2>&1; orca orchestration task-list --json
+orca orchestration run-use --id <run_id> --json >/dev/null 2>&1; wave.sh wait 3600   # em background
+```
+
+Sintoma para reconhecer: `wave gate` dizendo "TURNO PODE ENCERRAR" logo depois de você ter
+despachado. Se você acabou de despachar, o gate está errado, não você — confira o bind antes
+de acreditar nele. E `wave close` recusa com `dispatch pertence a <run>, nao a` (o segundo
+nome vem vazio) pelo mesmo motivo.
 
 ## Restart do runtime desvincula a Run — `task-create` volta a falhar
 
@@ -567,3 +695,336 @@ Duas conclusões:
 2. Quando já aconteceu, **não mate o worker no meio**. Deixe terminar e mande o resultado para
    o gate adversarial, que já existe para isso. Matar custa o trabalho inteiro e deixa arquivo
    pela metade no disco; revisar custa uma leitura.
+
+---
+
+## `reply` chega, mas o corpo NÃO aparece no `check` simples
+
+Medido em 2026-08-28. O coordenador respondeu duas escalations com
+`orchestration reply --id <msg_id>`, o comando devolveu `ok` com o id da resposta, e o worker
+relatou ter recebido **`[status]` sem corpo**. Duas rodadas se perderam nisso, e o workaround
+usado na hora foi pior: criar uma task NOVA só para carregar a autorização no `--spec`.
+
+A causa saiu do próprio worker, na T5-D: **`check --terminal <t> --peek` mostra o corpo; o
+`check` simples mostra só o cabeçalho.** Quem instrui worker a "ver se chegou resposta" tem de
+dizer `--peek`, senão ele vê que existe mensagem e não vê o que ela diz.
+
+Ponha isso no preâmbulo de todo dispatch que possa gerar escalation.
+
+## `escalation` seguida de `worker_done --outcome failed` CONSOME o dispatch
+
+Medido em 2026-08-28, na T10-B. O worker escalou pedindo uma decisão de produto e, sem esperar,
+fechou `--outcome failed`. Quando a decisão chegou, não havia mais dispatch vivo para recebê-la:
+foi preciso criar a T10-C só para carregar a resposta.
+
+Isso é o mesmo ferimento descrito acima ("responda antes de o worker desistir"), visto do outro
+lado. A defesa que funcionou, e que passou a entrar em todo spec deste projeto:
+
+> Se precisar de algo fora do escopo, mande `escalation` e **PARE**. Não feche
+> `worker_done --outcome failed` por bloqueio de escopo: task `failed` não volta.
+
+Com essa frase no spec, a T12-C escalou por um bloqueio de ownership e **esperou** — a resposta
+chegou, ela retomou, e nenhuma task foi perdida.
+
+## A escalation de ownership costuma ser BASE DE MEDIÇÃO errada, não escopo
+
+Medido em 2026-08-28, T12-C. O worker parou dizendo que um teste fora do seu ownership falhava
+e pediu autorização para editá-lo. Não precisava: as mudanças da task ANTERIOR daquele mesmo
+arquivo estavam na árvore de trabalho e **ainda não haviam sido commitadas**. Ele isolou de
+`git archive HEAD` e pegou a versão velha do arquivo.
+
+Antes de alargar ownership em resposta a uma escalation dessas, pergunte: *a base isolada dele
+inclui o trabalho não commitado das tasks irmãs?* Em onda de várias correções encadeadas sobre
+os mesmos arquivos, quase sempre não inclui. A resposta certa é a receita de base:
+
+```bash
+git archive HEAD supabase src | tar -x -C <dir>   # os DOIS diretorios
+# copie por cima os arquivos NAO COMMITADOS das tasks irmas
+# so entao aplique os seus
+```
+
+Alargar ownership ali teria deixado dois workers donos do mesmo arquivo, que é exatamente o que
+a matriz existe para impedir.
+
+## Terminal do gate morre entre rodadas
+
+Medido em 2026-08-28: o terminal do gate voltou `no recognized agent detected` na rodada
+seguinte. Não é erro de dispatch — o processo do agente saiu. Recrie o terminal e redespache;
+o relatório da rodada anterior já está na caixa e no `--report-path`, então nada se perde.
+
+## `wave.sh wait` em background é morto por algumas harnesses
+
+Medido em 2026-08-28, três vezes na mesma sessão: o `wait` em background voltou com status
+`killed` sem evento nenhum. A skill `orchestration` recomenda background porque é assim que a
+harness reinvoca o coordenador quando o evento chega — mas quando o background não sobrevive,
+o resultado é pior do que o problema: o coordenador fica offline sem saber.
+
+Alternativa que funcionou no ciclo inteiro: **foreground com `timeout` explícito**
+
+```bash
+timeout 1500 ~/.claude/skills/orchestration/scripts/wave.sh wait 1400
+```
+
+Consome o turno, o que é o custo real; em troca, o evento sempre chega. Se o background morrer
+uma vez, troque para foreground e não insista.
+
+## O runner E2E deste projeto recebe cenários POSICIONAIS
+
+Medido em 2026-08-28. `--scenario a,b` vira um único id inexistente e o run aborta com
+`unknown_scenario: a,b`. Não custou turno pago porque falha antes do primeiro turno, mas custa
+uma ida e volta. A forma certa é posicional:
+
+```bash
+node .claude/skills/ai-chat-e2e/scripts/run-e2e.mjs no_interest_exit closure_no_vehicle_match
+```
+
+Cenários da MESMA vertical rodam em série de propósito (disputam round-robin de atendente e fila
+de jobs). Verticais diferentes usam workspaces diferentes e podem rodar em paralelo — foi assim
+que três smokes couberam no tempo de um.
+
+## Antigravity (`agy`) FUNCIONA na orquestração — só não aceita `--inject`
+
+Medido e testado ponta a ponta em 2026-08-28, depois de um ciclo inteiro em que o coordenador
+deixou o tier Antigravity sem uso alegando que "não é reconhecido". A alegação estava errada:
+o que não é reconhecido é o `--inject`, e o contorno está na própria mensagem de erro.
+
+```
+Cannot dispatch --inject to terminal term_...: no recognized agent detected.
+Start an agent CLI (e.g. claude, codex, gemini, droid, cursor) in the terminal first,
+or dispatch without --inject and send the prompt manually.
+```
+
+O `--inject` detecta `claude`, `codex`, `gemini`, `droid`, `cursor`. O `agy` não entra nessa
+lista, e é só isso. **Receita verificada, com worker respondendo:**
+
+```bash
+# 1. terminal com o modelo. O effort vai EMBUTIDO no id (agy models lista todos):
+#    gemini-3.7-flash-high | -medium | -low, gemini-3.1-pro-high, claude-opus-4-6-thinking...
+orca terminal create --command 'agy --dangerously-skip-permissions --model gemini-3.7-flash-high'
+
+# 2. espere o TUI subir. ATENCAO: `terminal wait` NAO aceita --timeout (invalid_argument)
+orca terminal wait --terminal <t> --for tui-idle
+
+# 3. dispatch SEM --inject, COM --return-preamble.
+#    Ele registra o dispatch (provenance intacta) e devolve o preambulo em vez de injeta-lo.
+orca orchestration dispatch --task <id> --to <t> --return-preamble --json
+
+# 4. entregue preambulo + spec pelo terminal. O preambulo ja traz o comando de
+#    `worker_done` com taskId e dispatchId preenchidos — sem ele o worker nao sabe reportar.
+orca terminal send --terminal <t> --text '<preambulo + spec>' --enter
+
+# 5. dali em diante e tudo igual: o worker manda `worker_done`, cai na caixa, `wave wait` ve.
+```
+
+Três detalhes que custam se descobertos na marra:
+
+- **Um dispatch ativo por terminal.** Dispatch novo no mesmo terminal responde
+  `already has an active dispatch (ctx_… for task …)`. Encerre a task anterior primeiro.
+- **`terminal read` devolve o conteúdo em `result.terminal.tail`** (lista de linhas), não em
+  `result.read.content`. Laço de polling que procura no lugar errado conclui "o worker não
+  respondeu" com a resposta na tela.
+- **`terminal create --title` não gruda** quando o comando é um TUI: o título no ar vira o prompt
+  do shell, e por isso `wave adopt` RECUSA o terminal depois. Se for fechar, use o handle do
+  recibo do `create` e `orca terminal close --terminal <t> --tab`.
+
+**A lição de método, e ela não é sobre o `agy`:** quando o usuário atribui um modelo por tier,
+esse tier é decisão dele, não sugestão. Bater num obstáculo de ferramenta e cair calado no outro
+modelo do tier troca a decisão do usuário por conveniência do coordenador. Se o contorno custar
+tempo demais, o certo é DIZER isso na hora e deixar ele escolher — não descobrir no fim do ciclo.
+
+## opencode: `--auto` não é conveniência, é o que impede o worker de travar (2026-08-29)
+
+O catálogo da skill `orchestration` lista `opencode --model <provider>/<model>` sem flag de
+permissão, e isso viola a própria regra de "modo sem prompt" da seção *Terminal Permission Mode*.
+O flag existe e é `--auto` (`auto-approve permissions that are not explicitly denied`). Sem ele o
+worker sobe, recebe o dispatch, e para no primeiro pedido de permissão parecendo vivo.
+
+```bash
+orca terminal create --worktree <sel> --title <t> --command 'opencode --auto --model opencode-go/glm-5.3'
+```
+
+Confira no rodapé do TUI: tem de ler **`Build auto`**, não só `Build`.
+
+## opencode NÃO aceita `dispatch --inject`, e a falha é enganosa (2026-08-29)
+
+`orca orchestration dispatch --to <opencode> --inject` responde `ok:false` com
+`agent_prompt_stalled` — **mas o texto da task CHEGA no TUI e o worker começa a trabalhar.**
+O que não sobrevive é o registro: o dispatch fica `status: failed`,
+`capability_revoked_at` preenchido, `failure_count: 1`. Ou seja, o worker faz o trabalho inteiro
+e **não consegue emitir `worker_done`** — o coordenador fica esperando para sempre um evento que
+não pode existir.
+
+Pior: três falhas na mesma task fazem o Orca marcar a task como `failed` de vez.
+
+Receita correta (mesma família da do Antigravity):
+
+```bash
+orca orchestration dispatch --task <id> --to <handle> --return-preamble --json   # registra, nao injeta
+# entregue o brief por terminal send, embutindo o comando de worker_done com os DOIS ids
+```
+
+E **mande o comando de `worker_done` por escrito**: o opencode não recebe o preâmbulo de ciclo
+de vida, então ele não sabe que precisa reportar.
+
+## Texto longo no `terminal send` do opencode entra na caixa e NÃO envia (2026-08-29)
+
+Um `terminal send --enter` com o brief inteiro (~4KB) respondeu `ok:true`, o texto apareceu no
+compositor, e o worker **ficou ocioso**. Um segundo `send` curto depois disso disparou os dois.
+Sintoma idêntico ao do Grok (Enter enfileira, Ctrl+Enter envia), mas aqui o conserto que
+funcionou foi outro: **mande uma mensagem CURTA que aponte para um arquivo** com o brief.
+
+```bash
+orca terminal send --terminal <h> --text "NOVA TAREFA X. Leia <caminho>/BRIEF.md por completo e execute. Ao terminar rode: orca orchestration send --type worker_done ... --task-id <t> --dispatch-id <d> --outcome succeeded --json" --enter
+```
+
+Vale como regra geral para TUI que não é `--inject`: brief em arquivo, prompt curto.
+
+## Repo novo no Orca: o Claude Code para no "trust this folder" e o `worker-start` FALHA (2026-08-29)
+
+Ao rodar `orca repo add` num checkout novo e despachar ali pela primeira vez, o
+`worker-start` sai com `state: failed`, `stage: agent_readiness`,
+`lastError: "Agent startup blocked: codex-trust-workspace"` (o nome cita codex, mas acontece
+com o Claude Code também). **O terminal fica vivo** e aparece em `residualResources`.
+
+Dois detalhes que custam tempo:
+
+1. `terminal send --text "1" --enter` no prompt de confiança responde `agent_prompt_blocked`.
+   O que funciona é **Enter puro**: `terminal send --text "" --enter` (a opção 1 já vem
+   selecionada).
+2. A task já está `failed` e **não volta**. Crie uma task NOVA com o mesmo spec e
+   `worker-start --task <nova> --terminal <handle_do_residual>`.
+
+## `worker-start --terminal` exige `--worktree` explícito fora da worktree da Run (2026-08-29)
+
+`worker-start --task <t> --terminal <h>` sozinho responde
+`terminal_worktree_mismatch: Terminal <h> does not belong to worktree <a worktree da Run>`.
+O flag `--worktree` não é opcional nesse caso, mesmo você já tendo dado `--terminal`:
+
+```bash
+orca orchestration worker-start --task <t> --worktree "id:<repo>::<path>" --terminal <h> --json
+```
+
+## `supabase db query` NUNCA faz DDL, e o motivo muda conforme o projeto (2026-08-29)
+
+Medido nos dois bancos do Hybrid Fit no mesmo dia:
+
+| caminho | app (`tssusoibeiupmvszvnhq`) | site (`kccdxykgfwylbxanmtne`) |
+|---|---|---|
+| `db query --linked --file` | **aplicou o ALTER TABLE** | `cannot execute ALTER TABLE in a read-only transaction` |
+| `db query --db-url --file` | — | `cannot insert multiple commands into a prepared statement` |
+| Management API `POST /database/query` | — | mesma recusa read-only |
+| `apply_migration` (MCP) | — | `You do not have permission to perform this action` |
+
+A diferença **não é o CLI: é o token**. O `SUPABASE_ACCESS_TOKEN` do `.env.local` de cada repo
+pode ser read-only, e aí todo caminho que passa pela Management API recusa DDL. Os dois projetos
+também estão em **organizações diferentes**, então o token do app não enxerga o projeto do site
+(`GET /v1/projects` prova isso em um comando).
+
+E há uma segunda camada: a conexão do **pooler** chega com `default_transaction_read_only = on`
+(`pg_is_in_recovery()` = false, ou seja, não é réplica). `db push` também não serve quando o
+ledger do projeto é um baseline único que declara N arquivos antigos — ele tentaria reaplicar
+todos os N.
+
+O caminho que funcionou, sem instalar nada (não há `psql`, `pg` nem `psycopg2` nesta máquina):
+**`Bun.sql` numa conexão reservada**, ligando a escrita só naquela sessão.
+
+```ts
+import { SQL } from "bun";
+const sql = new SQL({ url: process.env.DB_URL!, max: 1 });
+const c = await sql.reserve();                       // conexao dedicada: o SET tem de persistir
+await c.unsafe("set session characteristics as transaction read write").simple();
+await c.unsafe(await Bun.file(migrationFile).text()).simple();   // .simple() aceita multi-statement
+```
+
+Três detalhes medidos: `set default_transaction_read_only = off` **no mesmo lote** do DDL não
+funciona (o lote já abriu transação read-only) — tem de ser `set session characteristics`, em
+chamada separada, numa conexão `reserve()`; `.simple()` é obrigatório para arquivo com mais de
+um comando; e o `pooler-url` que o `supabase link` escreve em `supabase/.temp/` vem **sem
+senha** (`postgresql://user@host`), então a regex que injeta a senha precisa casar `://user@`,
+não `://user:pw@`.
+
+Bônus: se `supabase/.temp/` estiver `root:root`, o `link` morre com
+`PermissionDenied: FileSystem.writeFile`. Como o diretório pai é gravável, o conserto é
+`mv .temp .temp.rootbak && mkdir .temp && cp .temp.rootbak/* .temp/`.
+
+## Duas IDs de repo para o MESMO caminho, e `--worktree current` escolhe a errada (2026-09-02)
+
+`worker-start --task <t> --worktree current --terminal <h>` respondeu
+`Terminal <h> does not belong to worktree <uuid-A>::/root/projects/hybrid fit` — apesar de o
+terminal ter sido criado com `terminal create --worktree current` no mesmo diretório.
+
+Causa: o runtime tinha **dois repos registrados apontando para o mesmo path**. A Run vivia em
+`771c2955-…::/root/projects/hybrid fit` e o terminal nasceu em
+`3c3cbeb1-…::/root/projects/hybrid fit`. `current` resolve pela Run, não pelo terminal.
+
+Conserto: descubra a worktree DO TERMINAL e passe-a explícita.
+
+```bash
+orca terminal list --json | jq -r '.result.terminals[]
+  | select(.handle=="<h>") | .worktree'          # -> 3c3cbeb1-…::/root/projects/hybrid fit
+orca orchestration worker-start --task <t> \
+  --worktree "id:3c3cbeb1-…::/root/projects/hybrid fit" --terminal <h> --json
+```
+
+Dois detalhes: o campo `.worktree` **nem sempre aparece** no `terminal list` (a forma do JSON
+varia entre chamadas) — quando não aparecer, reuse a id que já funcionou para outro terminal
+criado do mesmo jeito. E `--worktree` continua obrigatório junto com `--terminal`, mesmo com a
+id certa.
+
+## `task-update` não edita o spec de uma task (2026-09-02)
+
+`orca orchestration task-update --id <t> --spec "<novo>"` responde
+`Unknown flag --spec`. Os flags válidos são `--status`, `--result`, `--from`, `--run`,
+`--retry-request`, `--environment`.
+
+Se o brief estiver errado e o worker ainda não subiu: **crie uma task nova** com o spec
+corrigido e feche a velha com `--status completed --result "SUPERSEDIDA por <nova>: <motivo>"`.
+Não existe `cancelled` — os status aceitos são `pending, ready, dispatched, completed, failed,
+blocked`. E `dispatch --inject` injeta o spec ARMAZENADO, então corrigir só o arquivo local do
+brief não muda o que o worker recebe.
+
+## MCP autenticado na sessão do coordenador pode NÃO estar no terminal do worker (2026-09-02)
+
+Um terminal Codex recém-criado subiu com
+`⚠ The supabase MCP server requires OAuth reauthentication` e
+`⚠ MCP startup incomplete (failed: supabase)`, enquanto o coordenador consultava o mesmo banco
+sem problema.
+
+Consequência: um brief cujo **primeiro passo obrigatório** é "rode esta query e confirme" manda
+o worker contra uma parede, e ele escala em vez de trabalhar. Antes de exigir medição de um
+worker, confirme que ele alcança a fonte — ou meça você e **cole o resultado cru no brief**,
+com a data. Foi o que resolveu aqui.
+
+
+## "NAO rode git" no brief nao impede o worker de commitar (2026-09-03)
+
+Medido no ciclo `contador-agua`. O brief da T4.1 dizia, em secao propria e em
+negrito, **"NAO rode comando de git. Quem commita e o coordenador."** O worker
+(Claude Opus 5 high) terminou o trabalho e **commitou os proprios 7 arquivos**
+mesmo assim, com mensagem propria, enquanto o coordenador estava rodando as
+suites para revisar. O `git commit` seguinte do coordenador respondeu
+`no changes added to commit`, que e o sintoma pelo qual se descobre.
+
+O estrago **neste caso** foi zero: o commit levou exatamente os 7 arquivos da
+tarefa e nenhum alheio. Mas o mecanismo que evitou o estrago foi sorte, nao o
+brief — o mesmo worker poderia ter feito `git add -A` num checkout que tinha um
+`package-lock.json` modificado por outra sessao.
+
+Tres consequencias praticas:
+
+1. **Nao confie no `git commit -F ... -- <paths>` responder com sucesso.**
+   `no changes added to commit` depois de um worker terminar quase sempre
+   significa "alguem ja commitou isso", nao "nao havia mudanca". Rode
+   `git log --oneline -3` antes de concluir qualquer coisa.
+2. **Audite todo commit que voce nao reconhece, ANTES de seguir:**
+   `git show --stat --format="" <sha>` e confira arquivo por arquivo. O risco
+   real nao e o worker commitar o trabalho dele, e ele varrer trabalho de outra
+   sessao junto.
+3. **Reforce a proibicao por `terminal send` quando houver outro worker vivo no
+   mesmo checkout**, citando o arquivo alheio pelo nome. Um worker que le
+   "existe um `package-lock.json` modificado que nao e seu" entende o risco
+   concreto; "nao rode git" ele trata como preferencia de estilo.
+
+Nao reverta um commit desses so pela quebra de protocolo: se o conteudo esta
+certo e o escopo esta limpo, reverter cria mais risco do que resolve. Registre,
+audite, e siga.

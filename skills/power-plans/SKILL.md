@@ -211,6 +211,21 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
    único não existe, a tarefa não é uma feature, é uma máquina de estado nova. Diga isso e
    corte, ou promova a frente própria.
 
+10. **Tarefa que SUBSTITUI um módulo por outro (receita própria no lugar da compartilhada).**
+    A ordem de resolução do alvo não é o inventário do módulo. O módulo substituído tem
+    **gatilhos** (quando ele age sem ninguém pedir), e cada um é um item da matriz de
+    consumidores, com decisão escrita: "mantido", "removido porque X", "coberto por Y".
+    Medido em 2026-09-01/02 (ciclo `vertical-nova-isolamento-vertical`): o plano do pré-LLM
+    próprio de vertical-nova listou a ordem do alvo (vínculo → opção ativa → texto) e os
+    gatilhos de pedido de foto e de nome no texto, e omitiu o gatilho
+    `gatilho_x` do módulo da vertical antiga que estava sendo substituído (lead já
+    vinculado + zero opção → apresentar com foto). Um gate adversarial, sete tarefas, suíte
+    verde por nome e três cenários novos pagos passaram; quem achou foi o cenário de REGRESSÃO
+    da vertical (`cenario_z`), que reprovou no turno 3 porque uma flag de entrega
+    (`flag_entrega`) só era gravada por um caminho que a mudança tornara raro. A lista
+    de gatilhos custa um `grep` por `reason:` no módulo antigo; a omissão custou um run pago,
+    uma onda de correção e um redeploy.
+
 ### O que NÃO dá para decidir no plano — diga isso em vez de fingir
 
 Rigor não é prometer que o plano prevê tudo; é separar o decidível do emergente e escrever a
