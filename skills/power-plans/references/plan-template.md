@@ -25,11 +25,14 @@ Cada linha é uma afirmação que sustenta uma decisão ESTRUTURAL, com a refuta
 tentada e o resultado. Quem executar e descobrir que uma delas é falsa **para e escala**: não
 é ajuste de tarefa, é redesenho.
 
-| # | Afirmação | Como tentei derrubar | Resultado |
-|---|---|---|---|
-| A1 | <ex.: "desativar Z é seguro porque Z é a única porta"> | <o falsificador que busquei, com `arquivo:linha`> | `[LIDO:]` / `[MEDIDO:]` |
+| # | Afirmação | Falsificador, em uma frase | Consulta ou grep que CONTA o falsificador | Contagem | Consequência |
+|---|---|---|---|---|---|
+| A1 | <ex.: "desativar Z é seguro porque Z é a única porta"> | <ex.: "existe outra porta"> | <a query ou o `grep`, literal> | <número, mesmo que 0> | <o que muda se não for 0> |
 
-**Revisão externa:** <quem revisou, quando, caminho do relatório> · <N bloqueadores, N aceitos>
+A linha só fecha com a contagem do falsificador. Contagem que confirma a afirmação mede outra
+coisa e não fecha a linha.
+
+**Revisão externa:** <quem revisou, quando, caminho do relatório> · <N bloqueadores: n documentais, n decisão do usuário, n redesenho; N aceitos>
 · <o que foi recusado e por quê>. Se ainda não houve revisão, escreva "não revisado" em vez de
 deixar o campo em branco.
 
@@ -77,8 +80,12 @@ Um arquivo, um dono. Ninguém edita arquivo de outro.
 | ------- | ---- |
 | `caminho/a.ts` | T2 |
 | `caminho/b.tsx` | T9 |
+| NOVO `caminho/c.test.ts` (irmão: `caminho/d.test.ts`; descoberto por `config:linha`) | T4 |
 
 **Somente leitura para todos:** `caminho/c.ts`, `caminho/d.ts`.
+
+Linha NOVO cita o irmão existente do mesmo tipo e a configuração que o descobre, os dois com
+`[LIDO:]`. Caminho novo deduzido de norma escrita é `[SUPOSTO]`.
 
 ## 4. Contratos congelados
 
@@ -95,6 +102,13 @@ Escritos em C0, antes da onda 1. Ninguém altera sem passar pelo coordenador.
 ### 4.3 <Chaves de i18n / props de fronteira / fixture>
 
     <bloco de código literal e completo>
+
+### 4.4 <Campo derivado: regra por origem>
+
+    | Origem | Sinal na linha real | Valor do campo |
+    | --- | --- | --- |
+
+Todo campo que não é cópia 1:1 de uma coluna tem esta tabela, e cada origem uma medição própria.
 
 ## 5. Tarefas
 

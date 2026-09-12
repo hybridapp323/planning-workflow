@@ -37,6 +37,10 @@ inteira descoberta na fase de plano, onde a mesma pergunta já custa uma reescri
 - **semântica de cada campo lido ou escrito**: o nome diz uma coisa e a linha real diz
   outra? (um `created_at` que significa "quando fechou"; uma flag que descreve o que o
   usuário *disse*, lida como o que o sistema *entregou*)
+- **campo derivado de mais de uma origem**: uma medição por origem, com a coluna-fonte de
+  cada uma, e a regra de derivação escrita por origem em §8.2. Medido em 2026-09-12: o "modo
+  da corrida" foi medido num provedor e deduzido no outro; no outro, 149 sessões em esteira
+  chegavam com elevação zero e a regra literal as lia como rua plana.
 - volume: quantos hoje, quantos em um ano, e o que muda quando é zero
 
 ### Interação
@@ -78,7 +82,11 @@ inteira descoberta na fase de plano, onde a mesma pergunta já custa uma reescri
 
 ### Comportamento removido ou substituído
 
-Só se a feature tira ou troca algo que existe:
+Só se a feature tira ou troca algo que existe. **Validação, filtro ou gate novo sobre uma saída
+que já existe conta como remoção**, mesmo descrito como garantia nova: meça no histórico
+persistido quanto da saída de hoje seria rejeitada. Medido em 2026-09-12: a spec descreveu um
+gate de números como garantia; ninguém olhou as respostas atuais, 153 de 209 tinham dígito, e
+o plano apertou a regra além da spec sem decisão de ninguém.
 
 - **quantos lugares emitem** o comportamento antigo, contados de duas formas: pelos
   chamadores da função canônica e pelo texto literal emitido (os dois acham coisas diferentes)

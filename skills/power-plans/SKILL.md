@@ -152,6 +152,17 @@ gravado**, de um teste feito dias antes. Três verificações de segundos derrub
 afirmação: ler o auxiliar, ler o teste vizinho, e dar um `select` na linha. Nenhuma foi feita
 porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
 
+> **A linha só fecha com a CONTAGEM do falsificador.** Escreva a consulta ou o `grep` que
+> conta o caso que derruba a afirmação, e o número que ela devolveu, mesmo que seja zero.
+> Contagem que confirma a afirmação mede outra coisa e não fecha a linha.
+
+Medido em 2026-09-12: uma afirmação de carga dizia *"os vínculos persistidos cobrem a
+duplicação entre dois provedores"*, o falsificador estava escrito na frase certa (*"vínculo
+não existe"*), e a coluna de resultado trazia `[MEDIDO: 149 linhas vinculadas]`. A consulta
+que contava o falsificador tinha a mesma forma, com um `not exists` a mais, e devolvia 32
+pares sem vínculo em 90 dias. Ninguém a rodou porque a tabela aceitava qualquer `[MEDIDO:]`.
+Quem a rodou foi a revisão externa, e virou bloqueador.
+
 ### As classes que morderam de verdade — confira estas por nome
 
 1. **Semântica de coluna, flag ou campo. NUNCA infira pelo nome.** `created_at` de uma tabela
@@ -190,6 +201,12 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
    entrou num item de gate que ele não satisfazia.
 4. **Caminho, comando e nome existem?** `ls` no script, `--help` no subcomando, `\d` na
    tabela. Custa segundos e aparece no passo do coordenador, que é onde ninguém testa antes.
+   **Arquivo NOVO não tem `ls`:** o caminho dele cita o irmão existente do mesmo tipo e a
+   configuração que o descobre (diretório de testes, `include`, glob), os dois com `[LIDO:]`.
+   Caminho novo deduzido de uma norma escrita é `[SUPOSTO]`. Medido em 2026-09-12: o plano
+   pôs o teste ponta a ponta novo no diretório de artefatos que a documentação do projeto
+   mandava usar, fora do diretório de testes do runner; o runner listaria zero testes e a
+   tarefa entregaria um arquivo que nunca roda. Havia dezenas de irmãos no diretório certo.
 
 5. **Invariante que você promete PRESERVAR.** "A mudança mantém a garantia G" é afirmação
    de carga (ver acima). O comentário do código **não é** evidência de G: comentário envelhece,
@@ -203,6 +220,13 @@ porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
    aparece na busca por chamador, e é o que sobrevive ao fix. Medido no mesmo ciclo: o plano
    mapeou 1 emissor, existiam 5, e 2 dos que faltavam eram literais escritos dentro de um
    guard. Um teste por emissor, não um teste da função canônica.
+   **Validação, filtro ou gate novo sobre uma saída que já existe É remoção**, mesmo que a
+   spec o descreva como garantia nova. A medição é no histórico persistido: quanto da saída
+   de hoje o gate rejeitaria, em uma consulta. Medido em 2026-09-12: um contrato do plano
+   proibia número fora de fatos autorizados num campo de texto livre; os prompts em produção
+   mandavam citar números, e 153 de 209 respostas do mês tinham dígito. Nenhum documento
+   tinha olhado a saída atual, e duas tarefas paralelas teriam implementado contratos
+   incompatíveis.
 7. **Receita copiada de outro contexto.** Reaproveitar um procedimento documentado é certo, e
    ele vem com pré-condições que ninguém reescreve junto. Antes de colar, escreva o que a
    receita **assumia** e confirme que vale aqui. Medido: um `update ... set stage_id = null`
@@ -333,6 +357,10 @@ nova chega `undefined` no destino com todos os testes verdes. Medido em 2026-08-
 matriz de 22 arquivos saiu com 5 faltando, e o que mais doía era exatamente um desses
 transportes.
 
+**Linha NOVO cita o irmão.** Arquivo que ainda não existe entra na matriz com o irmão existente
+do mesmo tipo e a configuração que o descobre, os dois com `[LIDO:]`. Sem isso o caminho é
+`[SUPOSTO]`, e o `ls` da auto-revisão não tem o que conferir (classe 4, acima).
+
 **Depois de escrever a matriz, releia as descrições das tarefas e procure responsabilidade
 repetida.** Duas tarefas podem não colidir em arquivo e ainda assim receberem a mesma frase
 ("resolve a config no bootstrap"). Colisão de responsabilidade é colisão, e aparece mais tarde
@@ -347,6 +375,16 @@ Congele, antes da primeira onda: tipos e interfaces compartilhadas, shape de req
 Quem escreve é o coordenador, num passo próprio antes de despachar qualquer worker, e commita. Não delegue a um worker o contrato de que os outros dependem.
 
 Escreva literal, em bloco de código completo. Contrato descrito em prosa é contrato não congelado.
+
+**Campo derivado tem tabela de derivação por origem.** Todo campo do contrato que não é cópia
+1:1 de uma coluna vem com a regra por origem, e cada origem com a sua medição na linha real.
+Medido em 2026-09-12: o contrato tinha `mode: outdoor | treadmill | unknown` sem dizer de onde
+vinha; a spec tinha medido esteira num provedor e não olhado o sinal de esteira do outro, onde
+149 corridas em esteira chegavam com ganho de elevação zero e virariam "rua plana" pela regra
+literal, formando par com corridas de rua.
+
+**Contrato não é mais restrito que o FR que implementa.** Se o plano aperta uma regra que a
+spec enuncia mais solta, isso é decisão com autoria na spec, não detalhe técnico do plano.
 
 ### Critério de pronto: é contrato também, e cola literal
 
@@ -422,7 +460,9 @@ Duas coisas fazem a revisão render, e as duas custam pouco:
 
 - **Peça a refutação das suas afirmações de carga, nomeadas.** Não mande "revise o plano".
   Liste as três ou quatro afirmações que sustentam o desenho e peça para tentarem derrubar cada
-  uma, com `arquivo:linha`. A pergunta mais produtiva, sempre a última: *"o que está faltando
+  uma, com `arquivo:linha`. Cada afirmação chega com a consulta do falsificador já rodada e a
+  contagem dela; o que você pede é o que essa consulta não viu, não a primeira execução dela.
+  A pergunta mais produtiva, sempre a última: *"o que está faltando
   aqui que eu não teria como notar, porque fui eu que escrevi?"*
 - **Diga o que o revisor NÃO tem.** Se ele não tem acesso ao banco, ele vai marcar como
   hipótese aquilo que você consegue medir em uma query. Resolva essas hipóteses você mesmo em
@@ -430,7 +470,9 @@ Duas coisas fazem a revisão render, e as duas custam pouco:
   em 2026-08-26, uma confirmando um bloqueador e outra derrubando um risco inventado.
 
 O veredito da revisão entra no plano, com o que foi aceito, o que foi recusado e por quê. Plano
-revisado sem registro da revisão obriga a próxima pessoa a refazer o mesmo trabalho.
+revisado sem registro da revisão obriga a próxima pessoa a refazer o mesmo trabalho. Registre
+também o custo de cada bloqueador aceito: documental, decisão do usuário ou redesenho. É esse
+número, não o veredito, que diz se a spec e o plano estavam sãos.
 
 Procedimento, mandato read-only, e como verificar depois que o revisor realmente não escreveu: `references/external-review.md`.
 
@@ -453,18 +495,20 @@ sendo plano falso.
 - Nenhum `[SUPOSTO:]` sustenta a implementação de uma tarefa? (se sustenta: medir agora, ou
   virar o primeiro passo da tarefa com "se der diferente, PARE e escale")
 - Toda coluna, flag ou campo citado teve a **semântica conferida na linha real**, e não
-  deduzida do nome?
+  deduzida do nome? Campo derivado de mais de uma origem: uma conferência por origem?
 - Para cada fix: com o código de hoje, ele muda alguma coisa — ou é **no-op que passa verde**?
 - Todo caso que o plano promete que vai disparar um critério novo foi rodado contra esse
   critério?
 - Todo caminho, comando e subcomando do plano existe? (inclusive os dos passos do coordenador)
+  Todo arquivo NOVO cita o irmão existente e a configuração que o descobre?
 - O que é emergente está na **watchlist**, com método de verificação, em vez de prometido?
 - As **afirmações de carga** estão listadas, e cada uma passou por refutação TENTADA, não por
-  citação que a confirma?
+  citação que a confirma? A linha traz a **contagem do falsificador**, não a que confirma?
 - Toda invariante que o plano promete preservar tem o caminho de exceção procurado, e os
   **testes existentes** daquele arquivo lidos?
 - Para cada comportamento que o plano REMOVE: os emissores foram contados pelos dois lados,
-  chamadores da função **e** literal do texto?
+  chamadores da função **e** literal do texto? Validação ou gate novo sobre saída existente
+  contou como remoção, com a medição no histórico persistido?
 - Toda receita copiada de outro contexto teve a pré-condição dela conferida aqui?
 - Todo passo novo inserido em pipeline existente foi posicionado depois de ler **até o fim** do
   fluxo, e não pelo nome da abstração?
@@ -498,6 +542,7 @@ sendo plano falso.
 - Nenhum passo de validação tem item que você já sabe que vai falhar por causa de tarefa
   posterior?
 - Todo contrato de que dois ou mais workers dependem está escrito literal e datado de antes da onda 1?
+- Nenhum contrato é mais restrito que o FR que implementa? Se é, a decisão está na spec, com autoria?
 - Todo passo irreversível tem gate antes?
 - Todo par "não pode junto" tem a razão escrita?
 - Algum worker precisa rodar comando que este projeto proíbe delegar?

@@ -269,5 +269,8 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
 4. Atualize a documentação que este projeto exige atualizar no mesmo commit.
 5. Feche as tasks no Orca com o resultado real. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
 6. Relate ao usuário o que ficou de fora, se ficou, e por quê.
+7. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
+   arquivo, ou *"nada entra, porque X"*. Lição que fica só no relatório de revisão é lição que a
+   próxima spec paga de novo.
 
 Se alguma armadilha nova aparecer durante a execução, acrescente-a a `references/orca-traps.md` no mesmo trabalho. É a única forma de a próxima execução não pagar de novo.
