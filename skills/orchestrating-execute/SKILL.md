@@ -196,8 +196,8 @@ Isso não é sinal de que faltava mais revisão. É sinal de que o fix estava in
 errado: call site por call site, quando o problema é que existem N emissores. Cada rodada
 consertava o emissor citado e o seguinte nascia intacto.
 
-**Quando a segunda rodada do gate devolve a mesma família de achado num arquivo diferente,
-pare de despachar correção pontual.** O brief da onda seguinte tem de proibir o remendo por
+**Quando a lista do gate traz a mesma família de achado em arquivos diferentes, não despache
+correção pontual.** O brief da onda de correção tem de proibir o remendo por
 call site e exigir um **ponto de estrangulamento**: um único lugar, o mais tarde possível no
 fluxo, que decide sobre o ESTADO já persistido em vez de depender de cada emissor ter
 lembrado de propagar um sinal. Foi o que fechou o ciclo em uma onda.
@@ -233,20 +233,47 @@ e que nomeava um leitor fora do inventário. Atualizar documentação no mesmo c
 higiene: é uma passada de revisão sobre uma descrição do sistema que ninguém tinha relido.
 
 **E há um custo de tempo real:** cada rodada de gate custou ~20-40 min de revisão mais uma
-onda de correção. Duas rodadas a mais do que o necessário é meia sessão. Se o usuário pedir
-para reduzir o ciclo de revisão, a resposta certa não é revisar menos — é fazer a revisão
-seguinte julgar um fix ESTRUTURAL em vez de N fixes locais.
+onda de correção. Duas rodadas a mais do que o necessário é meia sessão. Por isso o gate
+roda uma vez (seção *Gates*, abaixo): quem julga a correção é o teste que ela traz, e a correção
+tem de ser ESTRUTURAL para um teste valer por todos os emissores.
 
 ## Gates
 
 Um gate tem `worker_done` como qualquer tarefa, mas o que ele autoriza é um passo **seu**, não a próxima onda.
 
 - Gate aprovou: rode o passo do coordenador que ele guardava.
-- Gate reprovou: **não rode**. Despache a correção como tarefa nova, com dono, e passe pelo gate de novo.
+- Gate reprovou: **não rode**. Despache cada correção como tarefa nova, com dono e com o teste que
+  falha antes do fix e passa depois. O gate **não roda de novo**: a rodada seguinte é a suíte.
 
 Nunca rode o passo irreversível "enquanto o gate roda". O ganho é minutos; a perda é migration aplicada em produção sem `git revert`, ou deploy que republica módulo compartilhado de uma branch atrasada.
 
 Revisão que volta com achados **não autoriza o coordenador a corrigir por conta própria**. Sintetize, decida quem é o dono da correção, e despache. Se a decisão for de negócio e não técnica, leve ao usuário com resumo e recomendação.
+
+### Um gate, uma rodada
+
+"Executa, gate, corrige, gate de novo" não tem fim natural: revisar é achar, e cada rodada acha.
+Decidido pelo usuário em 2026-09-12, depois de ciclos em que esse laço não convergia. O ciclo
+fechado tem um sentido só:
+
+    execução -> gate (uma vez) -> correções -> teste -> passou: passo do coordenador
+                                                     -> falhou: systematic-debugging -> teste
+
+1. **O gate roda uma vez** e devolve a lista de achados com prova. Segunda rodada do mesmo
+   gate só por pedido explícito do usuário, nunca por decisão do coordenador.
+2. **Correção não volta ao gate; vai para o teste.** Cada achado aceito vira tarefa com dono, e
+   o `Pronto quando` dela é um teste que falha antes do fix e passa depois. Confira cada achado
+   você mesmo antes de despachar, e cada correção contra o achado depois. O revisor não é
+   chamado para conferir a própria lista.
+3. **Teste falhou é investigação, não revisão.** Suíte ou E2E reprovando depois das correções
+   entra em `systematic-debugging`: causa raiz, um conserto, teste de novo. Três consertos
+   falhados no mesmo teste viram questão de arquitetura, como aquela skill já manda.
+4. **Passou: rode o passo irreversível que o gate guardava.** Gates diferentes do plano
+   (contratos, segurança) têm cada um a sua rodada única; o que não existe é a rodada dois de
+   um gate que já rodou.
+
+O que protege o passo irreversível nesse desenho é a forma da correção: estrutural, num ponto
+de estrangulamento (seção acima), com o teste que trava o defeito. Remendo por call site sem
+teste era o que fazia o gate ser chamado de novo.
 
 ## Passos que são sempre seus
 
