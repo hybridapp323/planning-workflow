@@ -272,6 +272,32 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
     aberto na virada, o registro ia para o dia anterior. Nenhum FR falhou, nenhum contrato foi
     violado — o hospedeiro é que não tinha sido lido. Custa um `git show <merge-base>:<arquivo>`.
 
+12. **"Importar a mesma função" não é paridade quando a ENTRADA mora no chamador.** Reaproveitar
+    o predicado puro do motor num consumidor externo parece eliminar a duplicação; se a seleção,
+    o filtro ou o enriquecimento do dado acontecem antes de a função ser chamada, o consumidor
+    reproduz o veredito só se reproduzir também a entrada. Medido em 2026-09-04: o plano mandava
+    o coletor da auditoria diária importar `evaluateItemPresentation` do motor; a revisão externa
+    mostrou que o motor filtra `is_ai_generated`, exclui notas internas e **enriquece as opções
+    com preço do catálogo** dentro do probe (`item-presentation.ts:681-760`), e reproduziu um
+    veredito invertido só pela ausência do preço. Antes de prescrever "importe X", leia quem
+    prepara o argumento de X e faça a preparação ser exportada junto.
+
+13. **Teste do consumidor que fabrica o campo que o produtor real não emite.** Um fake que
+    monta `{ sent: false, error: "..." }` e um worker que lê exatamente isso passam verdes
+    enquanto o corpo HTTP real nunca carrega `error`. Medido em 2026-09-04: o corpo final do
+    `ai-chat` tinha `sent` e não tinha `error` (`index.ts:4593`), e o early-exit não devolvia nem
+    `sent`; o contrato do plano dependia dos dois. Regra: o teste do consumidor recebe a saída
+    **do produtor real** (fixture gerada pelo teste do produtor), e o `Pronto quando` diz de onde
+    ela vem. O contrato congela o shape produzido, não o shape desejado.
+
+14. **Remover um evento/linha de log exige procurar leitores por TEMPO, não só por chave.** O
+    grep pela chave que só a linha "duplicada" carregava (`idempotent_skip_notify`) deu zero
+    leitores, e a afirmação de carga "ninguém consome a segunda linha" passou. O consumidor real
+    lia `order by triggered_at desc limit 1` — a **última** linha, qualquer que fosse
+    (`evolution-webhook/index.ts:1005`, referência de abandono para reativar; reproduzido na
+    fronteira das 24 h). Regra: para toda linha que o plano deixa de gravar, procure `order by
+    … desc`, `limit 1`, `max(`, `last` e `lag(` sobre a tabela, além dos campos da linha.
+
 ### O que NÃO dá para decidir no plano — diga isso em vez de fingir
 
 Rigor não é prometer que o plano prevê tudo; é separar o decidível do emergente e escrever a
@@ -311,6 +337,31 @@ com a coluna "a executar" é uma lista de promessas.
 **Corolário para o orçamento:** reserve execuções pagas para *descobrir*, não só para
 *confirmar*. O ciclo gastou 9 execuções onde o plano previa 5, e as 4 extras foram as que
 acharam os defeitos — o custo estava no lugar certo.
+
+### Vermelho pelo motivo errado também não é cobertura
+
+Medido no ciclo `2026-09-14-auditoria-da23`: quatro dos sete cenários E2E novos
+deram o primeiro vermelho pelo motivo ERRADO, e dois chegaram a dar verde sem
+provar nada:
+
+- a LLM **reparava** o defeito no mesmo turno (lia as duas mensagens no
+  histórico e sobrescrevia a cidade fundida via tool) — verde no código velho;
+- o abridor do cenário **invalidava o próprio fixture** (`"sobre isso?"` e
+  `"ele"` sem contexto supersediam a atribuição do anúncio) — vermelho de
+  setup, não de defeito;
+- o turno anterior já entregava a foto, e o lock anti-spam segurava o reenvio
+  mesmo com o fix — o sinal "foto enviada" não discriminava nada;
+- fraseado da LLM variava (faixa vs mínimo, nome do empreendimento, paráfrase
+  da promessa) e quebrava asserções que pinavam texto, não comportamento.
+
+**A regra:** vermelho/verde de cenário E2E só conta com a CAUSA inspecionada.
+No vermelho, abra o report e confirme que a falha é a asserção do defeito (tool
+call, estado, sinal determinístico) — não derailment de setup, transferência
+discricionária ou fraseado. No verde contra código velho, desconfie primeiro do
+cenário, não comemore: confira se o caminho do defeito realmente engajou. E ao
+escrever a asserção, prefira o sinal que nenhum agente discricionário pode
+reescrever (efeito de guard, flag, tool sintética) ao texto da resposta ou ao
+estado final que a LLM pode reparar.
 
 ## Fase 1 — decompor
 

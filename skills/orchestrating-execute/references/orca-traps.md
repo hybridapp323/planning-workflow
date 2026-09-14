@@ -1028,3 +1028,534 @@ Tres consequencias praticas:
 Nao reverta um commit desses so pela quebra de protocolo: se o conteudo esta
 certo e o escopo esta limpo, reverter cria mais risco do que resolve. Registre,
 audite, e siga.
+
+## `opencode` TUI NAO aceita `--variant` — e o esforco talvez ja seja o que voce quer (2026-09-04)
+
+`--variant <effort>` existe **so no `opencode run`** (headless), nao no TUI. Passar
+`opencode --auto --model <m> --variant xhigh` faz o TUI **imprimir o help e sair**: o
+`terminal create` responde `ok:true`, o handle existe, e o pane fica num shell vazio.
+`terminal read` mostra o texto do help — nao um agente. Custou 3 terminais.
+
+Antes de contornar isso, confira se ha o que contornar: `models.dev/api.json` diz
+`variants: null` para `opencode-go/muse-spark-1.3-contributor`, e o rodape do TUI mostra
+`Build auto · Muse Spark 1.3 Contributor OpenCode Go · xhigh` — ou seja, o `xhigh` que o
+usuario pediu ja era o default do provider. **Meça antes de negociar com o usuário:**
+
+```bash
+curl -s https://models.dev/api.json | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+for p,pv in d.items():
+    for mid,m in (pv.get('models') or {}).items():
+        if '<pedaco-do-nome>' in mid: print(p, mid, m.get('variants'))
+"
+orca terminal read --terminal <h>   # o rodape traz modelo E esforco
+```
+
+## `bun run <script>` quebra igual ao `bunx` num caminho com espaco (2026-09-04)
+
+A entrada existente so cita `bunx`. Medido no mesmo repo: **`bun run lint` e `bun run dev`
+falham identicamente** com `error loading current directory` /
+`CouldntReadCurrentDirectory`. O contorno vale para os dois:
+
+```bash
+./node_modules/.bin/vitest run <caminho>
+./node_modules/.bin/eslint <arquivos>
+./node_modules/.bin/vite                 # o dev server
+```
+
+E **`eslint .` nao termina**: estourou 900s neste repo. Lint so os arquivos tocados, e diga
+isso no brief — worker que roda `eslint .` queima o dispatch esperando.
+
+## `task-create` usa `--task-title`, nao `--title` (2026-09-04)
+
+`orca orchestration task-create --title X` responde
+`Unknown flag --title for command: orchestration task-create`. Os validos sao
+`--task-title <text>` (titulo) e `--display-name <text>` (rotulo da linha do worker).
+`terminal create` **usa** `--title`, entao a confusao e natural e o erro so aparece no
+primeiro `task-create` da onda.
+
+## O `payload` do `inbox --json` e uma STRING JSON, nao um objeto (2026-09-04)
+
+Um laco que faz `m['payload'].get('taskId')` estoura com
+`AttributeError: 'str' object has no attribute 'get'` e parece corrupcao de caixa. Nao e:
+
+```python
+p = m.get('payload')
+if isinstance(p, str): p = json.loads(p)
+taskId, outcome, files = p.get('taskId'), p.get('outcome'), p.get('filesModified')
+```
+
+## Compilar Tailwind para provar que uma classe existe: o `-c` NAO e opcional (2026-09-04)
+
+A receita da skill de e2e ja manda `-c tailwind.config.ts`; um gate omitiu e ainda assim
+chegou na conclusao certa — por sorte. Sem o `-c`, a cor semantica do projeto nem existe,
+entao **toda** classe some e tudo vira falso positivo.
+
+```bash
+printf '@tailwind utilities;\n' > /tmp/probe.css
+./node_modules/.bin/tailwindcss -c tailwind.config.ts -i /tmp/probe.css \
+  --content <arquivo.tsx> --minify 2>/dev/null | grep -o '\.<classe>[^}]*}'
+```
+
+**Por que isso vale um item:** `bg-warning/12` **nao gera regra** no Tailwind 3.4 (a escala de
+opacidade tem 0,5,10,20,25,30,40,50,60,70,75,80,90,95,100). A classe fica no JSX, o lint passa,
+o teste passa, e o fundo simplesmente nao existe no bundle. Mesma familia do `className="card-nested"`
+apontando para uma classe que ninguem definiu. **Num brief de gate, peça a medicao, nao a leitura.**
+
+## O gate reprovando pela MESMA familia e sinal de brief, nao de codigo (2026-09-04)
+
+Confirmacao pratica da secao "teto do gate adversarial". Rodada 1: contraste quebrado em 3
+arquivos. Os workers consertaram os 3. Rodada 2: **mesma familia, outros 3 arquivos**.
+
+O que fechou em uma onda: uma tarefa unica cujo **entregavel principal era o teste que le o
+texto-fonte** de todos os componentes das telas e reprova a familia inteira — com as excecoes
+numa constante nomeada e o motivo escrito ao lado de cada uma (icone nao e texto, WCAG pede 3:1;
+controle `aria-disabled` e isento por 1.4.3). O teste achou **4 arquivos que os dois gates nao
+tinham visto**.
+
+Duas licoes que nao estavam escritas:
+1. **Escreva "o entregavel NAO e consertar os 3 arquivos" no brief, literalmente.** Sem essa
+   frase o worker conserta os 3 citados e para.
+2. **O gate seguinte tem de julgar o TESTE, nao os consertos**: peca a ele que tente furar a
+   heuristica e nomeie um caso concreto que passaria. Heuristica sobre texto-fonte sempre tem
+   buraco; melhor descobrir qual.
+
+## Mandato que voce deu ao worker e mandato que voce da ao gate tem de ser o MESMO (2026-09-04)
+
+O brief do worker autorizava "as 4 classes de foco **mais, se necessario, um `rounded-*`** para o
+anel acompanhar a pilula". O brief do gate exigia mudanca "estritamente aditiva, sem geometria".
+O worker fez o que eu autorizei; o gate reprovou, corretamente pelo texto que EU dei a ele.
+
+Foi erro do coordenador, e custou uma rodada. Antes de despachar um gate, releia o brief do
+worker que produziu o codigo e **copie a permissao, nao a sua lembranca dela**.
+(A saida boa, no caso: `focus-visible:rounded-full` — o raio so existe sob foco, entao a
+geometria em repouso dos 10 consumidores nao muda.)
+
+## O worker "corrige" o caminho do relatório e cria uma árvore paralela (2026-09-06)
+
+O brief mandava escrever o relatório em
+`…/-home-orcaide-orca-workspaces-auto-pilot-crm-arquitheture-refactor-aichat/…`. Três workers
+diferentes acharam que o caminho estava errado — porque o diretório real do projeto usa `_`, não
+`-` — e "consertaram" para `…auto_pilot_crm-arquitheture_refactor_aichat…`, criando uma árvore
+nova. O `worker_done` chegou com `reportPath` apontando para um arquivo que o coordenador não
+encontrava, e cada um inventou uma variação diferente.
+
+Custo: três `find` no `~/.claude/cc-tmp` e um script de consolidação. Conserto, no preâmbulo:
+
+> Use EXATAMENTE este caminho, sem "corrigir" nenhum caractere dele; rode `mkdir -p` antes.
+
+E, no lado do coordenador, **não confie no `reportPath` do payload**: varra as variações plausíveis
+antes de concluir que o worker não escreveu.
+`find ~/.claude/cc-tmp -name 'RELATORIO-<task>*' 2>/dev/null` acha em um comando.
+
+## `wave.sh wait` em background morre por PRESSÃO DE MEMÓRIA, não só por harness (2026-09-06)
+
+A entrada existente sobre `run_in_background` que não sobrevive descreve o caso da harness que
+mata o processo. Há um segundo, e ele se anuncia: a notificação volta com
+`status: killed` e o texto **"was stopped because the system is running low on memory"**.
+
+Aconteceu duas vezes na mesma sessão, numa máquina com 15 GB e ~11 GB disponíveis — ou seja,
+**não é preciso estar sem memória de verdade**; basta o supervisor decidir que está. Com 11
+terminais de agente abertos no runtime (a maioria de outras sessões), o alvo é o processo em
+background mais recente.
+
+Duas consequências:
+
+1. **Migre para `Monitor persistent` na primeira morte**, não na terceira — e registre com
+   `wave.sh arm-external "$PID" '<descrição>'`, senão o Stop hook bloqueia o turno por
+   "nenhuma espera armada" exatamente enquanto o plano B está vivo.
+2. **Ache o PID pelo filho, não pelo wrapper.** O laço do `Monitor` não aparece num `ps` filtrado
+   pela assinatura do comando; o que aparece é o `sleep` dele. `ps -eo pid,ppid,args | grep
+   'sleep <N>'` e pegue o **ppid** — foi o único jeito que funcionou.
+
+E feche os terminais dos workers que terminaram **na mesma resposta** em que você aceita o
+trabalho: 11 terminais vivos foi o que criou a pressão.
+
+## Editar QUALQUER arquivo enquanto um gate read-only revisa é mudar o contrato dele (2026-09-06)
+
+A entrada anterior sobre isto fala de "onda de correção comitando embaixo do revisor". O caso
+novo é mais inocente e igualmente ruim: o **coordenador** adiantou documentação — quatro arquivos
+de skill e `docs/` — enquanto o gate rodava, achando que documentação é inofensiva porque não é o
+alvo da revisão.
+
+Não é inofensiva. O gate estava monitorando o estado da árvore por hash (comportamento correto,
+para provar o próprio read-only) e detectou os quatro caminhos mudando. Ele teria de gastar
+esforço decidindo se aquilo era parte da entrega, ou parar e perguntar.
+
+O que resolveu, e que devia ter sido feito antes de despachar: **avisar na hora**, dizendo quais
+caminhos, que são só documentação, que o alvo não mudou, e que você para de editar até o veredito.
+Aproveite para pedir de graça a única revisão de doc que vale: *"se alguma afirmação que eu
+escrevi contradiz o que você está vendo no código, isso é achado — documentação que afirma o que
+o código não faz é o pior bug deste repo"*. Foi assim que uma frase minha, escrita antes do gate e
+invalidada por um dos fixes, foi pega.
+
+Regra simples: **enquanto um gate read-only estiver vivo, a árvore é dele.** Prepare o que quiser
+no scratchpad e aplique depois.
+
+## Gate que EXECUTA vale muitas vezes um gate que lê (2026-09-06)
+
+Medição direta, no mesmo ciclo e no mesmo modelo (`gpt-6-astra` em `max`): a rodada 1 do gate
+devolveu **12 bloqueantes** sobre uma árvore com 4.689 testes verdes, 51 provas de neutralização
+e concorrência provada com três conexões reais. **Nenhum dos 16 achados foi refutado** pelos
+quatro workers que os corrigiram.
+
+A diferença não foi o modelo nem o esforço: foi o **método**. Ele montou a cópia isolada
+(`git archive HEAD <os três diretórios>` + arquivos não commitados por cima), executou os módulos
+reais com fakes só nas bordas, e anexou o log de cada cenário — `threw=false`,
+`writes=[{table:"conversations",…}]`, `rpcCalls=0`. Achados assim não têm como ser discutidos:
+ou você reproduz, ou aceita.
+
+Escreva isso no brief do gate, em vez de esperar que ele escolha o método:
+
+> Copie para fora do repo, execute os módulos reais, e anexe o log de cada cenário. Um achado sem
+> log é NOTA, não bloqueante.
+
+E o corolário para o coordenador: **peça a medição, não a leitura** — inclusive de heurística
+("tente furar e me dê as frases concretas que passam errado", em vez de "avalie a robustez").
+
+## Correção pós-gate se despacha por FAMÍLIA, e a instrução tem de ser literal (2026-09-06)
+
+Confirmação forte da seção *teto do gate adversarial*, agora com o contrafactual medido. 12
+bloqueantes foram agrupados em **quatro** tarefas por família, cada brief dizendo, com estas
+palavras, que **o entregável NÃO é consertar os itens citados**. O que voltou:
+
+- o worker de SQL descobriu que **três** bloqueantes (autorização, replay e escrita de
+  `custom_fields`) eram **a mesma doença** — o banco decidindo pelo que o chamador afirma em vez
+  de ler o estado persistido — e entregou um predicado único no lugar de três remendos;
+- o worker do motor, instruído a perguntar *quantos* lugares engolem erro em vez de consertar os
+  quatro citados, achou um **quinto** que o gate não tinha visto, e transformou o varredor
+  lexical (que o próprio gate provou ser decorativo) em verificação de comportamento;
+- o worker da heurística **inverteu o default** em vez de acrescentar palavras à lista.
+
+Nenhum deles teria acontecido com 12 tarefas de uma linha. A frase que faz a diferença, e que
+precisa estar no brief:
+
+> Se o seu conserto é uma linha no lugar que o gate nomeou, pergunte-se quantos outros lugares
+> têm a mesma forma, e conserte no ponto de estrangulamento.
+
+**E deixe as decisões de fronteira para o gate seguinte, não para você.** Dois itens ficaram sem
+dono (uma janela residual num arquivo de ninguém, um falso positivo declarado pelo worker): em
+vez de decidir sozinho, ambos entraram no brief da rodada 2 como pergunta explícita, com
+autorização prévia caso o gate mostrasse que valiam. Quem tem a evidência é ele.
+
+## Comparação por nome usa MULTICONJUNTO, não conjunto (2026-09-06)
+
+A skill e o `CLAUDE.md` deste projeto mandam comparar teste "por NOME, não por contagem", e o
+reflexo natural é `set()` de `(classname, name)`. **Está errado:** dois testes com o mesmo nome na
+mesma classe são dois testes, e se um sumir o conjunto não vê diferença nenhuma.
+
+Medido: `set()` contava 4633→4695 onde o `Counter` conta 4634→4696. A diferença é pequena; o modo
+de falha não é. Use subtração de `collections.Counter`, que respeita multiplicidade, e normalize o
+prefixo do diretório temporário quando a medição vier de uma cópia isolada.
+
+## Os flags do `dispatch` e do `task-update` não são os que a skill sugere (2026-09-06)
+
+Três erros de flag em sequência, cada um custando uma ida e volta, todos com `Unknown flag` e
+lista de válidos no erro (leia essa lista, ela resolve na hora):
+
+| escrito | responde | certo |
+| --- | --- | --- |
+| `orchestration dispatch --terminal <h>` | `Unknown flag --terminal` | `--to terminal:<handle>` |
+| `orchestration task-create --title` | `Unknown flag --title` | `--display-name` |
+| `orchestration task-update --task <id>` | `Unknown flag --task` | `--id <id>` |
+| `orca task-list` (sem o grupo) | `Unknown command` | `orca orchestration task-list` |
+
+## Terminal errado depois do dispatch: `worker-abandon`, não `task-update` (2026-09-06)
+
+Situação real: três workers subiram **sem `--auto`**, o erro só apareceu ao conferir o rodapé
+(`Build ·` em vez de `Build auto ·`), e a hora de consertar foi depois do `dispatch` já registrado.
+
+`task-update --status ready` **recusa**: `task_not_startable: cannot move to ready while Dispatch
+ctx_xxx is active`. E `wave close` responde `sem dispatch/handle - nada a fechar` para terminal
+criado por `wave create` cujo dispatch aponta para outro lugar — ou seja, nem o caminho de posse
+ajuda.
+
+O que destrava, nesta ordem:
+
+```bash
+orca orchestration worker-abandon --dispatch ctx_xxx --json   # o ctx vem da mensagem de erro
+orca orchestration task-update --id <task> --status ready --json
+orca orchestration dispatch --task <task> --to terminal:<handle novo> --return-preamble --json
+orca terminal close --terminal <handle velho> --tab --json
+```
+
+`worker-abandon` é o certo aqui, e não `worker-stop`: ele cerca o dispatch **sem afirmar que o
+processo parou** e sem tocar em recurso nenhum, que é exatamente o caso de um TUI que subiu e ficou
+ocioso.
+
+**A lição barata:** confira o rodapé do TUI **antes** do `dispatch`, não depois. A skill já manda
+conferir o modelo; confira o modo de permissão na mesma olhada — os dois estão na mesma linha.
+
+## Sessão paralela executa o SEU passo irreversível — duas vezes no mesmo ciclo (2026-09-08/09)
+
+O ciclo `desafio-feed-paginado` rodou num checkout compartilhado (`/root/projects/hybrid fit`)
+com pelo menos duas outras sessões ativas. **Os dois passos irreversíveis do plano foram
+executados por elas, não pelo coordenador**, e nos dois casos o gate correspondente ainda não
+tinha aprovado:
+
+1. **A migration.** O coordenador ia aplicar pelo caminho conservador (só o próprio arquivo).
+   Ao rodar `supabase db push --dry-run` para conferir, a resposta foi *"Remote database is up
+   to date"* — porque outra sessão já tinha rodado `db push`, que **empurra todas as
+   migrations pendentes do diretório**, e varreu a do coordenador junto. Deu certo por sorte:
+   o gate aprovou depois exatamente os bytes que já estavam em produção. Se tivesse reprovado,
+   produção estaria com código reprovado.
+2. **O push.** Enquanto o gate final rodava, outra sessão fez `pull --rebase` + `push`. Os
+   commits do coordenador foram para o remoto (com hashes novos pelo rebase, conteúdo idêntico
+   — verificado por `md5sum` arquivo a arquivo contra `git show origin/main:<path>`), e o
+   deploy automático da Vercel publicou o ambiente web antes do veredito.
+
+**O que fazer com isso:**
+
+- **Não confie no `--dry-run` como prova de que nada foi aplicado.** "Up to date" pode
+  significar "outra sessão já aplicou o seu arquivo". Antes de aplicar, confira o **ledger**
+  (`select version from supabase_migrations.schema_migrations where version = '<o seu>'`), não
+  só a saída do CLI.
+- **Depois de qualquer surpresa dessas, prove o conteúdo, não o hash.** Rebase muda hash e
+  preserva bytes; `git branch -r --contains <sha>` responde "não está" para um commit cujo
+  conteúdo está inteiro no remoto. O teste certo é
+  `git show origin/main:<path> | md5sum` contra `md5sum <path>`, arquivo por arquivo.
+- **Diga ao usuário na hora, com as duas metades:** o que escapou do portão, e o que
+  **continua** protegido. Aqui: código no remoto e no staging web, mas nenhum OTA publicado,
+  então nenhum usuário real afetado.
+- O que NÃO adianta: pedir para as outras sessões pararem, ou tentar reverter. Reverter um
+  push que outra sessão já construiu em cima é pior que seguir. O portão que sobra é o
+  **último** (o OTA/publicação), e é nele que a disciplina tem de ser absoluta.
+
+## Restart da sessão mata worker de gate e o terminal — mas os ARTEFATOS sobrevivem (2026-09-08)
+
+Quando o processo do Claude Code encerra, os terminais do Orca vão junto. Um gate de 20+
+minutos morreu assim, com a task em `dispatched` e **sem** relatório escrito.
+
+O que sobrou no disco valeu quase a rodada inteira: o revisor tinha capturado um **HAR** da
+sessão autenticada (`.playwright-cli/desafio-open.har`, 13 MB) e nove screenshots. Medindo o
+HAR, o coordenador extraiu sozinho dois dos cinco critérios de sucesso (bytes na rede e
+número de linhas na primeira página), e o gate refeito recebeu isso pronto para **auditar em
+vez de repetir**.
+
+Regra: **antes de redespachar um gate morto, vasculhe `.playwright-cli/`, o scratchpad e
+qualquer `--report-path` que o brief tenha pedido.** E no brief da segunda rodada, diga o que
+já está medido e mande auditar — repetir medição custa a mesma meia hora que a primeira.
+
+Corolário para o brief de qualquer gate longo: **exija artefato intermediário em disco**
+(HAR, dump, arquivo de medição parcial), não só o relatório final. Relatório final é tudo ou
+nada.
+
+## `wave.sh wait` em background morre por memória com worker + suíte grande (2026-09-08)
+
+Três mortes seguidas com `status: killed` e "system is running low on memory", numa máquina
+de 15 GB com 3 a 6 workers vivos, duas sessões paralelas e `vitest` rodando dos dois lados.
+O plano B da skill (`Monitor persistent` + `arm-external`) sobreviveu a todas.
+
+Duas coisas que reduziram a pressão de verdade, e valem antes de trocar de mecanismo:
+**fechar o terminal de todo worker cuja task já foi aceita** (não no fim da onda — na mesma
+resposta em que você aceita), e **remover o worktree de gate** assim que o relatório dele
+estiver copiado para o checkout principal. Um worktree deste projeto são 6.415 arquivos.
+
+E a suíte inteira (721 arquivos) também morre por memória nesse estado: rode em duas metades
+(`vitest run src/lib src/hooks` e depois o resto) em vez de insistir na completa.
+
+## `agy` trava em "Signing in..." e NUNCA vira erro — o tier inteiro cai calado (2026-09-13)
+
+Medido no ciclo `vinculo-asaas-admin`. Na onda 1, dois terminais `agy
+--dangerously-skip-permissions --model gemini-3.8-flash-high` subiram normalmente, pediram o
+"trust this folder", trabalharam e entregaram. **Na onda 2, no mesmo dia e na mesma máquina, três
+terminais seguidos pararam em:**
+
+```
+ Welcome to the Antigravity CLI. You are currently not signed in.
+ ⣾  Signing in...
+      ▄▀▀▄        Antigravity CLI 1.2.2
+▀▀▀▀▀▀       joaovitorsantanamkt@gmail.com      (Google AI Pro)
+```
+
+E ficaram ali. O modo de falha é o pior possível para uma sentinela:
+
+- `terminal create` responde `ok:true` e devolve handle;
+- `terminal wait --for tui-idle` responde **satisfeito** — o TUI *está* ocioso;
+- não há prompt de permissão, não há exit, não há linha de erro;
+- o rodapé nunca aparece, então a checagem de modelo não tem o que ler.
+
+**Não é concorrência.** A hipótese natural (dois agy ao mesmo tempo) foi testada e refutada:
+fechei os dois, recriei **um sozinho**, e ele travou igual. É a conta/serviço indisponível, e do
+lado do CLI isso é indistinguível de "ainda subindo".
+
+Três consequências:
+
+1. **Teste de prontidão do `agy` não é `tui-idle`: é o rodapé.** Espere aparecer
+   `accept-edits · <modelo>` ou o prompt de confiança. Um laço curto resolve:
+
+   ```bash
+   orca terminal read --terminal <h> --json | grep -q "Accept-edits mode\|trust the contents"
+   ```
+
+   Sem isso você despacha para um terminal que nunca vai ler nada, e o `check --wait` espera para
+   sempre um worker que não existe.
+2. **Trate como cota esgotada e use o fallback que o USUÁRIO nomeou**, sem inventar modelo novo.
+   Aqui o usuário já tinha dito "se o Gemini acabar a cota, use o Codex GPT 5.6 Terra", e a troca
+   custou dois `terminal create`. Se ele não tiver nomeado fallback, **pergunte** — acrescentar
+   modelo por conta própria é decisão dele sendo tomada por você.
+3. **Diga na hora, e diga que foi troca de tier**, não deixe para o relatório final. O usuário
+   atribuiu aquele tier de propósito.
+
+### E o Codex também pode não ser detectado pelo `--inject`
+
+No mesmo ciclo, `dispatch --inject` para um terminal rodando `codex --model gpt-5.6-terra` (com
+o rodapé mostrando `gpt-5.6-terra high` e `permissions: YOLO mode`) respondeu:
+
+```
+inject_rejected: no recognized agent detected
+```
+
+apesar de `codex` estar **na lista** que o próprio erro imprime. A detecção olha o processo/pane,
+não o que você pediu na linha de comando, e às vezes erra. Não insista nem recrie o terminal: caia
+direto na receita que já vale para `agy` e `opencode`:
+
+```bash
+orca orchestration dispatch --task <id> --to terminal:<h> --return-preamble --json
+# grave o preambulo num arquivo e mande um prompt CURTO apontando para ele
+orca terminal send --terminal <h> --text "NOVA TAREFA X. taskId=... dispatchId=... Leia <PREAMBULO> e <BRIEF> e execute." --enter --json
+```
+
+Regra prática que sai daí: **`--inject` é otimização, não caminho**. Escreva o preâmbulo em
+arquivo desde o começo e o ciclo fica indiferente a qual CLI o Orca reconhece hoje.
+
+## Os flags do Orca não são consistentes entre subcomandos — confira, não deduza
+
+`[MEDIDO: 13/09/2026, ciclo vinculo-asaas-admin, três round-trips perdidos numa onda só]`
+
+Três subcomandos da mesma família, três grafias para a mesma ideia:
+
+| comando | o flag |
+|---|---|
+| `orchestration task-create` | `--task-title` |
+| `orchestration dispatch` | `--task` e `--to` (**não** `--task-id` / `--terminal`) |
+| `terminal create` | `--title` (**não** `--tab`) |
+
+E `orca task-list` não existe: é `orca orchestration task-list`.
+
+O erro é barato de recuperar (o CLI sugere o flag certo em `data.suggestions`) mas caro de
+acumular: numa onda de dois workers custou três chamadas. **`<comando> --help` antes do primeiro
+uso de cada subcomando na sessão** custa menos que a primeira correção.
+
+Pior armadilha da família, porque falha **silenciosa**: um flag desconhecido em `--json` volta
+`ok:false` com `result` ausente, e um `python3` que lê `d.get('result') or d` imprime `None` em vez
+de estourar. Foi assim que dois dispatches "aconteceram" com `dispatchId: None` e preâmbulo de zero
+caractere, e só o `dispatch-show` seguinte (`"dispatch": null`) denunciou. **Cheque `ok` antes de
+ler `result`**, sempre.
+
+## Feche o terminal do worker no `worker_done`, antes de subir o gate
+
+`[MEDIDO: 13/09/2026, ciclo vinculo-asaas-admin]`
+
+Um worker que já mandou `worker_done` continua com o TUI vivo segurando a RAM inteira dele. Num
+aperto de memória que matou uma tarefa de background do coordenador, os dois maiores consumidores
+da máquina eram os **dois `opencode` de workers que já tinham entregado**, a ~900 MB cada. Fechar
+os dois devolveu ~2 GB num comando:
+
+```bash
+orca terminal close --terminal <handle> --json
+```
+
+**A regra:** ao receber `worker_done` de uma onda, feche aquele terminal **antes** de abrir a onda
+seguinte, e sempre antes de subir um gate adversarial. O gate em esforço máximo é a tarefa mais
+cara e mais longa do ciclo, e é a pior de se perder para um OOM — ele morre depois de vinte minutos
+de trabalho, e a rodada inteira volta ao começo.
+
+Relatório e diff já estão em disco quando o `worker_done` chega: fechar o terminal não perde
+entrega nenhuma.
+
+**A exceção, e é a razão de isso não ser automático:** terminal fechado é contexto perdido. Se o
+worker ainda vai receber uma correção **na mesma tarefa**, retenha — foi o que permitiu despachar
+a T3-B para o mesmo terminal da T3 com "o que você já escreveu está CERTO e não deve ser
+revertido". Feche só quem terminou de verdade.
+
+## Editou um tipo compartilhado? Rode o typecheck ANTES de despachar, não depois
+
+`[MEDIDO: 13/09/2026, ciclo vinculo-asaas-admin — o MESMO erro, três vezes, pelo mesmo coordenador]`
+
+O coordenador é dono dos contratos congelados, então é ele quem acrescenta campo a um tipo
+compartilhado. Um campo **obrigatório** novo quebra toda fixture que constrói aquele tipo, e as
+fixtures pertencem a **outros** donos.
+
+As três ocorrências, todas no mesmo ciclo:
+
+| o que acrescentei | o que quebrou | como descobri |
+|---|---|---|
+| `acknowledgedAt`/`acknowledgedNote` em `BillingDivergenceAssessment` | 1 fixture de outra dona | **o worker escalou, bloqueado** |
+| o mesmo, de novo | — | conferi na hora, 0 quebras |
+| `acknowledgedAt`/`acknowledgedNote` em `BillingOperationResult` | **4** fixtures de outras donas | só no `tsc` do fim da onda |
+
+O custo não é o conserto (dois campos, dois minutos). É o worker que **para e escala** por um
+bloqueio que não é dele, esperando resposta — e é você que fica sabendo depois que gastou a
+paralelização daquela onda.
+
+**A regra, e ela custa segundos:**
+
+> Editou um tipo que outros arquivos constroem? Rode o typecheck das DUAS pontas **antes** de
+> despachar qualquer worker, e conserte as fixtures você mesmo no mesmo movimento.
+
+```bash
+./node_modules/.bin/tsc --noEmit -p tsconfig.app.json 2>&1 | grep -E "<recorte do ciclo>"
+deno check --no-lock --node-modules-dir=auto <um consumidor de cada lado>
+```
+
+O sinal de que você está prestes a errar: o campo novo é **obrigatório** (sem `?`) e o tipo é
+`export`. Campo opcional não quebra fixture, mas apodrece calado — prefira obrigatório e pague os
+dois minutos, **antes** da onda.
+
+E quando o worker escalar por isto: a resposta certa começa com "o bloqueio era meu, não seu".
+Ele fez o certo em escalar em vez de editar arquivo alheio.
+
+## Deploy a partir de branch que não rebaseou a `main` é um ROLLBACK silencioso
+
+Medido em 14/09/2026, ciclo `cobrancas-asaas`, e é o defeito mais caro que este
+ciclo produziu — em produção, sem ninguém perceber por um dia.
+
+`scripts/deploy-fn-from-head.sh` empacota **`git archive HEAD`**, e isso é
+deliberado (o working tree é compartilhado por sessões paralelas). O efeito
+colateral não é deliberado: **o que a `main` avançou depois da divergência NÃO
+está no HEAD da branch**, então cada função publicada volta à versão da branch.
+
+O flagrante: publiquei 56 funções do fecho do ciclo às 20:36 UTC. A `main` tinha
+recebido três fixes de `ai-chat` às 15:46, 17:12 e 17:24 do mesmo dia, mais um
+guard de telefone de equipe em quatro pontos de ingestão. Resultado medido
+cruzando `updated_at` das edge functions com
+`git diff $(git merge-base branch main) origin/main`:
+
+**8 funções revertidas** — `ai-chat`, `admin-workspaces`, `push-dispatch`,
+`check-missed-messages`, `evolution-webhook`, `messenger-webhook`,
+`meta-webhook-receiver`, `sector-bot`.
+
+Duas consequências que nenhum teste podia pegar:
+
+- o guard de telefone de equipe saiu do ar nos quatro pontos de ingestão;
+- `push-dispatch` perdeu o evento `vendor.reminder` enquanto o
+  `vendor-reminder-processor` continuava publicado chamando por ele. Ou seja,
+  **o merge de dois lados verdes produziu uma ponta quebrada em produção**.
+
+**Por que o gate não pega:** ele roda a suíte do archive, e a branch estava
+verde nela mesma. Verde não é prova de que você não apagou o trabalho alheio;
+é prova de que o seu trabalho é coerente consigo.
+
+**A regra, e ela é barata:**
+
+> **Antes de `deploy-fn-from-head.sh`, rebase ou merge a `main` e redeploye a
+> partir do HEAD integrado.** Se não der para integrar agora, liste o que você
+> vai sobrescrever ANTES de publicar:
+>
+> ```bash
+> MB=$(git merge-base HEAD origin/main)
+> git diff --name-only "$MB" origin/main -- supabase/functions/ \
+>   | grep -v '_test.ts$' | sed 's#^supabase/functions/##' \
+>   | awk -F/ '{print $1}' | sort -u
+> ```
+>
+> Cruze com os importadores de qualquer `_shared/` dessa lista (uma mudança em
+> `_shared` reverte todo importador, não só a função de nome óbvio) e com a
+> janela de `updated_at` do seu próprio deploy. O que aparecer nos dois lados é
+> o que você vai apagar.
+
+E a lição geral, que vale além do Orca: **num repositório com sessões paralelas,
+"publiquei o meu" e "publiquei só o meu" são afirmações diferentes.** A segunda
+exige medição; a primeira é a que a gente assume sem perceber.

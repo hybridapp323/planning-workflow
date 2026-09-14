@@ -52,8 +52,12 @@ Peça exatamente isto:
 Veredito: PASSA | BLOQUEIA
 Bloqueadores  — impedem executar como está, com arquivo:linha ou query que prova,
                 e o custo da correção: documental | decisão do usuário | redesenho
+Regressões prováveis — POR TAREFA: o que pode quebrar em produção para o lead ou para o
+                operador, com o consumidor/emissor esquecido e a prova
 Riscos        — não impedem, mas custam se ignorados
 Sugestões     — melhorias opcionais
+Verificado e correto — o que conferiu e achou certo
+Hipóteses     — o que não conseguiu verificar e por quê
 ```
 
 Exija prova em cada bloqueador. Bloqueador sem `arquivo:linha` nem resultado de query é opinião.
@@ -63,6 +67,16 @@ mesma barra de "impede executar como está" e custam coisas muito diferentes; se
 "BLOQUEIA" lê como "está tudo errado". Medido em 2026-09-12: quatro bloqueadores, três
 documentais e uma decisão do usuário, zero redesenho. O esqueleto estava são; a camada de fatos
 sobre dado existente e convenção do repositório, não.
+
+**A seção "Regressões prováveis, por tarefa" não é enfeite.** Pedida pelo usuário em
+2026-09-04 ("peça pra ele buscar possíveis regressões também"), ela produziu os três
+bloqueadores mais caros daquela revisão, que a lista de afirmações de carga não teria
+puxado: um consumidor que lia a última linha de uma tabela por tempo (a linha que o plano
+ia parar de gravar), um checklist que duplicava as regexes que o plano corrigia só na
+transição, e uma união de regexes que transformaria aviso em transferência executada. Peça
+também o critério do dono do produto quando ele o der ("a ideia central é evoluir a
+arquitetura e facilitar a manutenção"): o revisor julga cada tarefa por ele, não só por
+"funciona".
 
 ## Verificar que ele foi mesmo read-only
 
