@@ -234,6 +234,12 @@ cada vez mais exótico (anáfora parentética, rótulo só-emoji, `transferred` 
 encolheu — e quem parou o loop foi o usuário, não o plano. Nenhuma skill dizia
 quando parar.
 
+Este ciclo rodou sete rodadas **contra** a regra *Um gate, uma rodada* (seção *Gates*,
+decidida pelo usuário em 12/09/2026): pelo desenho vigente a rodada dois de um gate só
+existe por pedido explícito dele. O que segue vale para esse caso, quando o usuário pediu
+as rodadas extras, e para o laço `teste → systematic-debugging`, onde a "família" é o mesmo
+teste voltando vermelho pela terceira vez.
+
 **A regra:** na terceira reprovação da MESMA família, pare de despachar
 correção e leve ao usuário uma decisão de ship, com três itens: o que falta
 corrigir (arquivo:linha + cadeia de cada residual), o que prova cada residual
