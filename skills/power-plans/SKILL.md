@@ -377,7 +377,7 @@ Rubrica completa com exemplos e casos de fronteira: `references/complexity-rubri
 
 Na dúvida entre dois níveis, suba. O modelo mais forte numa tarefa média custa menos que o retrabalho de uma complexa mal feita.
 
-**O plano nunca nomeia modelo.** Escreve `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` como placeholder. Quem atribui é o usuário, na hora de executar, porque a escolha depende de custo, disponibilidade e humor do dia, não do plano.
+**O plano nunca nomeia modelo.** Escreve `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` e `<MODELO_GATE>` como placeholder. Quem atribui é o usuário, na hora de executar, porque a escolha depende de custo, disponibilidade e humor do dia, não do plano.
 
 ### Ownership de arquivo
 
@@ -496,6 +496,14 @@ Posicione gate imediatamente **antes** de cada passo irreversível: aplicar migr
 
 Um gate é uma tarefa como as outras, com nível, dono e dependência. O que o distingue é que o passo do coordenador que ele guarda não pode acontecer sem o resultado dele. Escreva isso no plano com essas palavras.
 
+**O plano também declara o orçamento do advisor, sem agendar consulta nenhuma.** O advisor
+(`orchestrating-execute`, seção *O advisor*) é a segunda opinião de rumo que o coordenador
+consulta quando a lista do gate pede correção de mecanismo, quando um achado contradiz contrato
+congelado, ou ao montar opções para o usuário. Roda no modelo `<MODELO_GATE>`, o mesmo do gate,
+com teto de uma consulta por onda e três por plano. A consulta é emergente e não se planeja; o
+teto e o modelo, sim: entram na tabela de níveis (linha `Gate / Advisor`) e no §7, como no
+esqueleto.
+
 ### Revisão externa: opcional no meio-termo, PADRÃO no aparato completo
 
 Quando o usuário pedir, ou quando a feature for grande o bastante para valer, ofereça uma revisão externa read-only antes de executar. Não fixe qual agente ou modelo faz.
@@ -599,6 +607,8 @@ sendo plano falso.
 - Algum worker precisa rodar comando que este projeto proíbe delegar?
 - O caminho crítico está marcado?
 - Sobrou placeholder de modelo, e nenhum modelo nomeado?
+- A tabela de níveis tem a linha `Gate / Advisor` com `<MODELO_GATE>`, e o §7 traz o orçamento do
+  advisor (1 por onda, 3 por plano)?
 
 ## Regras do projeto: de onde saem
 

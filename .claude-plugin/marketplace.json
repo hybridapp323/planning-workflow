@@ -11,7 +11,7 @@
     {
       "name": "planning-workflow",
       "source": "./",
-      "description": "Da ideia crua a execucao: entrevista em rodadas ate a spec fechar, plano de implementacao multi-agente (niveis, ownership de arquivo, contratos congelados, ondas e gates), execucao, e depuracao com causa raiz antes de conserto."
+      "description": "Da ideia crua a execucao: entrevista em rodadas ate a spec fechar, plano de implementacao multi-agente (niveis, ownership de arquivo, contratos congelados, ondas e gates), execucao com advisor de rumo (orcamento 1 por onda, 3 por plano), e depuracao com causa raiz antes de conserto."
     }
   ]
 }

@@ -86,6 +86,7 @@ Cada tarefa carrega o nível no título, e o plano traz placeholders no topo:
 | Complexa | <MODELO_COMPLEXA>  |
 | Média    | <MODELO_MEDIA>     |
 | Baixa    | <MODELO_BAIXA>     |
+| Gate / Advisor | <MODELO_GATE> |
 ```
 
 O plano nunca preenche essa tabela. Quem preenche é o usuário, na hora de executar.

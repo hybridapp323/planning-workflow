@@ -6,7 +6,7 @@ Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: tr�
 
 - **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria) e aprovada.
 - **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e gates bloqueantes. Não cita orquestrador.
-- **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas, gates, e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
+- **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas, gates de rodada única, advisor de rumo com orçamento (uma consulta por onda, três por plano, mesmo modelo do gate, registro obrigatório da divergência), e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
 - **`systematic-debugging`** — causa raiz antes de conserto: as quatro fases, o limite de três consertos falhados que vira questão de arquitetura, e as racionalizações que precedem cada banda-aid.
 
 São genéricas de propósito. As regras específicas de cada repositório saem do `CLAUDE.md` / `AGENTS.md` dele, e de um `.claude/plan-profile.md` opcional.
@@ -92,7 +92,8 @@ planning-workflow/
     ├── orchestrating-execute/
     │   ├── SKILL.md
     │   └── references/
-    │       └── orca-traps.md
+    │       ├── orca-traps.md       # armadilhas medidas do Orca
+    │       └── advisor.md          # brief, mandato, task ADV-n e registro do advisor
     └── systematic-debugging/
         └── SKILL.md
 ```

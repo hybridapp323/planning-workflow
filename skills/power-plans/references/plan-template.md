@@ -43,6 +43,7 @@ deixar o campo em branco.
 | Complexa | <MODELO_COMPLEXA> | erro caro ou difícil de detectar; precedência, invariante, concorrência, segurança, dado de produção |
 | Média    | <MODELO_MEDIA>    | solução conhecida, escopo claro, erro aparece em teste ou na tela |
 | Baixa    | <MODELO_BAIXA>    | mecânica, verificável por inspeção, sem decisão de design |
+| Gate / Advisor | <MODELO_GATE> | revisão read-only adversarial (S<n>) e consulta de rumo (`ADV-n`, teto 1 por onda e 3 por plano); um modelo só para os dois papéis |
 
 O usuário preenche a coluna Modelo na hora de executar.
 
@@ -133,7 +134,7 @@ o buraco é na spec, e é lá que se conserta>
 
 **Não faça:** <o que pertence a outra tarefa e vai dar vontade de fazer aqui>
 
-### S<n> — Gate de <o quê> · **Complexa** · depende de T<x>, T<y> · **bloqueia C<z>**
+### S<n> — Gate de <o quê> · **Gate / Advisor** (`<MODELO_GATE>`) · depende de T<x>, T<y> · **bloqueia C<z>**
 
 **Mandato:** revisar, não corrigir. Devolve aprovação ou lista de problemas.
 
@@ -190,6 +191,7 @@ Só o coordenador roda estes. Nenhum worker.
 | ----- | --------- |
 | <worker sai do escopo> | ownership normativo em §3 e "não faça" em cada tarefa |
 | <contrato divergente> | §4 congelado antes da onda 1 |
+| <correção pós-gate vai para o call site quando o defeito é de mecanismo> | advisor `ADV-n` (modelo `<MODELO_GATE>`) antes de despachar a onda de correção; orçamento 1 por onda, 3 por plano; registro recomendou / decidi / divergência aqui neste §7 |
 ```
 
 ---
