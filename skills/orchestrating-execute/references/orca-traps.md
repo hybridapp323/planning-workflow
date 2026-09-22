@@ -1478,9 +1478,9 @@ de estourar. Foi assim que dois dispatches "aconteceram" com `dispatchId: None` 
 caractere, e só o `dispatch-show` seguinte (`"dispatch": null`) denunciou. **Cheque `ok` antes de
 ler `result`**, sempre.
 
-## Feche o terminal do worker no `worker_done`, antes de subir o gate
+## Feche o terminal do worker no ACEITE do `worker_done`, antes de subir o gate
 
-`[MEDIDO: 13/09/2026, ciclo vinculo-asaas-admin]`
+`[MEDIDO: 13/09/2026, num ciclo de painel administrativo]`
 
 Um worker que já mandou `worker_done` continua com o TUI vivo segurando a RAM inteira dele. Num
 aperto de memória que matou uma tarefa de background do coordenador, os dois maiores consumidores
@@ -1488,21 +1488,25 @@ da máquina eram os **dois `opencode` de workers que já tinham entregado**, a ~
 os dois devolveu ~2 GB num comando:
 
 ```bash
-orca terminal close --terminal <handle> --json
+wave.sh close <task>     # = worker-release ou terminal close --tab, com prova de posse
+orca terminal close --terminal <handle> --tab --json   # o comando cru, só para terminal SEU
 ```
 
-**A regra:** ao receber `worker_done` de uma onda, feche aquele terminal **antes** de abrir a onda
-seguinte, e sempre antes de subir um gate adversarial. O gate em esforço máximo é a tarefa mais
+**A regra:** ao aceitar o `worker_done` de uma task (o runtime já a marcou `completed`), feche
+aquele terminal na hora, **antes** de abrir a onda seguinte e sempre antes de subir um gate adversarial. Não
+espere o usuário pedir: a sequência completa está no `SKILL.md`, *O que fazer a cada
+`worker_done`*. O gate em esforço máximo é a tarefa mais
 cara e mais longa do ciclo, e é a pior de se perder para um OOM — ele morre depois de vinte minutos
 de trabalho, e a rodada inteira volta ao começo.
 
 Relatório e diff já estão em disco quando o `worker_done` chega: fechar o terminal não perde
 entrega nenhuma.
 
-**A exceção, e é a razão de isso não ser automático:** terminal fechado é contexto perdido. Se o
-worker ainda vai receber uma correção **na mesma tarefa**, retenha — foi o que permitiu despachar
-a T3-B para o mesmo terminal da T3 com "o que você já escreveu está CERTO e não deve ser
-revertido". Feche só quem terminou de verdade.
+**A exceção, e é por isso que o momento certo é o ACEITE e não o instante do `worker_done`:**
+terminal fechado é contexto perdido. Se o worker ainda vai receber uma correção **na mesma
+tarefa**, retenha — foi o que permitiu despachar a T3-B para o mesmo terminal da T3 com "o que
+você já escreveu está CERTO e não deve ser revertido". Feche quem foi aceito, e feche sem que
+ninguém precise pedir.
 
 ## Editou um tipo compartilhado? Rode o typecheck ANTES de despachar, não depois
 

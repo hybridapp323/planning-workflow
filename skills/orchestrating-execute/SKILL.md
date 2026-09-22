@@ -235,21 +235,87 @@ restaura sempre, inclusive quando o cenário falha.
 
 Para cada onda:
 
-1. Suba todos os workers da onda **no mesmo momento**. Onda serializada é onda desperdiçada.
+1. Suba todos os workers da onda **no mesmo momento**, pelo caminho que dá posse do terminal
+   (`wave.sh spawn`, que é `worker-start`). Onda serializada é onda desperdiçada, e terminal sem
+   dono registrado é terminal que ninguém consegue fechar com prova.
 2. Espere as conclusões. Trate `escalation` na hora: worker escalando está parado.
-3. Rode os passos do coordenador daquela onda, você mesmo.
-4. Verifique antes de abrir a próxima. Onda seguinte que começa em cima de passo do coordenador não confirmado propaga o erro para todos os workers de uma vez.
+3. **A cada `worker_done`, feche o ciclo daquele worker sem esperar que o usuário peça:** leia o
+   relatório, aceite com casos seus, confira a task, feche o terminal. A sequência exata está na
+   seção seguinte.
+4. Rode os passos do coordenador daquela onda, você mesmo.
+5. Verifique antes de abrir a próxima. Onda seguinte que começa em cima de passo do coordenador
+   não confirmado propaga o erro para todos os workers de uma vez. E abra a próxima com a árvore
+   limpa: todos os `worker_done` da onda aceitos, terminais fechados, e `wave.sh sweep`
+   respondendo que não há terminal de task encerrada aberto.
 
 Um `check --wait` que volta só com keepalive e sai não é falha: é ponto de checagem. Confirme que o worker está vivo e rearme a espera.
+
+### O que fazer a cada `worker_done`: aceitar, conferir a task, fechar
+
+O `worker_done` é o worker dizendo que terminou. O runtime marca a task `completed` (ou `failed`)
+sozinho e preenche o `result` com o relatório dele; o que ele NÃO faz é o seu trabalho: aceitar
+com casos seus e fechar o terminal. Isso é parte da coordenação, não favor que o usuário pede.
+Relatado pelo usuário em 22/09/2026, nos três sistemas em que o plano roda: o coordenador só
+fechava terminal quando mandavam, e a árvore do Orca acumulava os TUIs já entregues, cada um
+segurando a RAM inteira do agente. Medido em 13/09/2026: dois workers entregues a ~900 MB cada,
+e o aperto de memória matou uma tarefa de background do coordenador; em outra execução, 20+
+terminais mortos na interface.
+
+Para cada `worker_done`, nesta ordem, e nenhum passo pula o anterior:
+
+1. **Leia o relatório e o diff.** `wave.sh report <task>` traz o corpo do `worker_done`, os
+   arquivos e o diff; `dispatch-show` não traz o corpo.
+2. **Aceite com casos seus.** Rode o `Pronto quando` com casos que não são os do worker e confira
+   a prova de neutralização (seção *Dois mecanismos de qualidade*).
+   - **Não passou:** a correção é uma **task nova** (`T<n>b`), despachada **para o mesmo
+     terminal** (`dispatch --task <nova> --to terminal:<handle>`): o contexto do worker vale mais
+     que refazer do zero. A task original já está `completed` e o terminal continua vivo de
+     propósito. **Não feche nem varra esse terminal enquanto a continuação estiver viva:** o
+     `sweep` lista a task antiga como encerrada, e o `close` dela mataria a nova. Feche no aceite
+     da ÚLTIMA task daquele terminal. Medido em 20/09/2026: uma tarefa complexa levou três tasks
+     no mesmo terminal até o aceite, e o terminal só fechou depois da terceira.
+   - **Passou:** siga.
+3. **Confira a task no `task-list`:** ela já está `completed`, com o `result` do próprio worker
+   (`provenance: worker_report`). Não a reescreva com `task-update`: isso apaga a proveniência.
+   `task-update` é para o worker que morreu sem `worker_done` (`--status failed --result
+   '{"reason":…}'`); cancelar também é `--status failed`, com o motivo no `result`, porque não
+   existe status `cancelled`. O seu aceite fica registrado no documento do ciclo, com o comando
+   que o provou.
+4. **Feche o terminal, a aba e a entrada na árvore:** `wave.sh close <task>`. Ele escolhe o
+   caminho pela posse (`worker-release` para terminal que o `worker-start` criou; `terminal close
+   --tab` para terminal que você criou pelo `wave create`), mata o processo do agente e confere
+   que o handle sumiu. Ele recusa task fora de status terminal, o terminal do coordenador e
+   qualquer terminal sem prova de posse: a sessão do usuário nunca é fechada por engano. Sem
+   `wave.sh` na máquina, o comando cru é o mesmo nos três sistemas e vale só para terminal que
+   VOCÊ criou: `orca terminal close --terminal <handle> --tab --json` (`--tab` fecha a aba
+   inteira; sem ele o pane fica vivo consumindo memória; o primeiro `ok:false` é retry, não
+   falha).
+5. **Confira na lista, não no recibo:** o handle não aparece mais em `orca terminal list --json`.
+   Se o `close` disse que fechou e o handle ainda aparece, a aba ficou na árvore: `orca terminal
+   close --terminal <handle> --tab --json`, e registre o caso em `references/orca-traps.md`. Se
+   ele disse que o release ficou pendente e o terminal continua vivo, siga o recibo; não force.
+
+Quando TODOS os `worker_done` da onda estiverem aceitos e nenhuma continuação estiver viva, rode
+`wave.sh sweep`: ele fecha o que sobrou e tem de responder que não há terminal de task encerrada
+aberto. Não o rode no meio de uma correção.
+
+Duas exceções, e só estas:
+
+- **Continuação viva no mesmo terminal** (passo 2, "não passou"): fecha no aceite da última.
+- **Terminal de gate que vai receber o fix mais complexo da própria lista:** reaproveitar o
+  contexto do revisor já pagou; vale a mesma regra da continuação.
+
+Fora disso, terminal de task aceita que continua aberto é erro seu, não pendência do usuário.
 
 ## Dois mecanismos de qualidade, e só um deles é o gate
 
 **Aceite do coordenador** é contínuo, barato e sem orçamento. Todo `worker_done` passa por
 você antes de contar como entregue: leia o diff, rode o `Pronto quando` com casos SEUS (nunca só
 os do worker), confira a prova de neutralização. Não passou no rigor: devolva ao mesmo worker, no
-mesmo terminal, com o que falta, quantas vezes precisar. Isso é coordenar, não é gate. Medido em
-20/09/2026: uma tarefa complexa aceita na terceira devolução custou duas devoluções ao mesmo
-worker e nenhuma rodada de revisor.
+mesmo terminal, com o que falta, quantas vezes precisar. Aceitou: confira a task e feche o
+terminal na hora (*O que fazer a cada `worker_done`*, acima). Isso é coordenar, não é gate.
+Medido em 20/09/2026: uma tarefa complexa aceita na terceira devolução custou duas devoluções ao
+mesmo worker e nenhuma rodada de revisor.
 
 **Gate** é uma cartada: um revisor read-only, em outro modelo, **uma vez**, sobre o candidato
 integrado, imediatamente antes do passo irreversível que ele guarda (migration em produção,
@@ -442,7 +508,7 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
 2. Commite com caminhos explícitos.
 3. Responda os portões de entrega do projeto, sem esperar o usuário perguntar. Se o projeto entrega por bundle ou build nativo, diga sim ou não para cada um.
 4. Atualize a documentação que este projeto exige atualizar no mesmo commit.
-5. Feche as tasks no Orca com o resultado real. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
+5. Feche as tasks no Orca com o resultado real, e os terminais: `wave.sh sweep` tem de responder que não há terminal de task encerrada aberto, e o único terminal seu na árvore é o do coordenador. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
 6. Confira que toda task `ADV-n` tem o bloco de registro (recomendou / decidi / divergência) no documento do ciclo, e que cada divergência está no relatório ao usuário com essas palavras.
 7. Relate ao usuário o que ficou de fora, se ficou, e por quê.
 7. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
