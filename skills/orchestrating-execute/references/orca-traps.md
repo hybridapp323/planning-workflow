@@ -1139,7 +1139,7 @@ apontando para uma classe que ninguem definiu. **Num brief de gate, peça a medi
 
 ## O gate reprovando pela MESMA familia e sinal de brief, nao de codigo (2026-09-04)
 
-Confirmacao pratica da secao "teto do gate adversarial". Rodada 1: contraste quebrado em 3
+Confirmacao pratica da secao "O gate adversarial tem um teto" (`references/correcao-pos-gate.md`). Rodada 1: contraste quebrado em 3
 arquivos. Os workers consertaram os 3. Rodada 2: **mesma familia, outros 3 arquivos**.
 
 O que fechou em uma onda: uma tarefa unica cujo **entregavel principal era o teste que le o
@@ -1250,7 +1250,7 @@ E o corolário para o coordenador: **peça a medição, não a leitura** — inc
 
 ## Correção pós-gate se despacha por FAMÍLIA, e a instrução tem de ser literal (2026-09-06)
 
-Confirmação forte da seção *teto do gate adversarial*, agora com o contrafactual medido. 12
+Confirmação forte da seção *O gate adversarial tem um teto* (`references/correcao-pos-gate.md`), agora com o contrafactual medido. 12
 bloqueantes foram agrupados em **quatro** tarefas por família, cada brief dizendo, com estas
 palavras, que **o entregável NÃO é consertar os itens citados**. O que voltou:
 

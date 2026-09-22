@@ -5,8 +5,8 @@ Skills para o ciclo de vida de uma feature, da ideia crua até a execução, e a
 Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: três das quatro skills não dependem de nenhuma ferramenta específica e rodam em qualquer agente que aceite instruções em arquivo. Ver [Usar em outro agente](#usar-em-outro-agente-ou-outro-cli).
 
 - **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria) e aprovada.
-- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e gates bloqueantes. Não cita orquestrador.
-- **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas, gates de rodada única, advisor de rumo com orçamento (uma consulta por onda, três por plano, mesmo modelo do gate, registro obrigatório da divergência), e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
+- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. A revisão externa da spec e do plano é recomendada e opcional: quem decide, e nomeia o modelo, é o usuário. Não cita orquestrador.
+- **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas com aceite do coordenador por tarefa, um gate por plano em rodada única antes do passo irreversível, advisor de rumo com orçamento (uma consulta por veredito de gate, mesmo modelo do gate, registro obrigatório da divergência), e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
 - **`systematic-debugging`** — causa raiz antes de conserto: as quatro fases, o limite de três consertos falhados que vira questão de arquitetura, e as racionalizações que precedem cada banda-aid.
 
 São genéricas de propósito. As regras específicas de cada repositório saem do `CLAUDE.md` / `AGENTS.md` dele, e de um `.claude/plan-profile.md` opcional.
@@ -96,6 +96,7 @@ planning-workflow/
     │   ├── SKILL.md
     │   └── references/
     │       ├── orca-traps.md       # armadilhas medidas do Orca
+    │       ├── correcao-pos-gate.md # as lições medidas sobre a forma da correção depois do gate
     │       └── advisor.md          # brief, mandato, task ADV-n e registro do advisor
     └── systematic-debugging/
         └── SKILL.md

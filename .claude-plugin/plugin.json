@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "planning-workflow",
-  "version": "0.3.0",
-  "description": "Ciclo completo de feature: entrevista em rodadas ate a spec fechar, plano de implementacao multi-agente (niveis, ownership de arquivo, contratos congelados, ondas e gates), execucao via Orca orchestration com advisor de rumo (orcamento 1 por onda, 3 por plano), e depuracao com causa raiz antes de conserto.",
+  "version": "0.4.0",
+  "description": "Ciclo completo de feature: entrevista em rodadas ate a spec fechar, plano de implementacao multi-agente (niveis, ownership de arquivo, contratos congelados, ondas e gates), execucao via Orca orchestration com advisor de rumo (uma consulta por veredito de gate), e depuracao com causa raiz antes de conserto.",
   "author": {
     "name": "hybridapp323"
   },

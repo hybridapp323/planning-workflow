@@ -11,7 +11,8 @@ final) está no `SKILL.md`; este arquivo é a mecânica.
 2. **Você já escreveu a direção que pretende tomar, com o motivo?** Sem isso não há o que
    discriminar, e o advisor refaz o gate.
 3. **O orçamento permite?** `orca orchestration task-list --json` e conte os títulos `ADV-`.
-   Um por onda, três por plano. Terceiro já usado: não há quarto.
+   Uma por veredito de gate, uma por escalação que contradiz contrato, uma para montar opções ao
+   usuário. Já existe `ADV-` para este veredito ou esta escalação: não há segunda.
 
 ## Mecânica
 
@@ -54,7 +55,7 @@ Caminhos absolutos, sem colar valor de credencial:
    diga e pare.
 4. **O que está faltando aqui que eu não teria como notar, porque fui eu que escrevi?**
 
-Escreva a pergunta com o critério dentro. No ciclo `cobrancas-asaas` a pergunta feita foi "isso
+Escreva a pergunta com o critério dentro. Num ciclo de cobrança a pergunta feita foi "isso
 é seguro?" quando a decisão era "isso é idempotente por estado observado?": pergunta larga recebe
 resposta larga, e resposta larga é a que se descarta sem perceber.
 
@@ -98,8 +99,8 @@ porque Y"*. Não em nota de rodapé. Se o plano tem gate posterior, o brief dele
 
 ## Armadilhas já pagas
 
-- **Descartar em silêncio.** `cobrancas-asaas`, 12/09/2026: o advisor apontou a falha de
-  idempotência do CC-10 na rodada 1; o coordenador descartou; o gate redescobriu duas rodadas
+- **Descartar em silêncio.** 12/09/2026, num ciclo de cobrança: o advisor apontou uma falha de
+  idempotência na rodada 1; o coordenador descartou; o gate redescobriu duas rodadas
   depois. O registro com divergência visível existe por causa disto.
 - **Chamar para confirmar.** Se você já sabe a resposta que quer, a consulta é deferência ao
   contrário e gasta o orçamento de quem precisaria dele.

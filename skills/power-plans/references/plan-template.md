@@ -43,7 +43,7 @@ campo é registro, não pendência: revisão da spec ou do plano não é tarefa 
 | Complexa | <MODELO_COMPLEXA> | erro caro ou difícil de detectar; precedência, invariante, concorrência, segurança, dado de produção |
 | Média    | <MODELO_MEDIA>    | solução conhecida, escopo claro, erro aparece em teste ou na tela |
 | Baixa    | <MODELO_BAIXA>    | mecânica, verificável por inspeção, sem decisão de design |
-| Gate / Advisor | <MODELO_GATE> | revisão read-only adversarial (S<n>) e consulta de rumo (`ADV-n`, teto 1 por onda e 3 por plano); um modelo só para os dois papéis |
+| Gate / Advisor | <MODELO_GATE> | revisão read-only adversarial (S<n>) e consulta de rumo (`ADV-n`, no máximo uma por veredito de gate); um modelo só para os dois papéis |
 
 O usuário preenche a coluna Modelo na hora de executar.
 
@@ -52,13 +52,16 @@ O usuário preenche a coluna Modelo na hora de executar.
     C0 (coordenador: congela contratos)
      |
      +-- T1 [Média]     ----+
-     +-- T2 [Complexa]  ----+--> S1 [gate] --> C1 (coordenador) --+
-     +-- T3 [Média]     ----+                                     |
-                                                                  v
-                                              T5 [Complexa] --+
-                                              T6 [Média]  ----+--> C2 ...
+     +-- T2 [Complexa]  ----+--> C1 (coordenador: integra e aceita) --+
+     +-- T3 [Média]     ----+                                         |
+                                                                      v
+                                                  T5 [Complexa] --+
+                                                  T6 [Média]  ----+--> S1 [gate] --> C2 (migration, deploy)
 
-**Caminho crítico:** C0 → T2 → S1 → C1 → T5 → C2
+**Caminho crítico:** C0 → T2 → C1 → T5 → S1 → C2
+
+O gate é um só, antes do primeiro passo irreversível, sobre tudo que foi integrado até ali. A
+onda 1 não tem gate: quem a guarda é o aceite do coordenador em C1.
 
 ### 2.1 O que roda junto
 
@@ -70,7 +73,7 @@ O usuário preenche a coluna Modelo na hora de executar.
 
 | Par | Razão |
 | --- | ----- |
-| T5 antes de C1 | T5 importa tipos gerados pela migration que C1 aplica |
+| T5 antes de C1 | T5 consome o contrato que a onda 1 entrega e C1 aceita |
 | T2 antes de C0 | a fixture é a fonte da verdade da regra; sem ela T2 e T3 inventam regras diferentes |
 
 ## 3. Ownership de arquivo (normativo)
@@ -136,11 +139,13 @@ o buraco é na spec, e é lá que se conserta>
 
 ### S<n> — Gate de <o quê> · **Gate / Advisor** (`<MODELO_GATE>`) · depende de T<x>, T<y> · **bloqueia C<z>**
 
-**Mandato:** revisar, não corrigir. Devolve aprovação ou lista de problemas.
+**Mandato:** revisar, não corrigir. Uma rodada. Devolve PASSA ou BLOQUEIA com a lista de achados
+provados.
 
-**Cobre:** <o que exatamente é revisado>
+**Cobre:** <o candidato integrado até aqui: tudo que C<z> vai tornar irreversível>
 
-**C<z> não acontece sem o resultado deste gate.**
+**C<z> só depois de este gate ter rodado e das correções aceitas passarem na suíte. BLOQUEIA não
+repete o gate; superfície nova depois do veredito, sim, só sobre o delta.**
 
 ## 5.1 Rastreabilidade (mecânica, não decorativa)
 
@@ -174,7 +179,11 @@ Só o coordenador roda estes. Nenhum worker.
 2. <escrever os contratos congelados de §4>
 3. <commitar spec, plano e contratos, com caminhos explícitos>
 
-### C1 — depois de S1 (nunca antes)
+### C1 — entre as ondas
+1. <integrar as entregas da onda 1 e aceitar cada uma com casos seus>
+2. <conferir que os contratos de §4 não mudaram>
+
+### C2 — depois de S1 (nunca antes)
 1. <aplicar migration>
 2. <regenerar tipos>
 3. <verificar>
@@ -191,7 +200,7 @@ Só o coordenador roda estes. Nenhum worker.
 | ----- | --------- |
 | <worker sai do escopo> | ownership normativo em §3 e "não faça" em cada tarefa |
 | <contrato divergente> | §4 congelado antes da onda 1 |
-| <correção pós-gate vai para o call site quando o defeito é de mecanismo> | advisor `ADV-n` (modelo `<MODELO_GATE>`) antes de despachar a onda de correção; orçamento 1 por onda, 3 por plano; registro recomendou / decidi / divergência aqui neste §7 |
+| <correção pós-gate vai para o call site quando o defeito é de mecanismo> | advisor `ADV-n` (modelo `<MODELO_GATE>`) antes de despachar a onda de correção; no máximo uma consulta por veredito de gate; registro recomendou / decidi / divergência aqui neste §7 |
 ```
 
 ---
@@ -207,7 +216,7 @@ preenchida**, e foi assim que um plano inteiro saiu com zero critérios de pront
 
 **"Não faça" evita mais colisão que qualquer tabela.** O worker que termina cedo procura o que fazer a seguir. Diga a ele o que é dos outros.
 
-**Gate é tarefa e bloqueio ao mesmo tempo.** Escreva o "bloqueia C<z>" no título, não só no corpo, senão ele vira revisão pós-fato.
+**Gate é tarefa e bloqueio ao mesmo tempo.** Escreva o "bloqueia C<z>" no título, não só no corpo, senão ele vira revisão pós-fato. E é um por plano, antes do primeiro passo irreversível: a onda é guardada pelo aceite do coordenador, não por gate.
 
 **Revisão da spec e do plano não é tarefa do grafo.** Ela é opcional, quem decide é o usuário, e
 acontece antes de o plano ser entregue (`SKILL.md`, Fase 3). Não existe `S0` que bloqueia a onda 1:

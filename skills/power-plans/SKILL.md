@@ -511,15 +511,27 @@ não guarda nada. Reordene.
 
 Um gate não é uma revisão. Revisão acontece depois e informa; gate acontece antes e bloqueia.
 
-Posicione gate imediatamente **antes** de cada passo irreversível: aplicar migration em produção, deployar, publicar. Migration aplicada não tem `git revert`, e uma revisão que chega depois disso só documenta o estrago.
+**Um gate por plano**, sobre o candidato integrado, imediatamente **antes** do primeiro passo
+irreversível: aplicar migration em produção, deployar, publicar. Migration aplicada não tem `git
+revert`, e uma revisão que chega depois disso só documenta o estrago. Um segundo gate só quando há
+um segundo passo irreversível com superfície própria (uma publicação de frontend separada do
+deploy de backend). Nunca um gate por onda: o que guarda a onda é o aceite do coordenador
+(`orchestrating-execute`, seção *Dois mecanismos de qualidade*). Escala parcial ou mínima: sem
+gate. Medido em 20 e 21/09/2026: quatro ondas com um gate por onda rodaram cinco gates e nove
+tarefas de correção; seis tarefas com um gate rodaram um, corrigiram com teste e publicaram na
+mesma noite.
 
-Um gate é uma tarefa como as outras, com nível, dono e dependência. O que o distingue é que o passo do coordenador que ele guarda não pode acontecer sem o resultado dele. Escreva isso no plano com essas palavras.
+Um gate é uma tarefa como as outras, com nível, dono e dependência. O passo do coordenador que
+ele guarda só acontece depois de o gate ter rodado e de as correções aceitas passarem na suíte.
+**BLOQUEIA não pede segunda rodada; pede correção com teste.** Escreva isso no plano com essas
+palavras: "C<z> não acontece sem a aprovação do gate" é a frase que faz o executor chamar o
+revisor de novo até ouvir PASSA.
 
 **O plano também declara o orçamento do advisor, sem agendar consulta nenhuma.** O advisor
 (`orchestrating-execute`, seção *O advisor*) é a segunda opinião de rumo que o coordenador
 consulta quando a lista do gate pede correção de mecanismo, quando um achado contradiz contrato
 congelado, ou ao montar opções para o usuário. Roda no modelo `<MODELO_GATE>`, o mesmo do gate,
-com teto de uma consulta por onda e três por plano. A consulta é emergente e não se planeja; o
+com teto de uma consulta por veredito de gate. A consulta é emergente e não se planeja; o
 teto e o modelo, sim: entram na tabela de níveis (linha `Gate / Advisor`) e no §7, como no
 esqueleto.
 
@@ -639,13 +651,13 @@ sendo plano falso.
   posterior?
 - Todo contrato de que dois ou mais workers dependem está escrito literal e datado de antes da onda 1?
 - Nenhum contrato é mais restrito que o FR que implementa? Se é, a decisão está na spec, com autoria?
-- Todo passo irreversível tem gate antes?
+- O gate é um por plano, antes do primeiro passo irreversível, e nenhuma onda tem gate próprio?
 - Todo par "não pode junto" tem a razão escrita?
 - Algum worker precisa rodar comando que este projeto proíbe delegar?
 - O caminho crítico está marcado?
 - Sobrou placeholder de modelo, e nenhum modelo nomeado?
 - A tabela de níveis tem a linha `Gate / Advisor` com `<MODELO_GATE>`, e o §7 traz o orçamento do
-  advisor (1 por onda, 3 por plano)?
+  advisor (uma consulta por veredito de gate)?
 - A revisão externa da spec e do plano está FORA do grafo (nenhum `S0`, nenhum "bloqueia a onda
   1"), e o §0.1 registra a revisão feita ou "não solicitada"?
 
