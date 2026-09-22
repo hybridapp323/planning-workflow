@@ -636,3 +636,62 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
    próxima spec paga de novo.
 
 Se alguma armadilha nova aparecer durante a execução, acrescente-a a `references/orca-traps.md` no mesmo trabalho. É a única forma de a próxima execução não pagar de novo.
+
+### Requisito que você marca como BLOQUEANTE tem de vir com o teste que o falsifica
+
+Medido em 21/09/2026, ciclo `lead-retorna-pos-transferencia`. O mandato do gate dizia, com
+essas palavras, que o gate de reativação tinha de ser **avaliado uma vez** e o valor já
+computado repassado adiante, e marcava isso como bloqueante. O worker implementou. A suíte
+fechou **61/61 verde**. O gate adversarial então **apagou o repasse** (`gate: openedGate`) e a
+suíte continuou **61/61 verde**: nenhum teste observava o repasse, só o resultado, que era o
+mesmo nos dois caminhos naquele fixture.
+
+Um requisito que ninguém consegue violar num teste não é um requisito, é uma intenção.
+
+**A regra:** todo item que o brief marca como bloqueante entrega **duas** coisas, e a segunda
+é a que vale: (1) a implementação; (2) o teste que fica **vermelho quando aquele item
+específico é desfeito** — não o teste do comportamento vizinho. No brief, escreva o
+falsificador junto do requisito:
+
+> "Passe o gate já computado. **Prova:** trocar `gate: openedGate` por uma segunda avaliação
+> tem de derrubar um teste nomeado."
+
+Vale principalmente para requisitos de **forma** (avaliar uma vez, persistir antes de enviar,
+chamar por este caminho e não por aquele): o resultado final costuma ser idêntico, então só um
+teste que olhe a forma pega. Requisito de forma sem falsificador é onde o gate seguinte acha
+trabalho.
+
+### Medir com flag diferente da do gate é medir outra coisa
+
+Mesmo ciclo. Rodei a suíte completa com `--allow-net` (herdado de um probe que eu mesmo tinha
+escrito) e colhi **11 falhas em vez de 4**. As 8 extras eram todas de um teste que exige
+**AUSÊNCIA** de permissão de rede, para provar que nenhum fetch cru escapa por um catch. Passei
+alguns minutos tratando um run inválido como regressão.
+
+**A regra:** antes da medição que decide alguma coisa, **leia o comando exato que o gate roda**
+e use ele. Não o comando que você lembra, não o do documento: o do script.
+
+```bash
+grep -n "deno test\|npm test\|pytest" scripts/<script-de-deploy>.sh
+```
+
+E confira também **qual suíte** o gate roda. Nesse mesmo ciclo, o gate do deploy rodava só
+`supabase/functions/ai-chat/`, não a árvore inteira — e as 4 falhas pré-existentes viviam
+**fora** dela. Eu tinha pedido ao usuário autorização para um `ALLOW_RED` com quatro nomes que,
+medido, **não era necessário**. Saber o recorte do gate antes teria poupado a pergunta.
+
+### Lista de deploy calculada por UM método é hipótese
+
+Mesmo ciclo. Escrevi um script para gerar o fecho transitivo dos importadores de um arquivo
+`_shared/` alterado (o `grep` que o plano sugeria devolvia 70 de 70 funções, inútil). Ele deu
+**12**. O gate adversarial, calculando por conta própria, deu **13**.
+
+Quem estava errado era o meu script: ele reconhecia `from "./x.ts"` e `import "../y.ts"`, mas
+**não** `import("../z.ts")` dinâmico. A função que sumia alcançava o arquivo alterado por uma
+cadeia de sete saltos terminando num import dinâmico. Deployar sem ela deixaria uma cópia velha
+do `_shared/` embutida em produção, silenciosamente.
+
+**A regra:** quando o brief do gate pede uma lista fechada (funções a deployar, arquivos a
+tocar, chamadores a atualizar), peça-a **recalculada de forma independente** e escreva no brief
+que **as duas têm de bater**. Divergência não é discordância de opinião: é um dos dois métodos
+com ponto cego, e vale mais que a revisão de código que veio junto.
