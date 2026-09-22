@@ -523,16 +523,34 @@ com teto de uma consulta por onda e três por plano. A consulta é emergente e n
 teto e o modelo, sim: entram na tabela de níveis (linha `Gate / Advisor`) e no §7, como no
 esqueleto.
 
-### Revisão externa: opcional no meio-termo, PADRÃO no aparato completo
+### Revisão externa da spec e do plano: recomendada, e quem decide é o usuário
 
-Quando o usuário pedir, ou quando a feature for grande o bastante para valer, ofereça uma revisão externa read-only antes de executar. Não fixe qual agente ou modelo faz.
+Uma revisão externa read-only da spec e do plano, por outro agente ou outro modelo, antes de
+executar, é **recomendada e opcional**. Quem decide se ela acontece, e com qual modelo, é o
+usuário: no pedido que abriu o ciclo ("use tal modelo para a revisão adversarial") ou na entrega
+do plano. A skill recomenda; não agenda.
 
-**No aparato completo ela deixa de ser cortesia e vira parte do plano**, pelo motivo mais
-simples possível: quem escreveu o plano é o pior revisor dele. Medido em 2026-08-26, num plano
-com evidência medida, contratos congelados e auto-revisão feita: **a auto-revisão achou zero
-furos e a revisão externa achou sete**, cinco deles confirmados por mim no código, um deles
-capaz de mandar foto de um lead sem identidade nenhuma. Não foi falta de rigor na forma; foi
-que confirmação e verificação parecem iguais por dentro.
+Por que recomendar: quem escreveu o plano é o pior revisor dele. Medido em 2026-08-26, num plano
+com evidência medida, contratos congelados e auto-revisão feita, **a auto-revisão achou zero furos
+e a revisão externa achou sete**, cinco confirmados no código, um deles capaz de mandar foto de um
+lead sem identidade nenhuma. Medido em 2026-09-12: quatro bloqueadores, três documentais e uma
+decisão do usuário. Medido em 2026-09-21: oito bloqueadores, todos confirmados no código e no
+banco antes de qualquer linha escrita. Não foi falta de rigor na forma; confirmação e verificação
+parecem iguais por dentro.
+
+Como oferecer, ao entregar o plano, em uma linha: *"Recomendo revisão externa porque <o que este
+plano tem de caro: dado de produção, N tarefas em paralelo, invariante que ele promete preservar>.
+Quer? Se sim, diga o modelo."* Se o usuário já nomeou o modelo no pedido, não pergunte de novo:
+rode a revisão pelo procedimento de `references/external-review.md` e entregue o plano já
+adjudicado. Se ele não pediu, registre "não solicitada" no §0.1 e pare. Feature pequena: diga que
+não paga.
+
+**A revisão nunca entra no grafo do plano.** Não existe tarefa `S0 — revisão do plano`, nem
+"bloqueia a onda 1". O executor lê o grafo como lista de trabalho, e uma revisão ali dentro vira a
+primeira coisa que ele despacha, tenha o usuário pedido ou não. Medido em 2026-09-22: um plano com
+a revisão no grafo, executado sem pedido de revisão, abriu o ciclo com um revisor no ar e nenhum
+worker. Gate (`S<n>`) é outra coisa: revisa código já escrito, antes de um passo irreversível, e
+mora na seção acima.
 
 Duas coisas fazem a revisão render, e as duas custam pouco:
 
@@ -628,6 +646,8 @@ sendo plano falso.
 - Sobrou placeholder de modelo, e nenhum modelo nomeado?
 - A tabela de níveis tem a linha `Gate / Advisor` com `<MODELO_GATE>`, e o §7 traz o orçamento do
   advisor (1 por onda, 3 por plano)?
+- A revisão externa da spec e do plano está FORA do grafo (nenhum `S0`, nenhum "bloqueia a onda
+  1"), e o §0.1 registra a revisão feita ou "não solicitada"?
 
 ## Regras do projeto: de onde saem
 
@@ -649,4 +669,4 @@ Siga a convenção do projeto. Procure planos anteriores (`docs/plans/`, `docs/*
 
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
-Depois de escrever, commite o plano e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.
+Depois de escrever, commite o plano, ofereça a revisão externa em uma linha (Fase 3) e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.

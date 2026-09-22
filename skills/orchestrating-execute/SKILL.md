@@ -43,6 +43,14 @@ Medido em 2026-09-03 (ciclo `contador-agua`): a spec tinha 13 FRs com cenário e
 
 Confirme também que a árvore está limpa do que interessa, e que você sabe quais arquivos modificados **não** são deste trabalho. Sessões paralelas deixam lixo, e ele acaba num commit errado.
 
+**Revisão da spec ou do plano dentro do grafo não é passo de execução.** Se o plano traz uma
+tarefa que revisa o próprio plano (um `S0 — revisão externa do plano`, "bloqueia a onda 1"), ela
+só roda se o usuário pediu a revisão nesta sessão, com o modelo que ele nomeou. Sem pedido: pule,
+diga em uma linha que pulou, e comece em C0 / onda 1. Medido em 2026-09-22: um executor abriu o
+ciclo despachando o revisor do plano, uma task no run e nenhum worker, sem que o usuário tivesse
+pedido revisão. Gate (`S<n>` sobre código escrito, antes de passo irreversível) é outra coisa e
+segue a seção *Gates*.
+
 ## Portão de atribuição de modelo
 
 **Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível:
@@ -58,8 +66,10 @@ O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` / `<MO
 
 **A linha `Gate / Advisor` é uma só, de propósito.** O advisor (seção *O advisor*, abaixo) roda
 no mesmo modelo que o usuário escolheu para o gate, e não existe sem essa linha preenchida.
-Peça-a mesmo num plano sem gate previsto: o advisor pode ser chamado em qualquer plano, e sem a
-linha o coordenador herda o modelo de Complexa e chama de gate.
+Peça-a quando o plano tem gate, ou quando o usuário pediu revisão; se ele já nomeou o modelo no
+pedido ("use tal modelo para a revisão adversarial"), use esse e não pergunte de novo. Plano sem
+gate e sem revisão pedida: deixe a linha vazia e pergunte só se um gatilho do advisor disparar.
+Nunca herde o modelo de Complexa para esse papel.
 
 Se o usuário atribuir um modelo por tarefa em vez de por nível, aceite: a granularidade é dele.
 

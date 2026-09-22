@@ -33,8 +33,8 @@ A linha só fecha com a contagem do falsificador. Contagem que confirma a afirma
 coisa e não fecha a linha.
 
 **Revisão externa:** <quem revisou, quando, caminho do relatório> · <N bloqueadores: n documentais, n decisão do usuário, n redesenho; N aceitos>
-· <o que foi recusado e por quê>. Se ainda não houve revisão, escreva "não revisado" em vez de
-deixar o campo em branco.
+· <o que foi recusado e por quê>. Se o usuário não pediu revisão, escreva "não solicitada". O
+campo é registro, não pendência: revisão da spec ou do plano não é tarefa do grafo (§2).
 
 ## 1. Níveis de complexidade
 
@@ -208,5 +208,10 @@ preenchida**, e foi assim que um plano inteiro saiu com zero critérios de pront
 **"Não faça" evita mais colisão que qualquer tabela.** O worker que termina cedo procura o que fazer a seguir. Diga a ele o que é dos outros.
 
 **Gate é tarefa e bloqueio ao mesmo tempo.** Escreva o "bloqueia C<z>" no título, não só no corpo, senão ele vira revisão pós-fato.
+
+**Revisão da spec e do plano não é tarefa do grafo.** Ela é opcional, quem decide é o usuário, e
+acontece antes de o plano ser entregue (`SKILL.md`, Fase 3). Não existe `S0` que bloqueia a onda 1:
+o executor despacha o que está no grafo, e despacharia o revisor sem ninguém ter pedido. `S<n>` é
+gate: revisa código escrito, antes de um passo irreversível.
 
 **A seção 7 é onde vai o aprendizado operacional da execução anterior.** Se algo custou caro na última vez, ele mora aqui, com a mitigação junto.

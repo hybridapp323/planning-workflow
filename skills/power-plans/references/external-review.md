@@ -2,7 +2,7 @@
 
 Uma segunda opinião, de outro agente ou outro modelo, sobre a spec e o plano **antes** de executar. Ela não altera nada: produz um relatório com veredito (passa / bloqueia) e a lista de problemas.
 
-Vale quando a feature é grande, quando toca dado de produção, ou quando o usuário pede. Ofereça; não imponha, e não fixe qual agente ou modelo faz o papel. O usuário escolhe.
+Vale quando a feature é grande, quando toca dado de produção, ou quando o usuário pede. Ofereça em uma linha; não imponha, não a agende como tarefa do plano, e não fixe qual agente ou modelo faz o papel. O usuário decide se ela acontece e nomeia o modelo; se ele já nomeou no pedido, rode sem perguntar de novo.
 
 ## O que entregar ao revisor
 
