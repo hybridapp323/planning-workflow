@@ -996,6 +996,40 @@ worker, confirme que ele alcança a fonte — ou meça você e **cole o resultad
 com a data. Foi o que resolveu aqui.
 
 
+## O worker pode ter a ferramenta que você concluiu não existir (2026-09-21)
+
+O inverso da armadilha acima, e mais caro, porque falha calado.
+
+O coordenador concluiu que não havia canal para executar consulta naquele ambiente, escreveu no
+brief *"você NÃO tem acesso a isso, não existe CLI para isso aqui"*, e os workers obedeceram por
+três rodadas. Duas coisas eram falsas ao mesmo tempo:
+
+- **O CLI existia** e funcionava. A conclusão tinha saído de um `--help` cortado por `head -30`,
+  que terminava uma linha antes do subcomando procurado. Uma segunda tentativa, recortando por um
+  cabeçalho que não existia naquela versão, não casou nada e "confirmou" a primeira.
+- **O agente do worker tinha um servidor MCP para a mesma capacidade**, carregado desde o
+  primeiro terminal. O indicador aparecia em toda leitura do TUI (`⊙ 1 MCP`) e foi lido como
+  enfeite.
+
+Resultado medido: **13 idas e voltas** em que o worker escrevia o arquivo, o coordenador
+executava, copiava a saída de erro e devolvia. ~3 h de uma onda, com o coordenador virando
+terminal de um worker que tinha o acesso o tempo todo.
+
+Três regras, válidas para qualquer capacidade:
+
+1. **`--help` cortado não é ausência.** `| head -N` trunca, e `sed -n '/<cabeçalho>/,/…/p'` mente
+   quando o cabeçalho mudou de nome entre versões. Rode o `--help` inteiro, ou `grep` pelo nome do
+   subcomando, antes de concluir que ele não existe.
+2. **Leia a configuração do agente do worker** (cada CLI tem a sua, tipicamente sob
+   `~/.config/<cli>/`) antes de declarar que ele não alcança algo. E leia o contador de
+   ferramentas da barra de status: se não é zero, descubra o que são.
+3. **Proibição no brief é fato para o worker.** Ele não testa, não contradiz e não escala.
+   Proibição só se escreve depois de medida; o resto vai como incerteza mais um comando para
+   ele resolver em um turno.
+
+Sintoma, em uma linha: **você executou o mesmo tipo de comando em nome do worker duas vezes.** Na
+segunda, conserte o acesso dele. Na terceira, o problema já não é a tarefa.
+
 ## "NAO rode git" no brief nao impede o worker de commitar (2026-09-03)
 
 Medido no ciclo `contador-agua`. O brief da T4.1 dizia, em secao propria e em

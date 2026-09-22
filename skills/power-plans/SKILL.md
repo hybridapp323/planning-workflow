@@ -207,6 +207,11 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
    pôs o teste ponta a ponta novo no diretório de artefatos que a documentação do projeto
    mandava usar, fora do diretório de testes do runner; o runner listaria zero testes e a
    tarefa entregaria um arquivo que nunca roda. Havia dezenas de irmãos no diretório certo.
+   **E saída de `--help` cortada não prova ausência:** `| head -N` trunca a lista, e o cabeçalho
+   que você usa para recortar pode não existir naquela versão. Rode o `--help` inteiro ou `grep`
+   pelo nome do subcomando. Medido em 2026-09-21: concluir "esse comando não existe" a partir de
+   um recorte fez o plano proibir, no brief de TODAS as tarefas, uma capacidade que o executor
+   tinha — e o coordenador passou a executá-la à mão por ele, 13 vezes.
 
 5. **Invariante que você promete PRESERVAR.** "A mudança mantém a garantia G" é afirmação
    de carga (ver acima). O comentário do código **não é** evidência de G: comentário envelhece,
@@ -297,6 +302,20 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
     (`evolution-webhook/index.ts:1005`, referência de abandono para reativar; reproduzido na
     fronteira das 24 h). Regra: para toda linha que o plano deixa de gravar, procure `order by
     … desc`, `limit 1`, `max(`, `last` e `lag(` sobre a tabela, além dos campos da linha.
+
+
+15. **Plano que promete um ESCRITOR ÚNICO ("ponto de estrangulamento").** "A partir daqui toda
+    escrita sai de um lugar só" é afirmação de carga, e ela se sustenta com a lista dos lugares
+    que escrevem **hoje** — não com o lugar que você enxergou lendo o fluxo principal.
+    Inventariar de verdade é listar os **sites de escrita** no alvo: todos os chamadores da
+    função que você vai proteger, mais as rotinas que o próprio armazenamento executa sozinho
+    (gatilhos, jobs, hooks). Conferir que os arquivos existem não é inventário.
+    Medido em 2026-09-21: o plano reconheceu a família já na primeira rodada do gate e exigiu o
+    ponto único — mas sobre o caminho visível. Existia um segundo escritor, um auxiliar privado
+    que fazia a própria escrita e decidia a própria autorização, e ele só apareceu na rodada 2:
+    custou uma rodada de gate mais uma onda inteira de correção. Se o inventário acusa N
+    escritores, a tarefa nasce exigindo **um**; se você não consegue enumerá-los, o plano não
+    pode prometer o ponto único, e dizer isso é mais barato que descobrir no gate.
 
 ### O que NÃO dá para decidir no plano — diga isso em vez de fingir
 

@@ -11,6 +11,8 @@ Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: tr�
 
 São genéricas de propósito. As regras específicas de cada repositório saem do `CLAUDE.md` / `AGENTS.md` dele, e de um `.claude/plan-profile.md` opcional.
 
+**E continuam genéricas por manutenção, não por sorte.** Quem edita este repositório segue o [`AGENTS.md`](AGENTS.md): entra o conceito, a peculiaridade do projeto onde o aprendizado aconteceu fica no `CLAUDE.md` dele. Uma linha escrita aqui é carregada em sessões de repositórios que não têm nada a ver entre si.
+
 ## Onde isso entra
 
 ```
@@ -74,6 +76,7 @@ planning-workflow/
 │   └── marketplace.json    # o repo e o proprio marketplace: /plugin marketplace add
 ├── LICENSE                 # MIT, + atribuicao do material de terceiro
 ├── README.md
+├── AGENTS.md               # regra de quem edita: conceito geral, nunca o caso de um repo
 ├── hooks/
 │   ├── hooks.json          # SessionStart: injeta o roteador do ciclo
 │   └── session-start.md    # o texto injetado
@@ -126,6 +129,8 @@ As quatro skills são documentação viva do próprio processo, e cada uma diz n
 | `systematic-debugging` | Armadilha de diagnóstico que custou tempo real e vai custar de novo — camada que engole erro, log que mente | Bug específico de um repositório (isso é do `CLAUDE.md` dele) |
 
 Regra comum: a edição entra **no mesmo trabalho** em que o aprendizado aconteceu, nunca "depois". Doc desatualizada é pior que doc ausente — a próxima sessão segue a instrução errada com confiança.
+
+Regra comum número dois, e é a que mais escapa: **o que entra é o conceito, não o caso.** Um aprendizado só vira linha aqui depois de perder o nome da tabela, do cliente e do comando do repositório onde ele foi pago. O teste de três perguntas e o que nunca entra estão no [`AGENTS.md`](AGENTS.md).
 
 ## Licença
 

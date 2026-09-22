@@ -129,6 +129,45 @@ Armadilhas medidas, que custam tempo quando descobertas na marra: `references/or
 
 **Sem Orca disponível**, o plano continua válido: é um grafo com níveis, donos e contratos. Execute com o mecanismo de subagente que houver, mantendo ownership, ordem e gates. O que não se pode perder é o grafo, não a ferramenta.
 
+## Portão de capacidade: meça o que o worker ALCANÇA antes de escrever o brief
+
+Um brief diz o que fazer e, quase sempre, o que **não** dá para fazer. A segunda metade costuma
+ser escrita de cabeça, e é onde mora o erro que não tem conserto barato: a proibição inventada.
+
+> **Nunca escreva no brief que o worker não pode fazer algo sem ter provado que ele não pode.**
+
+O worker obedece. Ele não testa, não contradiz e não escala, porque uma proibição no brief se
+parece com um fato do projeto. Se a capacidade proibida era necessária à tarefa, **você vira o
+terminal dele**: ele escreve, manda para você, você executa, você cola a saída de volta, ele
+corrige. Medido em 2026-09-21: 13 idas e voltas assim, ~3 h de uma onda, por uma capacidade que
+existia desde o começo dos dois lados. O coordenador parou de coordenar.
+
+Antes da primeira onda, para cada capacidade que a tarefa vai exigir — executar consulta, chamar
+API, subir serviço, rodar a suíte — faça três coisas, nesta ordem:
+
+1. **Rode o comando.** Um smoke de uma linha, contra o mesmo recurso que a tarefa usa. Alcance é
+   a única prova de alcance; ler documentação não é medir.
+2. **Leia a configuração do agente DO WORKER, não só a sua.** Cada CLI de agente tem o arquivo
+   dele. O worker pode ter servidor de ferramenta que você não tem, e você pode ter o que ele não
+   tem — as duas direções já custaram ciclo. A barra de status do TUI costuma mostrar quantos
+   carregaram: contador diferente de zero é convite a descobrir qual.
+3. **Escreva a capacidade e o comando exato no brief.** Nomear a ferramenta custa uma linha e
+   poupa o turno que o worker gastaria procurando. Procurar às vezes termina em "não existe".
+
+Duas regras de leitura, as duas pagas no mesmo ciclo:
+
+- **`--help` truncado não é ausência.** Saída cortada por `head`, paginada, ou recortada por um
+  cabeçalho que mudou de nome entre versões devolve "não achei" — e "não achei" não é "não tem".
+  Rode o `--help` inteiro, ou procure o subcomando pelo nome, antes de concluir.
+- **Medição que contradiz a documentação do projeto: desconfie da medição primeiro.** O documento
+  pode estar velho, mas alguém o escreveu com aquilo funcionando. Enquanto o seu comando diz não
+  e o documento diz sim, o ônus é seu: meça de outra forma antes de declarar o documento
+  desatualizado. Inverter essa ordem é como uma medição errada vira proibição no brief.
+
+Sintoma para reconhecer em uma linha: **você executou, em nome do worker, o mesmo tipo de comando
+duas vezes.** Na segunda, pare e conserte o acesso dele em vez de repetir o serviço. Na terceira,
+o problema já não é a tarefa.
+
 ## O preâmbulo de todo dispatch
 
 Todo worker recebe, sem exceção:
@@ -142,6 +181,8 @@ Todo worker recebe, sem exceção:
 - **Pronto quando:** o critério da tarefa, **copiado do plano — que por sua vez copiou o cenário da spec**. Se o plano não tem esse critério, você não o escreve de cabeça: volte ao plano (ver *Preflight*). Coordenador improvisando critério de pronto é o defeito, não o conserto.
 
 Worker que recebe contrato por referência e não por valor inventa o contrato. Cole.
+
+E a contraparte do portão acima: **proibição só se escreve depois de medida.** O que você não mediu entra como incerteza com um comando junto (*"não sei se há <capacidade> aqui; teste com `<comando>` e me diga o que voltou"*), nunca como um "você não tem isso".
 
 ### A prova de neutralização só pode tocar arquivo que o worker POSSUI
 
