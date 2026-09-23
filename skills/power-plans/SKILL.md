@@ -317,6 +317,18 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
     escritores, a tarefa nasce exigindo **um**; se você não consegue enumerá-los, o plano não
     pode prometer o ponto único, e dizer isso é mais barato que descobrir no gate.
 
+16. **Linha nova em tabela de template, seed ou catálogo GLOBAL tem um consumidor que ninguém
+    lista: o PROVISIONAMENTO.** "Só vale para o cliente X" é afirmação de carga quando a peça mora
+    numa tabela que a rotina de criação de tenant copia inteira. Antes de pôr qualquer linha
+    "global mas inerte", leia a função que cria tenant/conta/workspace e conte o que ela copia.
+    Medido em 2026-09-23 (onboarding de um cliente de nicho): o plano punha o texto de uma etapa
+    nova num template global "usado só onde a etapa existe"; a função de criação de workspace
+    copiava **todo** template da vertical, e todo cliente criado depois ganharia a etapa. Achado
+    pela revisão externa; custou uma decisão revogada e uma tarefa reescrita. No mesmo plano, a
+    suposição "cabe mais uma posição na ordem" foi medida só em `pg_constraint` e passou:
+    **unicidade pode morar num índice, não numa constraint** (`pg_indexes` mostrou UNIQUE em
+    `(workspace_id, sort_order)`). Para qualquer "cabe" ou "é único", consulte os dois.
+
 ### O que NÃO dá para decidir no plano — diga isso em vez de fingir
 
 Rigor não é prometer que o plano prevê tudo; é separar o decidível do emergente e escrever a
