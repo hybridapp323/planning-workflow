@@ -586,6 +586,24 @@ Procedimento, mandato read-only, e como verificar depois que o revisor realmente
 
 **Ao receber o relatório, não valide os bloqueadores por deferência.** Verifique cada um você mesmo, separe o que é buraco real do que é decisão de negócio, e leve as decisões de negócio ao usuário com resumo e recomendação. Um revisor competente ainda erra de tamanho: superdimensiona o que não tem usuário e subdimensiona o que já está quebrado.
 
+### A revisão externa roda UMA vez. Nova rodada só com autorização explícita do usuário
+
+**Regra dura:** a revisão adversarial de spec e plano roda **uma vez** por pedido do usuário.
+Depois de incorporar os achados, você **para, relata o que mudou e pergunta** se ele quer outra
+rodada. Nunca despache a rodada 2 por conta própria, nem que o veredito tenha sido BLOQUEADO,
+nem que a mudança tenha sido grande, e nem que o próprio plano, escrito por você, diga "rodada 2
+antes do C0". Isso inclui não escrever no plano um gate de revisão repetida que o usuário não
+pediu. Um revisor bloqueando não autoriza nada; quem autoriza nova rodada é o usuário. Os gates
+**de implementação** do plano (ex.: S1, antes de migração e deploy) são outra coisa: estão no
+plano que o usuário aprovou e rodam uma vez cada, com a mesma regra para repetição.
+
+Medido em 22/09/2026 (ciclo `visibilidade-leads-vendedor`): o usuário pediu uma revisão
+adversarial da spec e do plano. Ela veio BLOQUEADA com 4 achados reais, todos incorporados. Em
+seguida o coordenador escreveu no plano "rodada 2 antes do C0" e despachou sozinho uma segunda
+revisão no modelo mais caro. O usuário interrompeu: *"eu não pedi pra rodar outra revisão, não
+era pra você ter rodado"*. O certo era parar depois da incorporação, com o relato *"os 4 achados
+entraram assim; quer uma segunda rodada?"*.
+
 ## Fase 4 — fecho
 
 Escreva os passos do coordenador entre as ondas e depois da última: o que ele aplica, verifica, commita e deploya, em ordem, com o comando.

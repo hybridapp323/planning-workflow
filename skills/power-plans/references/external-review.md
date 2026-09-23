@@ -109,7 +109,12 @@ Este é o passo que mais gera valor, e o mais fácil de pular.
 5. **Aplique o que sobrou** na spec e no plano, e diga ao usuário onde você discordou do revisor e por quê.
 6. **Conte por custo e registre no plano:** "N bloqueadores: n documentais, n decisão do usuário,
    n redesenho". É esse número, não o veredito, que diz se a spec e o plano estavam sãos.
-7. **Feche a triagem com uma linha por skill:** o que entra em qual arquivo, ou *"nada entra,
+7. **Pare e pergunte antes de qualquer nova rodada.** A revisão roda uma vez por pedido do
+   usuário. Depois de aplicar o relatório, relate o que entrou e onde, e pergunte se ele quer
+   outra rodada. Não despache a rodada 2 por conta própria, mesmo com veredito BLOQUEIA, e não
+   escreva no plano um gate de revisão repetida que ele não pediu (regra e caso de 22/09/2026 em
+   `SKILL.md`, seção *A revisão externa roda UMA vez*).
+8. **Feche a triagem com uma linha por skill:** o que entra em qual arquivo, ou *"nada entra,
    porque X"*. Sem a linha, a lição fica no relatório e a próxima spec paga de novo. Medido: as
    lições de duas revisões de 2026-09-08 e 2026-09-09 ficaram só nos relatórios, sem decisão
    registrada de entrar ou não.
