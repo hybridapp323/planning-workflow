@@ -123,6 +123,7 @@ Uma resposta do usuário quase sempre abre galho novo — ele escolhe uma opçã
 - Você não sabe dizer o que a feature **não** faz.
 - Você não sabe o que acontece com quem já é usuário hoje.
 - O usuário respondeu com "acho que", "sei lá" ou "tanto faz" — isso é uma decisão em aberto disfarçada de resposta, não um aval. Ofereça a sua recomendação e feche.
+- Uma opção do modal contradiz um requisito que o usuário já enunciou, e o texto da opção não diz isso. Medido em 2026-09-18: o usuário escolheu a opção que não entregava o requisito dele, porque a descrição não dizia; custou uma rodada inteira de reconciliação. **A contradição vai dentro do texto da opção, não em prosa antes do modal.**
 
 ### Quando parar mesmo assim
 
