@@ -546,6 +546,38 @@ E confira também **qual suíte** o gate roda. Nesse mesmo ciclo, o gate do depl
 **fora** dela. Eu tinha pedido ao usuário autorização para um `ALLOW_RED` com quatro nomes que,
 medido, **não era necessário**. Saber o recorte do gate antes teria poupado a pergunta.
 
+### Medir nas dependências do checkout compartilhado é medir outra coisa
+
+Medido em 24/09/2026 (ciclo `filtros-metricas`, frontend). A suíte completa no checkout deu
+**49 falhas** contra 6 da base, 42 delas "Test timed out in 5000ms" em arquivos que o ciclo não
+tocou; isolados, os mesmos arquivos continuavam falhando. Parecia regressão. Não era: o
+`node_modules` do checkout compartilhado estava **fora do lock** (Radix e vitest mais novos, com
+`package.json` e lock intactos: alguma sessão rodou `install` sem respeitar o lock), e a base
+tinha sido medida num `git archive` com `npm ci`. Duas medições em ambientes diferentes, uma
+falsa regressão.
+
+**A regra:** a medição que decide (a do aceite da onda e a do fecho) roda onde o deploy
+instala, não onde você edita. No frontend, isso é uma cópia `git archive` com a instalação
+pelo lock (`npm ci`), recebendo os arquivos do candidato por `rsync --files-from`; a base e o
+candidato no MESMO ambiente. Antes de chamar de regressão uma falha em arquivo que o ciclo não
+tocou, rode esse arquivo na base e no candidato lado a lado. E não "conserte" o `node_modules`
+compartilhado sem pedir: outras sessões estão usando.
+
+### Teste congelado tem de sobreviver à tarefa que vem depois
+
+Mesmo ciclo. O plano congelava um teste de caracterização (o hook de hoje, antes da extração):
+depois do aceite, ninguém edita. O teste esperava a carga com **30 microtarefas fixas**, e a
+tarefa seguinte ia acrescentar buscas encadeadas ao hook, ou seja, ia quebrá-lo sem mudar
+nenhum número. O coordenador percebeu na leitura do aceite e aumentou a margem ANTES de
+congelar (e registrou a edição); depois de congelado, a única saída seria a tarefa seguinte
+editar o teste que existia para vigiá-la.
+
+**A regra:** no aceite de um teste que vai ser congelado, leia-o contra o que a PRÓXIMA tarefa
+vai mudar: mock que responde por tabela e aplica os filtros (não por ordem de chamada), tabela
+desconhecida devolvendo vazio, espera por condição ou com folga larga (não por contagem justa
+de ticks), e asserção de rota só no que tem de sobreviver. O que precisar mudar muda antes do
+congelamento, com o hash registrado.
+
 ### Lista de deploy calculada por UM método é hipótese
 
 Mesmo ciclo. Escrevi um script para gerar o fecho transitivo dos importadores de um arquivo

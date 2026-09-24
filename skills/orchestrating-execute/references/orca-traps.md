@@ -1597,3 +1597,21 @@ verde nela mesma. Verde não é prova de que você não apagou o trabalho alheio
 E a lição geral, que vale além do Orca: **num repositório com sessões paralelas,
 "publiquei o meu" e "publiquei só o meu" são afirmações diferentes.** A segunda
 exige medição; a primeira é a que a gente assume sem perceber.
+
+## opencode TUI demora a mostrar que começou: não mate o worker pela tela (2026-09-24)
+
+Ciclo `filtros-metricas`: depois de `dispatch --inject` num opencode (Muse Spark), o `terminal
+read` seguiu mostrando a **saudação vazia** por dezenas de segundos. O coordenador leu isso como
+"o dispatch não chegou" (a armadilha real de *Worker morto de pé*), marcou a task `failed`,
+fechou o terminal e redespachou; duas vezes. Na terceira, a mesma tela vazia já estava
+trabalhando: era atraso de render do TUI, e o frame lido era velho. Custou duas tasks `failed`
+e dois terminais recriados.
+
+**A regra:** "nunca começou" exige os TRÊS sinais da armadilha original (terminal vivo, zero
+mensagem na caixa, zero arquivo tocado) **e** pelo menos 60 s. Um `terminal read` com a saudação
+sozinho não prova nada: espere o `esc interrupt` no rodapé ou a primeira mudança em `git status`
+dos arquivos do brief. E a entrega que funcionou nas três vezes em que foi usada no ciclo
+(T6, T7, F2): `dispatch --return-preamble`, preâmbulo + brief num arquivo, e um prompt curto
+por `terminal send` ("Leia por completo <arquivo> e execute; reporte com o worker_done do
+preâmbulo"). O `worker_done` chega com a proveniência intacta.
+
