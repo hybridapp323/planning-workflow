@@ -505,13 +505,23 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
 ## Fecho
 
 1. Rode lint e testes do projeto, você mesmo.
-2. Commite com caminhos explícitos.
-3. Responda os portões de entrega do projeto, sem esperar o usuário perguntar. Se o projeto entrega por bundle ou build nativo, diga sim ou não para cada um.
-4. Atualize a documentação que este projeto exige atualizar no mesmo commit.
-5. Feche as tasks no Orca com o resultado real, e os terminais: `wave.sh sweep` tem de responder que não há terminal de task encerrada aberto, e o único terminal seu na árvore é o do coordenador. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
-6. Confira que toda task `ADV-n` tem o bloco de registro (recomendou / decidi / divergência) no documento do ciclo, e que cada divergência está no relatório ao usuário com essas palavras.
-7. Relate ao usuário o que ficou de fora, se ficou, e por quê.
-7. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
+2. **Mova plano e spec para "em validação"**, no mesmo commit do fecho. Se o projeto guarda
+   planos em pastas por estado (a fazer / em validação / feito, ou o nome que o `CLAUDE.md` /
+   `AGENTS.md` der), a execução termina tirando os dois de "a fazer" e pondo em "em validação".
+   Reescreva toda referência ao caminho antigo: índices, outros planos, skills, scripts e
+   comentário de código. Link relativo de dentro da pasta movida muda de profundidade junto.
+   **Nunca mova para "feito" no fecho.** Feito exige a prova que o plano prometeu (medição em
+   produção, teste pago, aceite do usuário), e ela quase sempre chega depois da execução; quem
+   obtém a prova é quem move para "feito". No índice de planos, diga qual prova falta e quando
+   ela cabe. Se o projeto não tem pastas de estado, pergunte uma vez se quer adotá-las; sem
+   resposta, siga a convenção que existe.
+3. Commite com caminhos explícitos.
+4. Responda os portões de entrega do projeto, sem esperar o usuário perguntar. Se o projeto entrega por bundle ou build nativo, diga sim ou não para cada um.
+5. Atualize a documentação que este projeto exige atualizar no mesmo commit.
+6. Feche as tasks no Orca com o resultado real, e os terminais: `wave.sh sweep` tem de responder que não há terminal de task encerrada aberto, e o único terminal seu na árvore é o do coordenador. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
+7. Confira que toda task `ADV-n` tem o bloco de registro (recomendou / decidi / divergência) no documento do ciclo, e que cada divergência está no relatório ao usuário com essas palavras.
+8. Relate ao usuário o que ficou de fora, se ficou, e por quê.
+9. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
    arquivo, ou *"nada entra, porque X"*. Lição que fica só no relatório de revisão é lição que a
    próxima spec paga de novo.
 

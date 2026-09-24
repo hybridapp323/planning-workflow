@@ -8,7 +8,7 @@ Só existe no caminho arquitetural; sonda e limitada não ganham arquivo de spec
 ```markdown
 # <Feature> — spec de design
 
-**Data:** AAAA-MM-DD · **Status:** rascunho | aprovada em AAAA-MM-DD
+**Data:** AAAA-MM-DD · **Status:** rascunho | aprovada em AAAA-MM-DD | em validação desde AAAA-MM-DD (implementada, falta a prova do §12) | validada em AAAA-MM-DD
 **Plano:** `<caminho do plano, preenchido quando ele existir>`
 
 ## 0. Como ler esta spec

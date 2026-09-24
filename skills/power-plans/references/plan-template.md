@@ -10,6 +10,7 @@ Copie a estrutura, não o conteúdo. Corte seções que a feature não usa, e di
 **Spec:** `<caminho da spec>`
 **Evidência:** `<caminho do snapshot da fase 0>` (diagnóstico) + `<fase 0.5>` (prescrição)
 **Escala escolhida:** completa | parcial | mínima — <por quê>
+**Estado:** a fazer | em validação desde AAAA-MM-DD (falta: <prova>) | feito em AAAA-MM-DD (<prova obtida>)
 
 ## 0. Como ler este plano
 
@@ -193,6 +194,8 @@ Só o coordenador roda estes. Nenhum worker.
 2. <commit>
 3. Portões de entrega deste projeto: <deploy? bundle? build nativo? publicação?>
 4. Documentação viva que precisa acompanhar: <quais arquivos>
+5. Mover plano e spec para <em validação> (pastas de estado do projeto, se houver) e reescrever as referências ao caminho antigo
+6. Prova que leva a <feito>, e quando ela cabe: <medição / E2E / aceite do usuário, com data>
 
 ## 7. Riscos de orquestração
 

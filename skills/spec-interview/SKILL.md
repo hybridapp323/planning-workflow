@@ -142,7 +142,7 @@ Apresente o design em seções, cada uma dimensionada pela própria complexidade
 
 ## Fase 4 — escrever a spec (só no caminho arquitetural)
 
-Salve seguindo a convenção do projeto. Procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga ao usuário que você criou a convenção.
+Salve seguindo a convenção do projeto. Procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga ao usuário que você criou a convenção. Se o projeto guarda specs em pastas por estado (a fazer / em validação / feito), a spec nasce em "a fazer" e anda junto com o plano dela.
 
 Esqueleto pronto para copiar: `references/spec-template.md`. Copie a estrutura, não o conteúdo; corte seção que a feature não usa e diga que cortou. Três coisas do esqueleto não são opcionais, porque o plano vai citá-las: requisito com id (`FR-n`) e pelo menos um cenário de aceitação (*dado / quando / então*); critério de sucesso com id (`SC-n`), número e baseline; e a lista de quem mais consome e emite o que muda, nas duas direções. A regra existia em prosa e não segurou. Medido em 2026-09-02: de duas specs arquiteturais do mesmo ciclo, uma saiu com 14 seções e a outra com 4, sem decisão com autoria nem alternativa descartada.
 

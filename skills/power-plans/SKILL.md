@@ -697,6 +697,8 @@ Se o projeto não tiver esses arquivos, pergunte ao usuário estas quatro coisas
 
 Siga a convenção do projeto. Procure planos anteriores (`docs/plans/`, `docs/**/plans/`, `plans/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/plans/AAAA-MM-DD-<topico>.md` e diga ao usuário que você criou a convenção.
 
+Se o projeto guarda planos em pastas por estado (a fazer / em validação / feito), o plano novo nasce em "a fazer", ao lado da spec. Quem o move para "em validação" é o fecho de `orchestrating-execute`; para "feito", quem obtém a prova que o plano promete. Plano que ainda não rodou fora de "a fazer" some da lista de trabalho.
+
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
 Depois de escrever, commite o plano, ofereça a revisão externa em uma linha (Fase 3) e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.
