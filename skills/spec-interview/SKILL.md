@@ -213,6 +213,8 @@ Esta skill melhora com o uso. Quando uma sessão revelar uma pergunta que **falt
 
 O critério para entrar é um só: **custou.** Uma pergunta esquecida que virou bug, escopo refeito, ou uma discussão que se repetiu pela segunda vez. Preferência de estilo e ideia não testada ficam de fora — a skill perde o fio se virar depósito.
 
+Como escrever: melhore a seção que já cobre o assunto antes de acrescentar linha; siga o `AGENTS.md` da raiz do plugin (conceito, não caso); escreva no clone git de onde a skill foi carregada (sem git, deixe a proposta no relatório); **não commite nem dê push**, avise o usuário como follow-up com arquivo e seção.
+
 ---
 
 *A classificação em três caminhos, o portão duro de aprovação e a auto-revisão da spec são adaptados da skill `brainstorming` do plugin [superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent). O formato de rodadas de fronteira vem da skill `grilling`.*

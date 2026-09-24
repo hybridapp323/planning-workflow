@@ -39,7 +39,7 @@ done
 **`-w` não é enfeite:** sem ele `FR-1` casa dentro de `FR-10`, e o requisito que ninguém
 citou aparece como coberto. Medido no próprio ciclo que originou este item.
 
-Medido em 2026-09-03 (ciclo `contador-agua`): a spec tinha 13 FRs com cenário executável; o plano citava **6 deles zero vezes** e não tinha nenhum `Pronto quando`. O coordenador escreveu o critério de cada briefing de cabeça, e um campo que a spec mandava tratar como *"desconhecido, nunca zero"* virou "zero" no briefing — dias de descanso ganharam 300 ml que não existiam, e o defeito só apareceu na revisão adversarial do fim. `plano=0` num FR é um requisito que nenhum worker vai ver.
+Medido em 2026-09-03: a spec tinha 13 FRs com cenário executável; o plano citava **6 deles zero vezes** e não tinha nenhum `Pronto quando`. O coordenador escreveu o critério de cada briefing de cabeça, e um campo que a spec mandava tratar como *"desconhecido, nunca zero"* virou "zero" no briefing — um valor inventado entrou na conta como se fosse medido, e o defeito só apareceu na revisão adversarial do fim. `plano=0` num FR é um requisito que nenhum worker vai ver.
 
 Confirme também que a árvore está limpa do que interessa, e que você sabe quais arquivos modificados **não** são deste trabalho. Sessões paralelas deixam lixo, e ele acaba num commit errado.
 
@@ -88,7 +88,7 @@ e ele descobre depois, pela fatura ou pela qualidade.
 ### `--model` é OBRIGATÓRIO no `--command`, e você tem que CONFERIR
 
 Esta é a forma mais fácil de violar a regra acima sem perceber, e ela já aconteceu
-(2026-09-02, ciclo `corrida-frequencia-e-ritmo-alvo`):
+(2026-09-02):
 
 ```bash
 # ERRADO — sobe no default do CLI, seja ele qual for
@@ -523,9 +523,9 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
 8. Relate ao usuário o que ficou de fora, se ficou, e por quê.
 9. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
    arquivo, ou *"nada entra, porque X"*. Lição que fica só no relatório de revisão é lição que a
-   próxima spec paga de novo.
+   próxima spec paga de novo. O que entrar segue a seção *Documentação viva*, no fim desta skill.
 
-Se alguma armadilha nova aparecer durante a execução, acrescente-a a `references/orca-traps.md` no mesmo trabalho. É a única forma de a próxima execução não pagar de novo.
+Se alguma armadilha nova aparecer durante a execução, acrescente-a a `references/orca-traps.md` no mesmo trabalho, pelas regras da seção *Documentação viva*. É a única forma de a próxima execução não pagar de novo.
 
 ### Medir com flag diferente da do gate é medir outra coisa
 
@@ -542,13 +542,13 @@ grep -n "deno test\|npm test\|pytest" scripts/<script-de-deploy>.sh
 ```
 
 E confira também **qual suíte** o gate roda. Nesse mesmo ciclo, o gate do deploy rodava só
-`supabase/functions/ai-chat/`, não a árvore inteira — e as 4 falhas pré-existentes viviam
-**fora** dela. Eu tinha pedido ao usuário autorização para um `ALLOW_RED` com quatro nomes que,
+o diretório de uma função, não a árvore inteira — e as 4 falhas pré-existentes viviam
+**fora** dela. Eu tinha pedido ao usuário autorização para liberar a suíte vermelha com quatro nomes que,
 medido, **não era necessário**. Saber o recorte do gate antes teria poupado a pergunta.
 
 ### Medir nas dependências do checkout compartilhado é medir outra coisa
 
-Medido em 24/09/2026 (ciclo `filtros-metricas`, frontend). A suíte completa no checkout deu
+Medido em 24/09/2026, no frontend. A suíte completa no checkout deu
 **49 falhas** contra 6 da base, 42 delas "Test timed out in 5000ms" em arquivos que o ciclo não
 tocou; isolados, os mesmos arquivos continuavam falhando. Parecia regressão. Não era: o
 `node_modules` do checkout compartilhado estava **fora do lock** (Radix e vitest mais novos, com
@@ -593,3 +593,18 @@ do `_shared/` embutida em produção, silenciosamente.
 tocar, chamadores a atualizar), peça-a **recalculada de forma independente** e escreva no brief
 que **as duas têm de bater**. Divergência não é discordância de opinião: é um dos dois métodos
 com ponto cego, e vale mais que a revisão de código que veio junto.
+
+## Documentação viva
+
+Esta skill melhora com o uso, e melhorá-la faz parte da implementação quando o ciclo mostrou um
+furo **dela**: a armadilha que a execução pagou na marra, o passo que o laço de ondas não
+previa, a regra que um worker ou o gate desrespeitou porque ela estava ambígua aqui. É opcional, e só vale quando o furo custou e vai custar de novo.
+
+- **Melhore antes de acrescentar.** Procure a seção que já cobre o assunto e aperte-a; linha nova
+  só se nada cobre. Esta skill não cresce indefinidamente.
+- **Conceito, não caso.** Antes de escrever, leia o `AGENTS.md` da raiz do plugin: nada de nome de
+  tabela, cliente, ciclo ou caminho do projeto onde a lição foi paga.
+- **Escreva no clone git de onde a skill foi carregada** (a pasta deste arquivo). Se ela não é
+  repositório git (cópia de cache de instalação), não edite: deixe o texto proposto no relatório.
+- **Não commite nem dê push.** Avise o usuário no relatório final, como follow-up: arquivo, seção
+  e uma linha do porquê. Quem confere e commita é ele.

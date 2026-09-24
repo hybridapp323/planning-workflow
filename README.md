@@ -5,7 +5,7 @@ Skills para o ciclo de vida de uma feature, da ideia crua até a execução, e a
 Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: três das quatro skills não dependem de nenhuma ferramenta específica e rodam em qualquer agente que aceite instruções em arquivo. Ver [Usar em outro agente](#usar-em-outro-agente-ou-outro-cli).
 
 - **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria) e aprovada.
-- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. A revisão externa da spec e do plano é recomendada e opcional: quem decide, e nomeia o modelo, é o usuário. Não cita orquestrador.
+- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. A revisão externa da spec e do plano é recomendada e opcional: quem decide, e nomeia o modelo, é o usuário. O plano não cita orquestrador; a revisão só usa a skill `orchestration` quando o modelo nomeado não roda como subagente no harness.
 - **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas com aceite do coordenador por tarefa (aceitou: marca a task e fecha o terminal, sem que o usuário peça), um gate por plano em rodada única antes do passo irreversível, advisor de rumo com orçamento (uma consulta por veredito de gate, mesmo modelo do gate, registro obrigatório da divergência), e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
 - **`systematic-debugging`** — causa raiz antes de conserto: as quatro fases, o limite de três consertos falhados que vira questão de arquitetura, e as racionalizações que precedem cada banda-aid.
 
@@ -54,7 +54,7 @@ O núcleo é markdown com frontmatter YAML (`name`, `description`) e não tem c�
 
 | Skill | Portável? | O que prende |
 | --- | --- | --- |
-| `power-plans` | **sim, inteira** | nada. Ela se recusa de propósito a citar orquestrador: entrega um grafo com níveis, donos e contratos congelados |
+| `power-plans` | **sim, inteira** | nada. O plano não cita orquestrador: é um grafo com níveis, donos e contratos congelados. Só a revisão externa, quando o modelo pedido está fora do harness, aponta para a orquestração |
 | `systematic-debugging` | **sim, inteira** | nada |
 | `spec-interview` | **sim, com um detalhe** | prefere a ferramenta de pergunta em modal do harness (`AskUserQuestion`); sem ela, a própria skill traz o formato em texto numerado |
 | `orchestrating-execute` | **parcialmente** | a mecânica é do Orca (`orca`, `wave.sh`), a camada de orquestração usada aqui. A skill diz o que fazer sem ele: *"o plano continua válido, é um grafo com níveis, donos e contratos; execute com o mecanismo de subagente que houver"*. Já `references/orca-traps.md` é 100% específico e não serve fora do Orca |
@@ -130,6 +130,8 @@ As quatro skills são documentação viva do próprio processo, e cada uma diz n
 | `systematic-debugging` | Armadilha de diagnóstico que custou tempo real e vai custar de novo — camada que engole erro, log que mente | Bug específico de um repositório (isso é do `CLAUDE.md` dele) |
 
 Regra comum: a edição entra **no mesmo trabalho** em que o aprendizado aconteceu, nunca "depois". Doc desatualizada é pior que doc ausente — a próxima sessão segue a instrução errada com confiança.
+
+Quem edita é o próprio agente, de dentro do projeto em que está trabalhando, e só quando julgar que o furo custou: melhora a seção que já existe antes de acrescentar, escreve no clone git de onde a skill foi carregada, **não commita nem dá push**, e avisa o usuário como follow-up. Quem confere e commita é o usuário. Instalação sem clone (cache do marketplace) não é editada: a proposta fica no relatório.
 
 Regra comum número dois, e é a que mais escapa: **o que entra é o conceito, não o caso.** Um aprendizado só vira linha aqui depois de perder o nome da tabela, do cliente e do comando do repositório onde ele foi pago. O teste de três perguntas e o que nunca entra estão no [`AGENTS.md`](AGENTS.md).
 

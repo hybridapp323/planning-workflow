@@ -76,9 +76,9 @@ plano saiu com **três afirmações falsas**, e as três eram do lado da *prescr
 
 | afirmação do plano | realidade | custo |
 |---|---|---|
-| "corte em `ai_audit_logs.created_at`" | é quando o turno **fechou**, ~13 s DEPOIS do inbound a recuperar. O corte cru excluiria exatamente a mensagem alvo | **o fix seria um no-op, e passaria verde** |
+| "corte no `created_at` da tabela de auditoria" | é quando o turno **fechou**, ~13 s DEPOIS do inbound a recuperar. O corte cru excluiria exatamente a mensagem alvo | **o fix seria um no-op, e passaria verde** |
 | "o registro auditado aparece na flag de teto impossível" | `max=20000` é plausível e não bate em nenhum dos 3 critérios congelados | um worker gastou um ciclo de dispatch para escalar |
-| `node scripts/run-e2e.mjs` | o caminho é `.claude/skills/ai-chat-e2e/scripts/run-e2e.mjs` | comando quebrado no passo do coordenador |
+| `node scripts/run-e2e.mjs` | o script mora noutro diretório, dentro da pasta de uma skill do projeto | comando quebrado no passo do coordenador |
 
 Nenhuma das três estava no snapshot — porque nenhuma existia quando a Fase 0 rodou. A regra
 que faltava é esta:
@@ -167,8 +167,8 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
 
 1. **Semântica de coluna, flag ou campo. NUNCA infira pelo nome.** `created_at` de uma tabela
    de auditoria parece "quando aconteceu" e significa "quando fechou". Abra a linha e compare
-   com um caso conhecido. Este projeto tem uma família inteira de bugs assim
-   (um booleano cujo nome descreve o que o lead **disse**, lido como "o que o estágio
+   com um caso conhecido. Um projeto medido tinha uma família inteira de bugs assim
+   (um booleano cujo nome descreve o que o cliente **disse**, lido como "o que o estágio
    **entregou**"). O plano de 26/08 reproduziu, na
    camada de planejamento, exatamente o defeito que ele fora escrito para corrigir.
 
@@ -196,7 +196,7 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
    mudança altera alguma coisa? Um corte que já exclui o alvo, um guard que já não dispara,
    um campo que já vem preenchido. **No-op passa verde** — é a pior falha possível, porque
    produz teste, relatório e commit sem produzir efeito.
-3. **O caso prometido realmente dispara o critério novo?** Se o plano diz "o lead X vai
+3. **O caso prometido realmente dispara o critério novo?** Se o plano diz "o registro X vai
    aparecer na flag Y", rode os critérios de Y contra X **agora**. Foi assim que o registro
    entrou num item de gate que ele não satisfazia.
 4. **Caminho, comando e nome existem?** `ls` no script, `--help` no subcomando, `\d` na
@@ -258,8 +258,8 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
     Medido em 2026-09-01/02, num ciclo que isolava uma vertical de negócio nova: o plano do
     pré-LLM próprio da vertical listou a ordem do alvo (vínculo → opção ativa → texto) e os
     gatilhos de pedido de foto e de nome no texto, e omitiu o gatilho "interesse já vinculado"
-    do módulo da vertical antiga que estava sendo substituído (lead já vinculado + zero opção
-    → apresentar com foto). Um gate adversarial, sete tarefas, suíte
+    do módulo da vertical antiga que estava sendo substituído (contato já vinculado + zero opção
+    → apresentar). Um gate adversarial, sete tarefas, suíte
     verde por nome e três cenários novos pagos passaram; quem achou foi o cenário de REGRESSÃO
     da vertical, que reprovou no turno 3 porque uma flag de entrega só era gravada por um
     caminho que a mudança tornara raro. A lista
@@ -281,16 +281,16 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
     o predicado puro do motor num consumidor externo parece eliminar a duplicação; se a seleção,
     o filtro ou o enriquecimento do dado acontecem antes de a função ser chamada, o consumidor
     reproduz o veredito só se reproduzir também a entrada. Medido em 2026-09-04: o plano mandava
-    o coletor da auditoria diária importar `evaluateItemPresentation` do motor; a revisão externa
-    mostrou que o motor filtra `is_ai_generated`, exclui notas internas e **enriquece as opções
-    com preço do catálogo** dentro do probe (`item-presentation.ts:681-760`), e reproduziu um
+    o coletor da auditoria diária importar a função de avaliação do motor; a revisão externa
+    mostrou que o motor descarta as mensagens geradas pela IA, exclui notas internas e **enriquece
+    as opções com preço do catálogo** antes de chamá-la, e reproduziu um
     veredito invertido só pela ausência do preço. Antes de prescrever "importe X", leia quem
     prepara o argumento de X e faça a preparação ser exportada junto.
 
 13. **Teste do consumidor que fabrica o campo que o produtor real não emite.** Um fake que
     monta `{ sent: false, error: "..." }` e um worker que lê exatamente isso passam verdes
-    enquanto o corpo HTTP real nunca carrega `error`. Medido em 2026-09-04: o corpo final do
-    `ai-chat` tinha `sent` e não tinha `error` (`index.ts:4593`), e o early-exit não devolvia nem
+    enquanto o corpo HTTP real nunca carrega `error`. Medido em 2026-09-04: o corpo final da
+    função tinha `sent` e não tinha `error`, e o early-exit não devolvia nem
     `sent`; o contrato do plano dependia dos dois. Regra: o teste do consumidor recebe a saída
     **do produtor real** (fixture gerada pelo teste do produtor), e o `Pronto quando` diz de onde
     ela vem. O contrato congela o shape produzido, não o shape desejado.
@@ -346,7 +346,7 @@ que promete cobrir o emergente vira álibi; um que declara a fronteira vira mapa
 
 ### Cenário de teste escrito e não executado é HIPÓTESE, não cobertura
 
-Medido no ciclo `2026-08-27-canais-sociais-whatsapp`. Dois cenários E2E foram escritos junto
+Medido em 2026-08-27. Dois cenários E2E foram escritos junto
 com o código, revisados como especificação, e **passaram por quatro rodadas de gate
 adversarial sem nunca terem rodado**. Na primeira execução, os cinco runs pagos expuseram
 **cinco defeitos** — e três deles estavam no próprio cenário ou no harness, não no motor:
@@ -371,7 +371,7 @@ acharam os defeitos — o custo estava no lugar certo.
 
 ### Vermelho pelo motivo errado também não é cobertura
 
-Medido no ciclo `2026-09-14-auditoria-da23`: quatro dos sete cenários E2E novos
+Medido em 2026-09-14: quatro dos sete cenários E2E novos
 deram o primeiro vermelho pelo motivo ERRADO, e dois chegaram a dar verde sem
 provar nada:
 
@@ -479,7 +479,7 @@ prosa, ele é reinventado por quem despacha.
 visível, quando tocar Desfazer, então **aquela linha** é apagada"* é o mesmo critério com a
 semântica dentro, e é a diferença entre apagar por identidade e apagar por predicado.
 
-Medido em 2026-09-03 (ciclo `contador-agua`): a spec tinha 13 FRs, cada um com cenário
+Medido em 2026-09-03: a spec tinha 13 FRs, cada um com cenário
 executável, e cobria corretamente virada de meia-noite, duplicação de fórmula e semântica de
 campo nulo. O plano citava **6 dos 13 FRs zero vezes** e não tinha **nenhum** `Pronto quando` —
 porque as tarefas foram compactadas numa tabela (`| id | tarefa | nível | dono | arquivos |`), e
@@ -562,8 +562,8 @@ do plano. A skill recomenda; não agenda.
 
 Por que recomendar: quem escreveu o plano é o pior revisor dele. Medido em 2026-08-26, num plano
 com evidência medida, contratos congelados e auto-revisão feita, **a auto-revisão achou zero furos
-e a revisão externa achou sete**, cinco confirmados no código, um deles capaz de mandar foto de um
-lead sem identidade nenhuma. Medido em 2026-09-12: quatro bloqueadores, três documentais e uma
+e a revisão externa achou sete**, cinco confirmados no código, um deles capaz de mandar dado a um
+contato sem identidade nenhuma. Medido em 2026-09-12: quatro bloqueadores, três documentais e uma
 decisão do usuário. Medido em 2026-09-21: oito bloqueadores, todos confirmados no código e no
 banco antes de qualquer linha escrita. Não foi falta de rigor na forma; confirmação e verificação
 parecem iguais por dentro.
@@ -574,6 +574,15 @@ Quer? Se sim, diga o modelo."* Se o usuário já nomeou o modelo no pedido, não
 rode a revisão pelo procedimento de `references/external-review.md` e entregue o plano já
 adjudicado. Se ele não pediu, registre "não solicitada" no §0.1 e pare. Feature pequena: diga que
 não paga.
+
+**O modelo nomeado decide o mecanismo, nunca o contrário.** Se o harness em que você roda
+oferece esse modelo como subagente, despache a revisão como subagente, sem orquestrador. Se não
+oferece (outro fornecedor, outro CLI, um agente do catálogo do orquestrador), a revisão sobe por
+orquestração multi-agente: com Orca, a skill `orchestration` (terminal no CLI daquele agente,
+task, dispatch, espera por `worker_done`), e confira no TUI que o modelo que subiu é o pedido,
+como em `orchestrating-execute`. Sem mecanismo que alcance o modelo, diga isso ao usuário e
+pergunte; nunca troque pelo modelo mais próximo que o harness tem. Troca silenciosa entrega
+outra revisão com o nome da que ele pediu.
 
 **A revisão nunca entra no grafo do plano.** Não existe tarefa `S0 — revisão do plano`, nem
 "bloqueia a onda 1". O executor lê o grafo como lista de trabalho, e uma revisão ali dentro vira a
@@ -615,7 +624,7 @@ pediu. Um revisor bloqueando não autoriza nada; quem autoriza nova rodada é o 
 **de implementação** do plano (ex.: S1, antes de migração e deploy) são outra coisa: estão no
 plano que o usuário aprovou e rodam uma vez cada, com a mesma regra para repetição.
 
-Medido em 22/09/2026 (ciclo `visibilidade-leads-vendedor`): o usuário pediu uma revisão
+Medido em 22/09/2026: o usuário pediu uma revisão
 adversarial da spec e do plano. Ela veio BLOQUEADA com 4 achados reais, todos incorporados. Em
 seguida o coordenador escreveu no plano "rodada 2 antes do C0" e despachou sozinho uma segunda
 revisão no modelo mais caro. O usuário interrompeu: *"eu não pedi pra rodar outra revisão, não
@@ -720,3 +729,18 @@ Se o projeto guarda planos em pastas por estado (a fazer / em validação / feit
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
 Depois de escrever, commite o plano, ofereça a revisão externa em uma linha (Fase 3) e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.
+
+## Documentação viva
+
+Esta skill melhora com o uso, e melhorá-la faz parte da implementação quando o ciclo mostrou um
+furo **dela**: o achado da revisão adversarial que o plano deveria ter pegado, o desvio que a
+execução pagou. É opcional, e só vale quando o furo custou e vai custar de novo.
+
+- **Melhore antes de acrescentar.** Procure a seção que já cobre o assunto e aperte-a; linha nova
+  só se nada cobre. Esta skill não cresce indefinidamente.
+- **Conceito, não caso.** Antes de escrever, leia o `AGENTS.md` da raiz do plugin: nada de nome de
+  tabela, cliente, ciclo ou caminho do projeto onde a lição foi paga.
+- **Escreva no clone git de onde a skill foi carregada** (a pasta deste arquivo). Se ela não é
+  repositório git (cópia de cache de instalação), não edite: deixe o texto proposto no relatório.
+- **Não commite nem dê push.** Avise o usuário no relatório final, como follow-up: arquivo, seção
+  e uma linha do porquê. Quem confere e commita é ele.

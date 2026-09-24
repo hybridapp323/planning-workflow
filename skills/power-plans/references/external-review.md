@@ -52,8 +52,8 @@ Peça exatamente isto:
 Veredito: PASSA | BLOQUEIA
 Bloqueadores  — impedem executar como está, com arquivo:linha ou query que prova,
                 e o custo da correção: documental | decisão do usuário | redesenho
-Regressões prováveis — POR TAREFA: o que pode quebrar em produção para o lead ou para o
-                operador, com o consumidor/emissor esquecido e a prova
+Regressões prováveis — POR TAREFA: o que pode quebrar em produção para o usuário final ou
+                para quem opera o sistema, com o consumidor/emissor esquecido e a prova
 Riscos        — não impedem, mas custam se ignorados
 Sugestões     — melhorias opcionais
 Verificado e correto — o que conferiu e achou certo
@@ -117,7 +117,8 @@ Este é o passo que mais gera valor, e o mais fácil de pular.
 8. **Feche a triagem com uma linha por skill:** o que entra em qual arquivo, ou *"nada entra,
    porque X"*. Sem a linha, a lição fica no relatório e a próxima spec paga de novo. Medido: as
    lições de duas revisões de 2026-09-08 e 2026-09-09 ficaram só nos relatórios, sem decisão
-   registrada de entrar ou não.
+   registrada de entrar ou não. O que entrar segue a seção *Documentação viva* do `SKILL.md`:
+   melhorar antes de acrescentar, escrever no clone do plugin, não commitar, avisar o usuário.
 
 ## Custo
 

@@ -158,6 +158,8 @@ Se a investigação mostrar que é mesmo ambiental, dependente de timing, ou ext
 
 Quando uma sessão de depuração revelar uma armadilha nova deste tipo de sistema — uma camada que engole erro em silêncio, um log que mente, uma ferramenta cuja saída parece dizer o contrário do que diz — ela entra aqui **no mesmo trabalho**. Critério de entrada: **custou tempo real**, e vai custar de novo.
 
+Como escrever: melhore a seção que já cobre o assunto antes de acrescentar linha; siga o `AGENTS.md` da raiz do plugin (conceito, não caso); escreva no clone git de onde a skill foi carregada (sem git, deixe a proposta no relatório); **não commite nem dê push**, avise o usuário como follow-up com arquivo e seção.
+
 ---
 
 *Adaptado da skill `systematic-debugging` do plugin [superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent), com as técnicas de rastreamento reverso e defesa em camadas destiladas para dentro do fluxo principal.*
