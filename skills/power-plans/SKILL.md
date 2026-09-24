@@ -506,6 +506,12 @@ Escreva três coisas, sempre:
 
 Marque o **caminho crítico**. É o que diz se vale acrescentar worker ou se você só vai acrescentar espera.
 
+**Sem número fixo de workers.** Tarefas que tocam arquivos diferentes e não dependem uma da
+outra rodam todas juntas na mesma onda; um teto como "3 por vez" só acrescenta espera. O único
+freio legítimo é a cota do dia nos modelos, e aí distribua entre provedores e comece pelo caminho
+crítico. Durante a onda, cada worker roda só os próprios testes; a suíte inteira roda no aceite.
+Medido em 24/09/2026: o plano saiu com teto de 3 workers que ninguém pediu, e o usuário mandou tirar.
+
 **Ordene por dependência de COMPORTAMENTO, não por custo.** A tentação é pôr primeiro o que é
 barato e reversível, tipicamente configuração, e deixar o código para depois. Isso inverte a
 ordem real: configuração que liga um comportamento cujo código ainda não existe deixa o
