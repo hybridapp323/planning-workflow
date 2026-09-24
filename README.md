@@ -34,7 +34,9 @@ Dentro de uma sessão:
 /plugin install planning-workflow@planning-workflow
 ```
 
-O repositório é o próprio marketplace (`.claude-plugin/marketplace.json` na raiz). Atualizar depois é `/plugin marketplace update planning-workflow`.
+O repositório é o próprio marketplace (`.claude-plugin/marketplace.json` na raiz). Marketplace de terceiro nasce **sem** atualização automática: ligue em `/plugin` → Marketplaces → `planning-workflow` → Enable auto-update, uma vez por máquina. Sem isso, atualizar é `/plugin marketplace update planning-workflow` à mão.
+
+O `plugin.json` não tem `version` de propósito: sem ela, a versão é o commit, e todo push chega nas instalações. Com uma `version` fixa, o Claude Code mantém a cópia em cache até alguém subir o número.
 
 ### Claude Code, por clone
 
