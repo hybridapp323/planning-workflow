@@ -89,8 +89,21 @@ Um arquivo, um dono. Ninguém edita arquivo de outro.
 
 **Somente leitura para todos:** `caminho/c.ts`, `caminho/d.ts`.
 
+| `testes/x.test.ts` (afirma o comportamento que FR-4 remove: **reescrever e renomear**) | T3 |
+
 Linha NOVO cita o irmão existente do mesmo tipo e a configuração que o descobre, os dois com
-`[LIDO:]`. Caminho novo deduzido de norma escrita é `[SUPOSTO]`.
+`[LIDO:]`. Caminho novo deduzido de norma escrita é `[SUPOSTO]`. Teste existente que afirma
+comportamento que o plano muda ou remove (unitário ou ponta a ponta) é linha desta tabela, com a
+decisão escrita.
+
+### 3.1 Traçado por requisito
+
+Uma linha por FR que move dado ou comportamento. Cada célula é `arquivo:linha` com `[LIDO:]`; os
+arquivos das células alimentam a matriz acima. Célula vazia é salto sem dono.
+
+| FR | Onde nasce | Quem transporta | Quem decide | Quem emite (código **e** dados) | Efeito observável |
+| --- | --- | --- | --- | --- | --- |
+| FR-1 | `a.ts:40` | `contexto.ts:210` | `b.ts:88` | `c.ts:15`; template `<tabela>.<chave>` | <o que o usuário ou o teste vê> |
 
 ## 4. Contratos congelados
 
@@ -134,7 +147,8 @@ PARE e escale">
 
 **Pronto quando:** <o cenário de aceitação do FR, COPIADO da spec: dado / quando / então. Não
 parafraseie — o worker recebe esta frase literal no briefing. Se não existe cenário para copiar,
-o buraco é na spec, e é lá que se conserta>
+o buraco é na spec, e é lá que se conserta. Tarefa que mexe em detector de texto acrescenta aqui
+a lista de variações e a amostra real de falso positivo (`SKILL.md`, classe 17)>
 
 **Não faça:** <o que pertence a outra tarefa e vai dar vontade de fazer aqui>
 

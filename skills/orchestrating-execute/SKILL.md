@@ -265,8 +265,20 @@ Para cada `worker_done`, nesta ordem, e nenhum passo pula o anterior:
 
 1. **Leia o relatório e o diff.** `wave.sh report <task>` traz o corpo do `worker_done`, os
    arquivos e o diff; `dispatch-show` não traz o corpo.
+   **Antes de ler o conteúdo, confira o ESCOPO, que é mecânico:** a lista de arquivos alterados
+   pelo worker contra a lista de arquivos do brief. Numa árvore compartilhada por vários workers,
+   o `git status` mistura as entregas: tire um retrato dos arquivos modificados (caminho e hash)
+   ao despachar, e na entrega compare. Arquivo fora da lista é devolução, ou restauração sua a
+   partir do HEAD, mesmo que o conteúdo pareça certo. Isso inclui arquivo gerado (lockfile,
+   cache, saída de build) que o worker regravou ao rodar ferramentas: restaure, e não commite.
+   Medido em 25/09/2026: um worker de nível médio sobrescreveu um arquivo de outra área com a
+   cópia de um arquivo irmão, e outro deixou um lockfile regravado; os dois apareceram por acaso,
+   lendo diff. A comparação de listas os pega na entrega, em segundos.
 2. **Aceite com casos seus.** Rode o `Pronto quando` com casos que não são os do worker e confira
-   a prova de neutralização (seção *Dois mecanismos de qualidade*).
+   a prova de neutralização (seção *Dois mecanismos de qualidade*). Tarefa que mexe em detector
+   de texto: seus casos saem de frases reais do histórico e da lista de variações do plano
+   (negação, erro de digitação, outra flexão, acento colado no termo), não da frase do relatório.
+   Foi assim que o aceite pegou dois dos defeitos dessa família em 25/09/2026.
    - **Não passou:** a correção é uma **task nova** (`T<n>b`), despachada **para o mesmo
      terminal** (`dispatch --task <nova> --to terminal:<handle>`): o contexto do worker vale mais
      que refazer do zero. A task original já está `completed` e o terminal continua vivo de
@@ -526,6 +538,25 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
    próxima spec paga de novo. O que entrar segue a seção *Documentação viva*, no fim desta skill.
 
 Se alguma armadilha nova aparecer durante a execução, acrescente-a a `references/orca-traps.md` no mesmo trabalho, pelas regras da seção *Documentação viva*. É a única forma de a próxima execução não pagar de novo.
+
+### Prova ponta a ponta: o vermelho é na versão ANTIGA integrada
+
+Neutralizar o fix no teste unitário prova a peça; não prova o fluxo. Quando o projeto tem
+ambiente de homologação e cenário ponta a ponta, rode cada cenário do ciclo **duas vezes**: com a
+versão anterior publicada lá (tem de falhar pela asserção do defeito, com a causa conferida) e
+com o candidato (tem de passar). Só então publique em produção.
+
+- O fluxo integrado acha o que a suíte não acha: um **segundo componente** que desfaz o fix
+  depois dele, um teste unitário que **semeou** o estado que o fluxo real nunca produz, um
+  caminho de dado que o teste isolado não percorre. Medido em 25/09/2026: quatro defeitos assim,
+  todos com a suíte verde e o gate aprovado.
+- Cenário que **não falha na versão antiga** não prova o fix. Refaça-o para exercitar o caminho
+  do defeito; se o defeito depende de uma escolha do modelo que não se reproduz sob demanda,
+  registre o cenário como regressão e diga que a prova é o teste unitário. Nunca o conte como
+  vermelho/verde. No mesmo ciclo, 6 cenários não separavam as duas versões e foram refeitos, e
+  outros 7 ficaram como regressão, com isso escrito no relatório.
+- Cenário antigo que falha com o candidato por **exigir o comportamento que o ciclo removeu** é
+  contrato velho: reescreva e renomeie (e registre por quê), nunca o apague nem o ignore.
 
 ### Medir com flag diferente da do gate é medir outra coisa
 

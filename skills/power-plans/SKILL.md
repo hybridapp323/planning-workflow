@@ -225,6 +225,13 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
    aparece na busca por chamador, e é o que sobrevive ao fix. Medido no mesmo ciclo: o plano
    mapeou 1 emissor, existiam 5, e 2 dos que faltavam eram literais escritos dentro de um
    guard. Um teste por emissor, não um teste da função canônica.
+   **Emissor que mora em DADO não aparece em nenhuma das duas buscas.** Texto de instrução,
+   template, configuração ou seed guardado no banco (ou num snapshot dele) manda fazer o
+   comportamento que o código deixou de fazer, e o `grep` no repositório devolve zero. A terceira
+   busca é uma consulta pelo literal nas tabelas de template e configuração, e a tarefa que
+   remove o comportamento é dona também da mudança nesses dados (migração, não edição à mão).
+   Medido em 25/09/2026: a revisão externa achou instruções guardadas no banco mandando executar
+   exatamente a ação que o plano removia; custou uma tarefa de migração que o plano não tinha.
    **Validação, filtro ou gate novo sobre uma saída que já existe É remoção**, mesmo que a
    spec o descreva como garantia nova. A medição é no histórico persistido: quanto da saída
    de hoje o gate rejeitaria, em uma consulta. Medido em 2026-09-12: um contrato do plano
@@ -328,6 +335,26 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
     suposição "cabe mais uma posição na ordem" foi medida só em `pg_constraint` e passou:
     **unicidade pode morar num índice, não numa constraint** (`pg_indexes` mostrou UNIQUE em
     `(workspace_id, sort_order)`). Para qualquer "cabe" ou "é único", consulte os dois.
+
+17. **Tarefa que cria ou muda um DETECTOR DE TEXTO** (regex, lista de palavras, classificador por
+    padrão sobre o que uma pessoa escreveu). O autor testa as frases que imaginou; quem escreve de
+    verdade nega, erra a digitação, conjuga em outro tempo, abrevia, acentua, e junta duas
+    intenções na mesma frase. O detector passa em toda fixture e erra na primeira semana. Antes de
+    congelar a tarefa, duas medições e uma lista:
+    - **Falso positivo:** rode o detector novo contra uma amostra do texto real já persistido e
+      leia o que ele passa a pegar que o antigo não pegava. É a consulta que diz se a mudança
+      rouba casos de outra regra.
+    - **Falso negativo:** as frases reais do defeito, e as vizinhas delas no histórico, entram na
+      fixture de aceite, e não só a frase do relatório.
+    - **A lista de variações vai no `Pronto quando`**, escrita, para o worker e para quem aceita:
+      negação ("não quero X"), erro de digitação do termo-chave, outra flexão do verbo (presente,
+      gerúndio, perífrase), pergunta × afirmação, termo-chave dentro de pedido educado, token curto
+      ou ambíguo, e letra acentuada colada no termo. Esta última é mecânica: em várias linguagens
+      o limite de palavra (`\b`) é ASCII, e a palavra acentuada vira fronteira no meio.
+    Medido em 25/09/2026, num ciclo de 31 requisitos: **nove defeitos da mesma família**, achados
+    em quatro momentos diferentes (revisão do plano, aceite do coordenador, gate, E2E), todos
+    variações que nenhuma fixture tinha. Foi a maior causa de devolução ao worker do ciclo. Cada um
+    custava uma consulta de amostra ou uma linha na lista de variações.
 
 ### O que NÃO dá para decidir no plano — diga isso em vez de fingir
 
@@ -438,6 +465,22 @@ O salto mais esquecido é o transporte: um objeto de contexto reconstruído no m
 nova chega `undefined` no destino com todos os testes verdes. Medido em 2026-08-26: uma
 matriz de 22 arquivos saiu com 5 faltando, e o que mais doía era exatamente um desses
 transportes.
+
+**O traçado é uma TABELA do plano, não um exercício de cabeça:** uma linha por requisito que
+move dado ou comportamento, uma coluna por salto, `arquivo:linha` em cada célula (esqueleto, §3.1).
+Conselho em prosa é aplicado quando o autor lembra; célula vazia fica visível para quem revisa, e
+a matriz de ownership passa a ser derivada das células, não da memória. Medido em 25/09/2026:
+3 dos 11 bloqueadores da revisão externa eram saltos sem dono (decisão no chamador errado,
+comportamento sem ponto de emissão, dado que não chegava a um dos canais de saída), num plano cuja
+skill já mandava traçar. A regra existia; a coluna, não.
+
+**Teste existente que trava o comportamento antigo é arquivo da matriz.** Quando o plano muda ou
+remove um comportamento, os testes que o afirmam hoje (unitários **e** cenários ponta a ponta)
+entram na matriz com dono único e a decisão escrita: reescrever e renomear, nunca apagar. Procure
+pelo literal do comportamento nos diretórios de teste, e não só pelo nome do arquivo que muda.
+Sem isso, duas tarefas paralelas reescrevem o mesmo teste, ou o teste que exige o comportamento
+removido aparece só na bateria antes do deploy. Medido em 25/09/2026: as duas coisas no mesmo
+ciclo, uma achada pela revisão externa e a outra só na véspera da publicação.
 
 **Linha NOVO cita o irmão.** Arquivo que ainda não existe entra na matriz com o irmão existente
 do mesmo tipo e a configuração que o descobre, os dois com `[LIDO:]`. Sem isso o caminho é
@@ -642,6 +685,14 @@ Termine com os portões de entrega do projeto. Descubra quais são (ver abaixo) 
 Duas listas, e a primeira é a que faltava. Estrutura impecável em cima de fato falso continua
 sendo plano falso.
 
+**Pergunta de julgamento aprova o próprio texto; coluna vazia não.** Medido em 25/09/2026: dos
+11 bloqueadores que a revisão externa achou num plano, **6 já eram cobertos por regras desta
+skill** que o autor não aplicou (traçado, no-op, contrato mais restrito que o requisito). Mais
+regra em prosa não teria pegado nenhum. O que pegou foram as verificações mecânicas: o `grep` de
+FR e a tabela de afirmações de carga. Por isso, antes das listas: o plano tem as tabelas
+obrigatórias preenchidas, sem célula vazia (afirmações de carga §0.1, ownership §3, traçado §3.1,
+rastreabilidade §5.1)? Célula vazia é item aberto, não detalhe.
+
 **Verdade — cada item vale um `ls` ou uma query:**
 
 - Todo fato do plano tem etiqueta `[MEDIDO:]`, `[LIDO:]` ou `[SUPOSTO:]`?
@@ -659,9 +710,12 @@ sendo plano falso.
   citação que a confirma? A linha traz a **contagem do falsificador**, não a que confirma?
 - Toda invariante que o plano promete preservar tem o caminho de exceção procurado, e os
   **testes existentes** daquele arquivo lidos?
-- Para cada comportamento que o plano REMOVE: os emissores foram contados pelos dois lados,
-  chamadores da função **e** literal do texto? Validação ou gate novo sobre saída existente
-  contou como remoção, com a medição no histórico persistido?
+- Para cada comportamento que o plano REMOVE: os emissores foram contados pelos três lados,
+  chamadores da função, literal do texto **e** literal nos dados (template, configuração, seed)?
+  Validação ou gate novo sobre saída existente contou como remoção, com a medição no histórico
+  persistido? Os testes que hoje afirmam o comportamento têm dono e decisão na matriz?
+- Toda tarefa que mexe em detector de texto tem a amostra de falso positivo medida e a lista de
+  variações escrita no `Pronto quando`?
 - Toda receita copiada de outro contexto teve a pré-condição dela conferida aqui?
 - Todo passo novo inserido em pipeline existente foi posicionado depois de ler **até o fim** do
   fluxo, e não pelo nome da abstração?
@@ -687,8 +741,8 @@ sendo plano falso.
   requisito que nenhum worker vai ver. Rode antes de entregar o plano, e de novo no preflight da
   execução.
 - Toda tarefa tem nível, dono e dependências explícitas?
-- Todo arquivo tocado aparece na matriz de ownership, com um dono só, **derivado do traçado
-  do caminho** e não da memória do que você leu?
+- Todo arquivo tocado aparece na matriz de ownership, com um dono só, e todo arquivo das
+  células do traçado (§3.1) está na matriz?
 - Nenhuma responsabilidade aparece em duas tarefas, mesmo sem colisão de arquivo?
 - A ordem das ondas segue dependência de **comportamento**, com o que LIGA a mudança por
   último e reversível?
