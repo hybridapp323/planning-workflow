@@ -103,6 +103,17 @@ pode ser suposto; fato que sustenta um fix, não.
 
 Isso é barato. As três falhas acima custavam um `ls` e duas queries.
 
+**Fato que sustenta uma DECISÃO que você leva ao usuário não pode ser adiado para o primeiro
+passo da tarefa: meça antes de perguntar.** O "PARE e escale" protege a implementação, não a
+decisão. Se a premissa cai na execução, o usuário decidiu em cima de um fato falso, a tarefa trava
+esperando uma decisão nova e a rodada de perguntas se repete. O sintoma: você escreve a
+recomendação ao usuário e, no plano, a mesma premissa aparece como "primeiro passo: medir".
+Medido em 26/09/2026: uma recomendação ("o estado pendente deriva de uma flag que o registro já
+tem") foi aprovada com a premissa "o registro do caso real tem essa flag" deixada como primeiro
+passo da tarefa. A revisão externa rodou a consulta por turno: a flag era falsa em todos os turnos
+do caso real. A decisão caiu, o usuário decidiu de novo e a tarefa ficou bloqueada até lá.
+Custo da medição que faltou: um `select`.
+
 **Norma citada não é fato verificado.** Quando o plano invoca uma regra da documentação do
 projeto ("o checklist manda X", "a convenção aqui é Y"), `[LIDO: checklist.md:44]` prova que o
 **documento** diz — não que o **código** faz. Documentação envelhece; o código é a verdade. Norma
@@ -257,6 +268,14 @@ Quem a rodou foi a revisão externa, e virou bloqueador.
    mentindo para o usuário final e deixando o sistema em estado inconsistente. Se esse ponto
    único não existe, a tarefa não é uma feature, é uma máquina de estado nova. Diga isso e
    corte, ou promova a frente própria.
+   **Ação com vários executores:** quando a mesma ação sai de mais de um caminho (o decisor
+   principal, um timeout, uma rede de segurança, um portão anterior), a enumeração da classe 6
+   vale para ela. Escreva a matriz "caminho → lê a trava? → dono → teste", e cada caminho lê a
+   MESMA trava com o MESMO input (classe 12). Um caminho que recebe menos contexto que os outros
+   decide diferente com o mesmo nome de função. Medido em 26/09/2026: o plano pôs a trava no
+   decisor principal e no portão que roda antes dele; a revisão externa achou mais dois caminhos
+   que executavam a mesma ação sem ler a trava (o timeout do estágio e a rede de segurança
+   pós-modelo), e o portão recebia só a última mensagem enquanto o decisor lia o turno inteiro.
 
 10. **Tarefa que SUBSTITUI um módulo por outro (receita própria no lugar da compartilhada).**
     A ordem de resolução do alvo não é o inventário do módulo. O módulo substituído tem
