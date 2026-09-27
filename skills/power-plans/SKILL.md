@@ -627,7 +627,9 @@ Um gate não é uma revisão. Revisão acontece depois e informa; gate acontece 
 irreversível: aplicar migration em produção, deployar, publicar. Migration aplicada não tem `git
 revert`, e uma revisão que chega depois disso só documenta o estrago. Um segundo gate só quando há
 um segundo passo irreversível com superfície própria (uma publicação de frontend separada do
-deploy de backend). Nunca um gate por onda: o que guarda a onda é o aceite do coordenador
+deploy de backend), ou quando o plano decide ir à produção em etapas porque uma onda corrige algo
+ao vivo e não pode esperar as outras: aí é um gate por produção, com a razão escrita. Nunca um
+gate por onda: o que guarda a onda é o aceite do coordenador
 (`orchestrating-execute`, seção *Dois mecanismos de qualidade*). Escala parcial ou mínima: sem
 gate. Medido em 20 e 21/09/2026: quatro ondas com um gate por onda rodaram cinco gates e nove
 tarefas de correção; seis tarefas com um gate rodaram um, corrigiram com teste e publicaram na
@@ -801,7 +803,8 @@ rastreabilidade §5.1)? Célula vazia é item aberto, não detalhe.
   posterior?
 - Todo contrato de que dois ou mais workers dependem está escrito literal e datado de antes da onda 1?
 - Nenhum contrato é mais restrito que o FR que implementa? Se é, a decisão está na spec, com autoria?
-- O gate é um por plano, antes do primeiro passo irreversível, e nenhuma onda tem gate próprio?
+- O gate é um por plano (ou um por produção, se o plano vai em etapas e diz por quê), antes do
+  passo irreversível, sobre o candidato integrado, e nenhuma onda tem gate próprio?
 - Todo par "não pode junto" tem a razão escrita?
 - Com onda em worktree própria: há tabela de papéis, todo arquivo tocado por duas ondas está no
   "não pode junto" com o trecho de cada uma, e a ordem de integração está nos passos do

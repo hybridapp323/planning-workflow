@@ -345,8 +345,11 @@ migração, não escreve em dado e não integra na branch principal.
 
 **A integração, por você, uma onda por vez na ordem do plano:** `git merge --ff-only <branch>`.
 Recusou, a branch principal andou depois do rebase: devolva à onda para refazer, não concilie
-você. Depois de cada integração, suíte por nome e verificação de tipos no integrado; só então gate,
-publicação e push. No fecho, `git worktree remove` e `git branch -d`, que recusa branch não
+você. Depois de cada integração, suíte por nome e verificação de tipos no integrado. O gate não é
+por integração nem por onda, e o coordenador de onda nunca roda gate: ele roda sobre o candidato
+integrado, antes de cada ida à produção. Padrão: integrar todas as ondas paralelas e ir uma vez.
+Produção em etapas (uma onda corrige algo ao vivo e não pode esperar as outras) é decisão do plano,
+com um gate por produção. No fecho, `git worktree remove` e `git branch -d`, que recusa branch não
 integrado.
 
 **Sem PR por padrão.** As worktrees compartilham o repositório, e o branch da onda é visível para
@@ -395,8 +398,8 @@ Segunda rodada existe em dois casos só, e você escreve qual em uma linha no do
 
 Quantos gates: **um por plano**, antes do primeiro passo irreversível, sobre tudo que foi
 integrado até ali. Um segundo só quando existe um segundo passo irreversível com superfície
-própria (uma publicação de frontend separada do deploy de backend, por exemplo). Nunca um por
-onda: quem guarda a onda é o aceite do coordenador. Plano de escala parcial ou mínima não tem
+própria (uma publicação de frontend separada do deploy de backend, por exemplo), ou numa produção
+em etapas que o plano decidiu, um por produção. Nunca um por onda: quem guarda a onda é o aceite do coordenador. Plano de escala parcial ou mínima não tem
 gate; aceite mais suíte.
 
 Medido em 20 e 21/09/2026, três planos no mesmo repositório: quatro ondas com um gate por onda
