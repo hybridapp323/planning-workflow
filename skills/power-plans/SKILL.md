@@ -827,7 +827,7 @@ Leia `CLAUDE.md` e `AGENTS.md` do projeto, e `.claude/plan-profile.md` se existi
 - que documentação precisa acompanhar a mudança no mesmo commit;
 - convenções de idioma, de commit e de nomeação.
 
-Se o projeto não tiver esses arquivos, pergunte ao usuário estas quatro coisas antes de escrever o plano. Elas mudam o grafo, não são detalhe.
+Se o projeto não tiver esses arquivos, pergunte ao usuário estas coisas antes de escrever o plano. Elas mudam o grafo, não são detalhe.
 
 ## Onde salvar
 

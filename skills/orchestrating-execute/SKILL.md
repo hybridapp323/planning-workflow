@@ -327,8 +327,8 @@ coordenador **principal**: cria as worktrees em C0, toca a sua onda na árvore a
 outras. Cada outra onda tem um coordenador de onda, uma sessão de agente aberta na worktree dela,
 com o modelo da linha `Coordenador de onda`.
 
-**O brief do coordenador de onda** leva o plano, a onda dele, a tabela de papéis copiada do plano
-e esta skill: ele roda o laço de ondas para a própria onda, com o mesmo aceite e o mesmo fechamento
+**O brief do coordenador de onda** leva o plano, a onda dele, a tabela de papéis copiada do plano,
+a atribuição de modelos já decidida (ele não roda o portão de atribuição de novo) e esta skill: ele roda o laço de ondas para a própria onda, com o mesmo aceite e o mesmo fechamento
 de terminais. Commita só no branch dele; não publica nada (homologação inclusive), não aplica
 migração, não escreve em dado e não integra na branch principal.
 
@@ -354,8 +354,8 @@ você sem push. PR só quando o coordenador de onda roda em outra máquina, quan
 frontend e o preview por branch serve à validação do usuário, ou quando o usuário quer revisar no
 forge; mesmo aí quem junta é você, depois da suíte. Medido em 26/09/2026, num plano que mandava
 cada onda abrir PR: os dois branches de onda tinham 2 e 3 commits, nenhum push, e já apareciam
-para o principal num `git log`; o repositório não tinha CI, e o único check dos PRs anteriores era
-o preview do host; o host publicava a branch principal sozinho, então o botão de merge seria deploy
+para o principal num `git log`; o repositório não tinha CI, e nos 8 PRs anteriores o único check era
+o preview do host (7) ou nenhum (1); o host publicava a branch principal sozinho, então o botão de merge seria deploy
 de produção sem a suíte integrada, e o squash apagaria o commit por tarefa.
 
 ## Dois mecanismos de qualidade, e só um deles é o gate
