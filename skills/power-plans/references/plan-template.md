@@ -169,8 +169,9 @@ provados.
 
 **Cobre:** <o candidato integrado até aqui: tudo que C<z> vai tornar irreversível>
 
-**C<z> só depois de este gate ter rodado e das correções aceitas passarem na suíte. BLOQUEIA não
-repete o gate; superfície nova depois do veredito, sim, só sobre o delta.**
+**C<z> só depois de este gate ter rodado e das correções aceitas passarem na suíte e no E2E.
+BLOQUEIA não repete o gate: triagem do coordenador, correção, suíte e E2E; teste que reprova volta
+para correção. Segunda rodada só com autorização do usuário, para mudança grande fora do plano.**
 
 ## 5.1 Rastreabilidade (mecânica, não decorativa)
 

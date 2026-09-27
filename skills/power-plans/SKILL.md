@@ -636,8 +636,9 @@ tarefas de correção; seis tarefas com um gate rodaram um, corrigiram com teste
 mesma noite.
 
 Um gate é uma tarefa como as outras, com nível, dono e dependência. O passo do coordenador que
-ele guarda só acontece depois de o gate ter rodado e de as correções aceitas passarem na suíte.
-**BLOQUEIA não pede segunda rodada; pede correção com teste.** Escreva isso no plano com essas
+ele guarda só acontece depois de o gate ter rodado e de as correções aceitas passarem na suíte e
+no E2E. **BLOQUEIA não pede segunda rodada; pede correção com teste**, e teste que reprova volta
+para correção, nunca para o gate. Escreva isso no plano com essas
 palavras: "C<z> não acontece sem a aprovação do gate" é a frase que faz o executor chamar o
 revisor de novo até ouvir PASSA.
 

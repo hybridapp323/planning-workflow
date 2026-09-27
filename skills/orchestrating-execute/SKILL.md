@@ -377,24 +377,43 @@ deploy, publicação). Devolve PASSA ou BLOQUEIA, com a lista de achados provado
 usuário em 12/09/2026 e reafirmado em 22/09/2026.
 
     ondas -> aceite por tarefa -> gate (uma vez) -> PASSA:    passo do coordenador
-                                                 -> BLOQUEIA: correções com teste -> aceite -> suíte verde: passo do coordenador
-                                                                                                    -> falhou: systematic-debugging -> teste
+                                                 -> BLOQUEIA: triagem -> correções com teste -> aceite -> suíte + E2E -> verdes: passo do coordenador
+                                                                                                                 -> falhou: correção -> suíte + E2E
 
 - **PASSA:** rode o passo do coordenador.
-- **BLOQUEIA:** cada achado aceito vira correção com dono e com o teste que fica vermelho ao
-  neutralizar; você confere cada achado antes de despachar e aceita cada correção com casos seus;
-  suíte verde por nome: rode o passo do coordenador. **O gate não roda de novo.** Corrigir o que
-  o gate listou nunca reabre o gate, e o revisor não é chamado para conferir a própria lista.
-- **Teste falhou é investigação, não revisão.** Suíte ou E2E reprovando depois das correções entra
-  em `systematic-debugging`: causa raiz, um conserto, teste de novo. Três consertos falhados no
-  mesmo teste viram questão de arquitetura, como aquela skill já manda.
+- **BLOQUEIA:** primeiro a triagem (abaixo). Cada achado que ela confirma como bloqueio vira
+  correção com dono e com o teste que fica vermelho ao neutralizar; você aceita cada correção com
+  casos seus; suíte por nome e E2E (a prova ponta a ponta do plano, se o projeto tem) verdes: rode
+  o passo do coordenador. **O gate não roda de novo, e você não precisa de um PASSA dele para
+  seguir.** Corrigir o que o gate listou nunca reabre o gate, e o revisor não é chamado para
+  conferir a própria lista.
+- **Teste falhou é correção, não revisão.** Suíte ou E2E reprovando depois das correções volta
+  para correção, em `systematic-debugging` (causa raiz, um conserto), e de novo para suíte e E2E;
+  nunca para o gate. Três consertos falhados no mesmo teste viram questão de arquitetura, como
+  aquela skill já manda.
 
-Segunda rodada existe em dois casos só, e você escreve qual em uma linha no documento do ciclo:
+**Triagem: você confirma cada achado no código antes de despachar.** O revisor leu o candidato
+isolado; você tem o plano, as decisões do usuário e os riscos já aceitos. Uma linha por achado no
+documento do ciclo:
 
-1. **O usuário pediu.**
-2. **Entrou superfície que o gate não viu:** tarefa nova, módulo novo, contrato alterado depois
-   do veredito. A rodada é sobre esse delta, com o diff do delta no brief, não sobre o candidato
-   inteiro.
+| achado | reproduzido como (`arquivo:linha`, teste ou consulta) | veredito | dono |
+| --- | --- | --- | --- |
+
+O veredito é um de três. **Bloqueio real:** vira correção antes do passo irreversível. **Real,
+não bloqueia:** residual com dono na watchlist, e o usuário vê. **Refutado:** com a evidência que o
+derruba. Refutar exige a mesma prova que o gate teve de dar; descartar sem ela é como um aviso da
+rodada 1 voltou como defeito duas rodadas depois (seção *O advisor*). Achado que contradiz decisão
+do usuário registrada no plano não é bloqueio, é a decisão; vai ao usuário só se trouxer fato novo.
+
+**Segunda rodada, só com autorização explícita do usuário.** Você só a propõe quando entrou
+mudança grande que o plano não previa e que não nasceu de achado do gate (tarefa nova, escopo
+novo, mudança de arquitetura), com o delta em uma linha; autorizada, a rodada é só sobre o delta.
+**Correção de achado nunca é superfície nova**, mesmo quando cria módulo, muda contrato ou passa
+por arquivo que o gate não leu: foi o gate que a pediu, e quem a prova é o teste e o E2E. Esse era
+o furo da regra anterior, que aceitava "módulo novo" ou "contrato alterado" como motivo: a
+correção estrutural que esta skill exige (um ponto de estrangulamento) quase sempre cria um ou
+outro. Relatado pelo usuário em 27/09/2026: 8 rodadas extras de gate, e o tempo delas, pelo laço
+gate → correção → gate.
 
 Quantos gates: **um por plano**, antes do primeiro passo irreversível, sobre tudo que foi
 integrado até ali. Um segundo só quando existe um segundo passo irreversível com superfície
