@@ -61,6 +61,7 @@ segue a seção *Dois mecanismos de qualidade*.
 | Média | ? |
 | Baixa | ? |
 | Gate / Advisor | ? |
+| Coordenador de onda | ? (só com ondas em worktrees separadas) |
 
 O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` / `<MODELO_GATE>` justamente para essa decisão ser tomada aqui, com o custo e a disponibilidade do dia na mesa. Nunca assuma, nunca herde do plano anterior, e não comece a onda 1 com um nível ainda em aberto.
 
@@ -319,6 +320,44 @@ Duas exceções, e só estas:
 
 Fora disso, terminal de task aceita que continua aberto é erro seu, não pendência do usuário.
 
+### Ondas paralelas em worktrees: coordenador de onda e integração
+
+Quando o plano põe ondas paralelas em worktrees separadas (`power-plans`, Fase 2), você é o
+coordenador **principal**: cria as worktrees em C0, toca a sua onda na árvore atual e integra as
+outras. Cada outra onda tem um coordenador de onda, uma sessão de agente aberta na worktree dela,
+com o modelo da linha `Coordenador de onda`.
+
+**O brief do coordenador de onda** leva o plano, a onda dele, a tabela de papéis copiada do plano
+e esta skill: ele roda o laço de ondas para a própria onda, com o mesmo aceite e o mesmo fechamento
+de terminais. Commita só no branch dele; não publica nada (homologação inclusive), não aplica
+migração, não escreve em dado e não integra na branch principal.
+
+**A entrega, pelo coordenador de onda:**
+
+1. Rebase sobre a branch principal **commitada**, no SHA que você indicar (trabalho seu não
+   commitado não existe para a onda), resolvendo os conflitos ele mesmo: quem conhece o código da
+   onda resolve. Entre indicar o SHA e integrar, você não commita na branch principal.
+2. Suíte por nome de novo, contra a base desse SHA.
+3. A você: branch, SHA **pós-rebase** (o rebase reescreve os SHAs), tarefas aceitas com a prova de
+   neutralização, diferença da suíte por nome e o que ficou de fora. Canal: o `worker_done` dele,
+   se foi você quem o despachou pelo orquestrador; um arquivo de entrega na pasta do plano, se o
+   usuário o abriu à mão.
+
+**A integração, por você, uma onda por vez na ordem do plano:** `git merge --ff-only <branch>`.
+Recusou, a branch principal andou depois do rebase: devolva à onda para refazer, não concilie
+você. Depois de cada integração, suíte por nome e verificação de tipos no integrado; só então gate,
+publicação e push. No fecho, `git worktree remove` e `git branch -d`, que recusa branch não
+integrado.
+
+**Sem PR por padrão.** As worktrees compartilham o repositório, e o branch da onda é visível para
+você sem push. PR só quando o coordenador de onda roda em outra máquina, quando a onda toca
+frontend e o preview por branch serve à validação do usuário, ou quando o usuário quer revisar no
+forge; mesmo aí quem junta é você, depois da suíte. Medido em 26/09/2026, num plano que mandava
+cada onda abrir PR: os dois branches de onda tinham 2 e 3 commits, nenhum push, e já apareciam
+para o principal num `git log`; o repositório não tinha CI, e o único check dos PRs anteriores era
+o preview do host; o host publicava a branch principal sozinho, então o botão de merge seria deploy
+de produção sem a suíte integrada, e o squash apagaria o commit por tarefa.
+
 ## Dois mecanismos de qualidade, e só um deles é o gate
 
 **Aceite do coordenador** é contínuo, barato e sem orçamento. Todo `worker_done` passa por
@@ -511,6 +550,10 @@ Descubra no `CLAUDE.md` / `AGENTS.md` do projeto o que não se delega. Quase sem
 - publicação para usuário.
 
 Estes são os passos que definem onde as ondas quebram. Se você se pegar delegando um deles, o grafo do plano estava errado, não o projeto.
+
+Com ondas em worktrees separadas, "seus" quer dizer do coordenador principal. O coordenador de onda
+commita no próprio branch e concilia o rebase; push, integração na branch principal, schema, deploy
+e publicação continuam do principal. Worker não roda git em nenhum dos dois casos.
 
 Ao commitar, estage caminho por caminho e confira o que está estagiado. Em checkout compartilhado por sessões paralelas, `add -A` varre trabalho alheio para dentro do seu commit, e ninguém acha depois pelo histórico.
 

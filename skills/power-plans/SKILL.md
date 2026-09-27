@@ -468,6 +468,10 @@ Se duas tarefas precisam do mesmo arquivo, você tem três saídas legítimas e 
 
 "As duas mexem e depois a gente concilia" não é saída. Escreva a matriz como tabela, caminho por caminho, e marque-a como normativa.
 
+A única exceção existe entre ondas paralelas em worktrees separadas (Fase 2): ali o arquivo que as
+duas tocam entra na tabela do que não roda junto, com o trecho de cada onda nomeado, e quem
+concilia é a onda que integra depois. Dentro de uma onda, nenhuma exceção.
+
 Arquivos que várias tarefas **leem** mas ninguém escreve não entram no conflito. Diga isso explicitamente, senão alguém serializa à toa.
 
 **A matriz não sai da memória, sai de um traçado.** Listar os arquivos que você leu enquanto
@@ -586,6 +590,34 @@ reversível numa linha.
 já sabe apontar um item dele que vai falhar por causa de outra tarefa ainda não feita, a
 ordem está errada. Não escreva "este item vai falhar aqui, é esperado" — isso é um gate que
 não guarda nada. Reordene.
+
+### Ondas paralelas em worktrees separadas: um coordenador por onda
+
+Dentro de uma onda os workers dividem a árvore, e a ownership resolve. Duas ondas independentes na
+mesma árvore, não: cada uma tem aceite, suíte e commit próprios, a suíte de uma roda com o código
+pela metade da outra (a mesma classe de *Medir nas dependências do checkout compartilhado*, em
+`orchestrating-execute`), e o commit de uma estagia trabalho da outra. Quando o grafo tem duas ou
+mais ondas que não dependem uma da outra, cada onda paralela ganha worktree, branch e coordenador
+próprios; o coordenador principal toca uma delas na árvore atual. Onda que depende de outra espera
+a integração dela e não ganha worktree. Escala parcial não usa isto, e projeto que só aceita branch
+ou worktree a pedido pergunta antes.
+
+O plano escreve quatro coisas:
+
+1. **A tabela de papéis.** Só o principal integra na branch principal, publica (homologação
+   inclusive), roda teste ponta a ponta, aplica migração e escreve em dado: com dois coordenadores
+   publicando no mesmo recurso único (um ambiente de homologação, um ambiente de teste por tipo), o
+   teste de um roda com o código do outro. O coordenador de onda despacha e aceita os workers
+   dela, roda a suíte, commita no próprio branch e resolve os conflitos com a branch principal.
+2. **Os arquivos que duas ondas tocam**, com o trecho de cada uma. Mesmo trecho nas duas é colisão:
+   junte, serialize ou parta, como dentro de uma onda.
+3. **A ordem de integração**, que é também a ordem dos rebases.
+4. **O que a worktree nova precisa**, no passo que a cria. Ela nasce sem o que o git ignora
+   (arquivo de segredos, dependências instaladas), e ferramenta que reescreve a pasta de
+   dependências pede instalação isolada por worktree.
+
+A entrega da onda é o branch local, não um PR. Procedimento e porquê: `orchestrating-execute`,
+*Ondas paralelas em worktrees*.
 
 ## Fase 3 — gates
 
@@ -771,6 +803,9 @@ rastreabilidade §5.1)? Célula vazia é item aberto, não detalhe.
 - Nenhum contrato é mais restrito que o FR que implementa? Se é, a decisão está na spec, com autoria?
 - O gate é um por plano, antes do primeiro passo irreversível, e nenhuma onda tem gate próprio?
 - Todo par "não pode junto" tem a razão escrita?
+- Com onda em worktree própria: há tabela de papéis, todo arquivo tocado por duas ondas está no
+  "não pode junto" com o trecho de cada uma, e a ordem de integração está nos passos do
+  coordenador?
 - Algum worker precisa rodar comando que este projeto proíbe delegar?
 - O caminho crítico está marcado?
 - Sobrou placeholder de modelo, e nenhum modelo nomeado?
@@ -786,6 +821,7 @@ Esta skill é genérica de propósito. O que a torna afiada em cada repositório
 Leia `CLAUDE.md` e `AGENTS.md` do projeto, e `.claude/plan-profile.md` se existir. Procure especificamente por:
 
 - o que subagente **não** pode rodar neste checkout;
+- se branch e worktree só entram a pedido;
 - como mudança de schema é aplicada, e o que a torna irreversível;
 - quais são os portões de entrega;
 - que documentação precisa acompanhar a mudança no mesmo commit;

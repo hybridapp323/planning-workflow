@@ -66,9 +66,9 @@ onda 1 não tem gate: quem a guarda é o aceite do coordenador em C1.
 
 ### 2.1 O que roda junto
 
-| Onda | Tarefas | Por quê é seguro |
-| ---- | ------- | ---------------- |
-| 1    | T1, T2, T3 | arquivos disjuntos (§3), contratos já congelados em C0 |
+| Onda | Tarefas | Onde | Por quê é seguro |
+| ---- | ------- | ---- | ---------------- |
+| 1    | T1, T2, T3 | árvore atual | arquivos disjuntos (§3), contratos já congelados em C0 |
 
 ### 2.2 O que NÃO roda junto
 
@@ -76,6 +76,16 @@ onda 1 não tem gate: quem a guarda é o aceite do coordenador em C1.
 | --- | ----- |
 | T5 antes de C1 | T5 consome o contrato que a onda 1 entrega e C1 aceita |
 | T2 antes de C0 | a fixture é a fonte da verdade da regra; sem ela T2 e T3 inventam regras diferentes |
+| <arquivo> em W1 e W2 | só com ondas em worktrees: W1 muda <trecho a>, W2 muda <trecho b>; W2 integra depois e concilia no rebase |
+
+### 2.3 Papéis por worktree (só com ondas paralelas em worktrees separadas)
+
+| Papel | Onde | Pode | Não pode |
+| ----- | ---- | ---- | -------- |
+| Coordenador principal | árvore atual, onda <k> | integrar na branch principal, publicar (homologação inclusive), teste ponta a ponta, migração, escrita em dado, push | — |
+| Coordenador da W<n> | worktree `<caminho fora do checkout>`, branch `<nome>` | despachar e aceitar T<x>..T<y>, suíte por nome, commit no próprio branch, rebase e conflitos | publicar, migrar, escrever em dado, integrar |
+
+Ordem de integração: <W2, depois W3>. Entrega da onda: branch local, sem PR.
 
 ## 3. Ownership de arquivo (normativo)
 
@@ -197,6 +207,7 @@ Só o coordenador roda estes. Nenhum worker.
 ### C1 — entre as ondas
 1. <integrar as entregas da onda 1 e aceitar cada uma com casos seus>
 2. <conferir que os contratos de §4 não mudaram>
+3. <com ondas em worktrees: integrar o branch de cada onda na ordem de §2.3, com o rebase feito pela onda; suíte por nome depois de cada integração>
 
 ### C2 — depois de S1 (nunca antes)
 1. <aplicar migration>
@@ -217,6 +228,7 @@ Só o coordenador roda estes. Nenhum worker.
 | ----- | --------- |
 | <worker sai do escopo> | ownership normativo em §3 e "não faça" em cada tarefa |
 | <contrato divergente> | §4 congelado antes da onda 1 |
+| <worktrees divergindo de uma branch principal que recebe outra onda antes> | ordem fixa em §2.3, rebase e conflitos pela onda, suíte por nome depois de cada integração |
 | <correção pós-gate vai para o call site quando o defeito é de mecanismo> | advisor `ADV-n` (modelo `<MODELO_GATE>`) antes de despachar a onda de correção; no máximo uma consulta por veredito de gate; registro recomendou / decidi / divergência aqui neste §7 |
 ```
 
