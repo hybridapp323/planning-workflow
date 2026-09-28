@@ -681,6 +681,11 @@ como em `orchestrating-execute`. Sem mecanismo que alcance o modelo, diga isso a
 pergunte; nunca troque pelo modelo mais próximo que o harness tem. Troca silenciosa entrega
 outra revisão com o nome da que ele pediu.
 
+**Agente fora do harness sobe SEMPRE pela skill `orchestration`, nunca em modo headless.**
+`codex exec` (ou outro CLI) rodando em segundo plano pelo shell alcança o modelo, mas o usuário não
+vê o agente trabalhar nem pode intervir. Terminal visível no orquestrador é o mecanismo, não uma
+opção.
+
 **A revisão nunca entra no grafo do plano.** Não existe tarefa `S0 — revisão do plano`, nem
 "bloqueia a onda 1". O executor lê o grafo como lista de trabalho, e uma revisão ali dentro vira a
 primeira coisa que ele despacha, tenha o usuário pedido ou não. Medido em 2026-09-22: um plano com
