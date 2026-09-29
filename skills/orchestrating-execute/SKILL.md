@@ -86,6 +86,27 @@ read-only, por exemplo, quando só foram nomeados implementadores), **pergunte**
 escolher: acrescentar um modelo por conta própria é decisão do usuário sendo tomada por você,
 e ele descobre depois, pela fatura ou pela qualidade.
 
+### Antes de criar o primeiro terminal, faça um smoke de cada modelo atribuído
+
+Um modelo listado no catálogo do CLI não é um modelo que responde. Antes da onda 1, rode **uma
+chamada headless de uma linha** para cada modelo do portão, no mesmo CLI que o worker vai usar,
+e só crie terminal depois de ler a resposta. As duas falhas medidas aqui eram invisíveis até o
+primeiro request:
+
+- **O CLI instalado é mais velho que o modelo.** O id aparece no catálogo local, o TUI sobe e
+  mostra o modelo no rodapé, e o primeiro request volta recusado. O conserto é atualizar o CLI,
+  não trocar de modelo.
+- **A rota do provedor está sobrecarregada, e o mesmo modelo responde por outra.** Um CLI que
+  agrega provedores pode servir o mesmo modelo por duas rotas; uma devolve sobrecarga e timeout
+  enquanto a outra responde. Trocar de rota mantém a atribuição do usuário (mesmo modelo), mas
+  diga a ele em uma linha e registre no documento do ciclo. Trocar de MODELO continua proibido
+  sem perguntar.
+
+Medido em 29/09/2026: dois dos quatro modelos atribuídos falharam no smoke, um por versão do CLI
+e outro por rota. Os dois foram resolvidos antes de qualquer despacho, em minutos. Descobertos
+depois do despacho, teriam custado um worker parado parecendo vivo cada. Os comandos e as
+mensagens exatas estão em `references/orca-traps.md`.
+
 ### `--model` é OBRIGATÓRIO no `--command`, e você tem que CONFERIR
 
 Esta é a forma mais fácil de violar a regra acima sem perceber, e ela já aconteceu

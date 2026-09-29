@@ -1615,3 +1615,20 @@ dos arquivos do brief. E a entrega que funcionou nas três vezes em que foi usad
 por `terminal send` ("Leia por completo <arquivo> e execute; reporte com o worker_done do
 preâmbulo"). O `worker_done` chega com a proveniência intacta.
 
+## Modelo no catálogo, recusado no request: versão do CLI e rota do provedor (2026-09-29)
+
+Duas falhas do mesmo formato, achadas no smoke antes da onda 1 (regra no `SKILL.md`, *Antes de
+criar o primeiro terminal*):
+
+- **Codex mais velho que o modelo.** O id novo aparecia em `~/.codex/models_cache.json`, e
+  `codex --model <id> ... exec "responda: ok"` devolvia `400: The '<id>' model is not supported
+  when using Codex with a ChatGPT account`, a mesma mensagem do id inexistente (seção *Modelo
+  Codex* acima), o que engana. Com o CLI uma versão atrás, o catálogo já trazia o modelo e a conta
+  recusava. `npm install -g @openai/codex@<versão nova>` e o mesmo `exec` respondeu `ok`. Antes de
+  concluir "o modelo não existe", compare `codex --version` com `npm view @openai/codex version`.
+- **opencode: mesmo modelo, rota sobrecarregada.** `opencode run -m <provedor-agregador>/<modelo>`
+  devolveu `The backend is temporarily overloaded. Please retry.` e depois dois timeouts de 180 s.
+  `opencode models | grep <modelo>` listava o mesmo modelo por outro provedor, e
+  `opencode run -m <outro-provedor>/<modelo>` respondeu na hora e fez um gate inteiro em TUI
+  (`opencode --auto --model <outro-provedor>/<modelo>`, rodapé `Build auto · <modelo> <provedor>`).
+  Diga ao usuário que a rota mudou.

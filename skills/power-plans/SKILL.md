@@ -329,6 +329,17 @@ a matriz de ownership passa a ser derivada das células, não da memória. Medid
 comportamento sem ponto de emissão, dado que não chegava a um dos canais de saída), num plano cuja
 skill já mandava traçar. A regra existia; a coluna, não.
 
+**A última coluna também é salto, e é a que mais sai em prosa.** Quando o efeito observável de um
+requisito é uma superfície (uma tela, um painel, um relatório, uma linha de log que alguém vai
+ler), a célula leva o arquivo que a renderiza e o dono dele, não uma frase como "aparece para o
+administrador". Frase na última coluna passa pela auto-revisão, porque a célula não está vazia, e
+chega à execução sem dono: o coordenador descobre no meio da onda que ninguém desenha aquilo, e
+fecha o buraco com contrato novo e responsabilidade dividida entre tarefas já despachadas.
+Medido em 29/09/2026: um requisito cujo critério era "depois de N falhas, aparece como pendente
+no painel do admin" tinha na última coluna só "pendência visível"; nenhuma tarefa possuía o
+painel, e o contrato do dado, a visão e a tela foram repartidos entre três tarefas na segunda
+onda.
+
 **Teste existente que trava o comportamento antigo é arquivo da matriz.** Quando o plano muda ou
 remove um comportamento, os testes que o afirmam hoje (unitários **e** cenários ponta a ponta)
 entram na matriz com dono único e a decisão escrita: reescrever e renomear, nunca apagar. Procure
@@ -648,6 +659,8 @@ sonda. Recorte antes de entregar (ver *Um pedido, uma família* e *Sonda não é
 - Toda tarefa tem nível, dono e dependências explícitas?
 - Todo arquivo tocado aparece na matriz de ownership, com um dono só, e todo arquivo das
   células do traçado (§3.1) está na matriz?
+- Toda célula da última coluna do traçado que descreve algo que uma pessoa vê (tela, painel,
+  relatório) tem um arquivo e um dono, e não só uma frase?
 - Nenhuma responsabilidade aparece em duas tarefas, mesmo sem colisão de arquivo?
 - A ordem das ondas segue dependência de **comportamento**, com o que LIGA a mudança por
   último e reversível?
