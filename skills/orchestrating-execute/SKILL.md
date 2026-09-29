@@ -598,6 +598,11 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
 6. Feche as tasks no Orca com o resultado real, e os terminais: `wave.sh sweep` tem de responder que não há terminal de task encerrada aberto, e o único terminal seu na árvore é o do coordenador. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
 7. Confira que toda task `ADV-n` tem o bloco de registro (recomendou / decidi / divergência) no documento do ciclo, e que cada divergência está no relatório ao usuário com essas palavras.
 8. Relate ao usuário o que ficou de fora, se ficou, e por quê.
+   Registre no documento do ciclo **uma linha de esforço**: modelos usados, número de workers,
+   rodadas de gate, duração, e tokens ou custo quando o runtime informar ("não disponível" quando
+   não informar). Tire do que o orquestrador já registra; não crie coleta manual nem documento
+   novo. Sem essa linha, ninguém sabe se um processo mais curto ficou mais barato ou só empurrou
+   trabalho para o ciclo seguinte.
 9. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
    arquivo, ou *"nada entra, porque X"*. Lição que fica só no relatório de revisão é lição que a
    próxima spec paga de novo. O que entrar segue a seção *Documentação viva*, no fim desta skill.

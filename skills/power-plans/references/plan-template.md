@@ -158,7 +158,7 @@ PARE e escale">
 **Pronto quando:** <o cenário de aceitação do FR, COPIADO da spec: dado / quando / então. Não
 parafraseie — o worker recebe esta frase literal no briefing. Se não existe cenário para copiar,
 o buraco é na spec, e é lá que se conserta. Tarefa que mexe em detector de texto acrescenta aqui
-a lista de variações e a amostra real de falso positivo (`SKILL.md`, classe 17)>
+a lista de variações e a amostra real de falso positivo (`references/classes-de-erro.md`, classe 17)>
 
 **Não faça:** <o que pertence a outra tarefa e vai dar vontade de fazer aqui>
 

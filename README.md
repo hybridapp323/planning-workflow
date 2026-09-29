@@ -5,7 +5,7 @@ Skills para o ciclo de vida de uma feature, da ideia crua até a execução, e a
 Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: três das quatro skills não dependem de nenhuma ferramenta específica e rodam em qualquer agente que aceite instruções em arquivo. Ver [Usar em outro agente](#usar-em-outro-agente-ou-outro-cli).
 
 - **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria) e aprovada.
-- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. A revisão externa da spec e do plano é recomendada e opcional: quem decide, e nomeia o modelo, é o usuário. O plano não cita orquestrador; a revisão só usa a skill `orchestration` quando o modelo nomeado não roda como subagente no harness.
+- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente, com o aparato na medida do risco (mínimo, parcial ou completo) e um plano por família de problema: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. A revisão externa da spec e do plano é recomendada e opcional: quem decide, e nomeia o modelo, é o usuário. O plano não cita orquestrador; a revisão só usa a skill `orchestration` quando o modelo nomeado não roda como subagente no harness.
 - **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas com aceite do coordenador por tarefa (aceitou: marca a task e fecha o terminal, sem que o usuário peça), um gate por plano em rodada única antes do passo irreversível, advisor de rumo com orçamento (uma consulta por veredito de gate, mesmo modelo do gate, registro obrigatório da divergência), e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
 - **`systematic-debugging`** — causa raiz antes de conserto: as quatro fases, o limite de três consertos falhados que vira questão de arquitetura, e as racionalizações que precedem cada banda-aid.
 
@@ -93,6 +93,7 @@ planning-workflow/
     │   └── references/
     │       ├── plan-template.md
     │       ├── complexity-rubric.md
+    │       ├── classes-de-erro.md  # as classes de erro medidas, com mecanismo e lastro
     │       └── external-review.md
     ├── orchestrating-execute/
     │   ├── SKILL.md
