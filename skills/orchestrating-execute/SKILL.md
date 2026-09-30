@@ -196,6 +196,14 @@ Duas regras de leitura, as duas pagas no mesmo ciclo:
   e o documento diz sim, o ônus é seu: meça de outra forma antes de declarar o documento
   desatualizado. Inverter essa ordem é como uma medição errada vira proibição no brief.
 
+**Ferramenta que você entrega ao worker lê só o segredo de que precisa.** Um script de prova ou
+wrapper que carrega o arquivo de segredos inteiro com o `source` do shell interpreta cada valor:
+um `$` dentro de uma chave vira expansão de variável e, com `set -u`, o erro imprime o trecho da
+chave no terminal. Esse terminal é o contexto do worker, e o contexto vai para o provedor do modelo
+dele. Medido em 2026-09-30: o primeiro uso do wrapper expôs parte de uma chave de sandbox ao worker,
+que escalou (corretamente) em vez de rodar de novo. Extraia a chave pelo nome com um parser (`sed`
+na linha exata) e exporte só ela; teste o wrapper você mesmo antes do primeiro despacho.
+
 Sintoma para reconhecer em uma linha: **você executou, em nome do worker, o mesmo tipo de comando
 duas vezes.** Na segunda, pare e conserte o acesso dele em vez de repetir o serviço. Na terceira,
 o problema já não é a tarefa.
@@ -597,6 +605,14 @@ Estes são os passos que definem onde as ondas quebram. Se você se pegar delega
 Com ondas em worktrees separadas, "seus" quer dizer do coordenador principal. O coordenador de onda
 commita no próprio branch e concilia o rebase; push, integração na branch principal, schema, deploy
 e publicação continuam do principal. Worker não roda git em nenhum dos dois casos.
+
+**Identificador de ordem escolhido no plano envelhece durante a execução.** Versão de migração,
+número de sequência, nome com data: o plano o escolheu contra o destino daquele dia, e a branch
+principal pode ter recebido outros enquanto as ondas rodavam. No passo irreversível, leia o último
+identificador aplicado no destino (o registro de migrações de produção, não o repositório) e, se o
+seu ficou atrás, renomeie antes de aplicar e reescreva as referências; o conteúdo provado não muda.
+Medido em 2026-09-30: o plano fixou uma versão, a branch principal recebeu quatro migrações de
+outro ciclo durante a execução, e a do plano entraria fora de ordem.
 
 Ao commitar, estage caminho por caminho e confira o que está estagiado. Em checkout compartilhado por sessões paralelas, `add -A` varre trabalho alheio para dentro do seu commit, e ninguém acha depois pelo histórico.
 

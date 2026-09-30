@@ -154,6 +154,23 @@ plano* e *Etiqueta de procedência* do `SKILL.md`.
     **do produtor real** (fixture gerada pelo teste do produtor), e o `Pronto quando` diz de onde
     ela vem. O contrato congela o shape produzido, não o shape desejado.
 
+    **O produtor pode ser a rodada anterior do próprio sistema.** Um cenário de várias rodadas
+    com estado persistido entre elas ("acima, sem leitura, acima → abre na terceira") testado no
+    módulo puro, com a leitura de cada rodada injetada, nunca exercita o estado que a rodada 2
+    grava e a rodada 3 relê. Medido em 2026-09-30: a regra de decisão passava o cenário no teste
+    dela; de ponta a ponta ele falhava, porque a rodada sem leitura gravava o estado dos
+    contadores como nulo e a seguinte perdia a taxa. O contrato congelado mandava gravar os
+    contadores em bloco (tudo ou nada), o que desfazia o parse por campo feito para que uma
+    métrica ausente não cegasse as outras. Nenhum aceite pegou; o gate pegou, com o contrato já
+    congelado, e a correção reabriu o contrato. Três regras:
+    - cenário de várias rodadas vai no `Pronto quando` da camada que grava e relê o estado, não
+      só no do módulo puro;
+    - estado composto de campos que falham sozinhos é guardado por campo, cada um com a própria
+      hora; um bloco "tudo ou nada" propaga a falha de um para os outros;
+    - valor carregado de uma rodada para outra mantém a hora em que foi **medido**, nunca a da
+      rodada que o carregou: renovar a hora encurta o intervalo e infla a taxa (o dobro, numa
+      rodada perdida), o que vira alarme falso.
+
 14. **Remover um evento/linha de log exige procurar leitores por TEMPO, não só por chave.** O
     grep pela chave que só a linha "duplicada" carregava (`idempotent_skip_notify`) deu zero
     leitores, e a afirmação de carga "ninguém consome a segunda linha" passou. O consumidor real

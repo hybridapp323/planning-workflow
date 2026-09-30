@@ -27,6 +27,13 @@ A task não tem `--deps` de código: ela nasce da reprovação ou da escalação
 fecha com o resultado real (recomendação recebida, decisão tomada, registro escrito). O terminal
 fecha no `worker_done`, como o de qualquer worker.
 
+**O terminal do gate serve ao ADV-n que nasce do veredito dele**, quando o gate e o advisor estão
+na mesma linha do portão: o contexto já pago (spec, plano, código e as provas do próprio gate) vira
+a leitura do advisor, e o brief só precisa trazer a direção pretendida e as descartadas. Medido em
+2026-09-30: consulta de gatilho 2 respondida em ~4 min, com critério, os casos de teste que o
+worker precisava e uma trava que o coordenador não tinha visto. Registre na task que o terminal foi
+reaproveitado e feche-o depois do `worker_done` do ADV-n.
+
 **Tempo:** uma consulta é leitura dirigida de 10 a 20 minutos, não uma revisão. Se o advisor
 começa a varrer o repositório inteiro, ele está fazendo o trabalho do gate, e o sinal é que o
 brief não trouxe a direção pretendida.

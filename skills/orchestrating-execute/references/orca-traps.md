@@ -553,6 +553,12 @@ Sintoma que denuncia o problema: uma `escalation` chega DEPOIS da sua reply repe
 mesma dúvida, com o texto "pergunta enviada ao coordenador". Isso não é o worker sendo
 redundante; é ele não tendo recebido nada.
 
+A ordem inversa também acontece, e a defesa 1 cobre: o worker manda `escalation` e, logo
+depois, um `ask` sobre o mesmo bloqueio, e fica parado no `ask`. A reply na escalação não o
+solta. Medido em 2026-09-30: o terminal do worker ficou em "Report task outcome" até a mesma
+resposta ir também para o id do `question`. Antes de responder uma escalação, liste a caixa da
+run e responda a cada `question` aberta daquela task.
+
 ## O guard de posse do `wave.sh adopt` não funciona para terminal de agente
 
 `wave.sh adopt <handle> '<titulo>'` compara o título que você deu no `terminal create` com
@@ -598,6 +604,20 @@ Mitigação, enquanto não houver filtro por run no `check`:
 - Mensagem que não é sua: avise no relato ao usuário que ela passou pela sua
   caixa, para que a outra sessão possa ser reativada. Não há como devolver a
   mensagem à fila.
+
+## `wave wait` volta com `### EVENTO ###` vazio várias vezes seguidas (2026-09-30)
+
+Com as mensagens todas da própria run, o `wave wait` acordou três vezes seguidas sem nenhum
+`worker_done`, `escalation` ou `question` novo no corpo, e nenhuma task tinha mudado de estado.
+Candidatos medidos na caixa: `status` de worker e a própria `reply` do coordenador, que entram
+como mensagem da run. Cada volta custa um turno de revisão para nada.
+
+O que resolveu: um vigia em background que não usa o long-poll. Ele tira um retrato de
+`task-list` (id e status) ao armar, olha a cada 20 s, e só sai quando um status muda ou quando
+chega `escalation` ou `question` não lida **daquela run**. O `worker_done` já aparece como mudança
+de status, e o corpo dele se lê no `inbox` depois. Registre o pid no portão (`arm-external`), como
+no plano B da seção de `Monitor`, e drene a caixa com `wave wait` curto antes de encerrar o ciclo:
+o vigia não marca nada como lido.
 
 ## O Codex sobrescreve o título do terminal, e o `wave adopt` recusa
 

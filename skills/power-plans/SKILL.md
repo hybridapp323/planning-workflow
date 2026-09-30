@@ -243,6 +243,8 @@ estão em `references/classes-de-erro.md`: **leia a classe inteira quando ela se
 11. **Peça nova dentro de um hospedeiro existente:** ela herda o estado (e os defeitos) dele.
 12. **"Importar a mesma função" não é paridade** quando a entrada é preparada no chamador.
 13. **Teste do consumidor com campo que o produtor real não emite:** a fixture vem do produtor.
+    Vale também quando o produtor é a rodada anterior do próprio sistema: cenário de várias
+    rodadas prova-se pela camada que grava e relê o estado entre elas.
 14. **Remover evento ou linha de log:** procure leitores por tempo (`desc`, `limit 1`, `max`).
 15. **Escritor único prometido:** inventário dos sites de escrita de hoje, incluindo gatilhos e jobs.
 16. **Linha nova em template, seed ou catálogo global:** o provisionamento de tenant a copia;
