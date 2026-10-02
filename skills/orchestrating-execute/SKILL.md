@@ -222,6 +222,12 @@ Todo worker recebe, sem exceção:
 
 Worker que recebe contrato por referência e não por valor inventa o contrato. Cole.
 
+**Dado que um teste vai ler entra versionado, junto do código de teste, antes do despacho.**
+Casos rotulados, amostras, fixtures que você gerou: numa pasta ignorada ou temporária, servem para
+o worker ler, nunca para um teste carregar. Se um teste vai lê-los, versione-os como fixture antes
+e passe o caminho versionado no brief. Nem pasta de documentos de planejamento: ela muda de lugar
+quando o trabalho muda de estado, e pode ficar fora da cópia isolada em que a suíte se mede.
+
 E a contraparte do portão acima: **proibição só se escreve depois de medida.** O que você não mediu entra como incerteza com um comando junto (*"não sei se há <capacidade> aqui; teste com `<comando>` e me diga o que voltou"*), nunca como um "você não tem isso".
 
 ### A prova de neutralização só pode tocar arquivo que o worker POSSUI
@@ -304,6 +310,8 @@ Para cada `worker_done`, nesta ordem, e nenhum passo pula o anterior:
    Medido em 25/09/2026: um worker de nível médio sobrescreveu um arquivo de outra área com a
    cópia de um arquivo irmão, e outro deixou um lockfile regravado; os dois apareceram por acaso,
    lendo diff. A comparação de listas os pega na entrega, em segundos.
+   No diff dos testes, confira também os caminhos de arquivo que eles leem: caminho ignorado
+   (`git check-ignore` responde) ou fora do repositório é devolução, porque só existe nesta árvore.
 2. **Aceite com casos seus.** Rode o `Pronto quando` com casos que não são os do worker e confira
    a prova de neutralização (seção *Dois mecanismos de qualidade*). Tarefa que mexe em detector
    de texto: seus casos saem de frases reais do histórico e da lista de variações do plano
@@ -701,9 +709,21 @@ candidato no MESMO ambiente. Antes de chamar de regressão uma falha em arquivo 
 tocou, rode esse arquivo na base e no candidato lado a lado. E não "conserte" o `node_modules`
 compartilhado sem pedir: outras sessões estão usando.
 
+**Arquivo ignorado é o mesmo verde emprestado, por outra porta.** O checkout de trabalho carrega
+o que não vai para o commit: pastas ignoradas, saídas geradas, arquivos de outras sessões. Por isso
+a medição que decide roda numa cópia montada só do versionado mais os arquivos do candidato, **no
+aceite final, antes de subir o gate e antes do commit**, comparando por nome. A lista do candidato
+sai do que vai ser commitado (o diff rastreado mais os arquivos novos não ignorados), nunca de uma
+cópia da árvore: copiar a árvore leva a pasta ignorada junto, e a medição volta a provar nada.
+Medido em 02/10/2026: dados de calibração entregues aos workers numa pasta ignorada, testes que os
+liam, suíte verde no checkout em todas as rodadas de aceite; na cópia limpa, quatro arquivos de
+teste não carregavam. Quem achou foi o gate. Sintoma: falha de carregamento por arquivo
+inexistente que só aparece na cópia limpa.
+
 ### Teste congelado tem de sobreviver à tarefa que vem depois
 
-Mesmo ciclo. O plano congelava um teste de caracterização (o hook de hoje, antes da extração):
+Mesmo ciclo do `node_modules` fora do lock. O plano congelava um teste de caracterização (o hook
+de hoje, antes da extração):
 depois do aceite, ninguém edita. O teste esperava a carga com **30 microtarefas fixas**, e a
 tarefa seguinte ia acrescentar buscas encadeadas ao hook, ou seja, ia quebrá-lo sem mudar
 nenhum número. O coordenador percebeu na leitura do aceite e aumentou a margem ANTES de
