@@ -55,13 +55,13 @@ segue a seção *Dois mecanismos de qualidade*.
 
 **Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível:
 
-| Nível | Modelo |
-| --- | --- |
-| Complexa | ? |
-| Média | ? |
-| Baixa | ? |
-| Gate / Advisor | ? |
-| Coordenador de onda | ? (só com ondas em worktrees separadas) |
+| Nível | Modelo | Esforço |
+| --- | --- | --- |
+| Complexa | ? | ? (vazio: você decide por tarefa) |
+| Média | ? | ? (vazio: você decide por tarefa) |
+| Baixa | ? | ? (vazio: você decide por tarefa) |
+| Gate / Advisor | ? | ? (sempre do usuário) |
+| Coordenador de onda | ? (só com ondas em worktrees separadas) | |
 
 O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` / `<MODELO_GATE>` justamente para essa decisão ser tomada aqui, com o custo e a disponibilidade do dia na mesa. Nunca assuma, nunca herde do plano anterior, e não comece a onda 1 com um nível ainda em aberto.
 
@@ -73,6 +73,33 @@ gate e sem revisão pedida: deixe a linha vazia e pergunte só se um gatilho do 
 Nunca herde o modelo de Complexa para esse papel.
 
 Se o usuário atribuir um modelo por tarefa em vez de por nível, aceite: a granularidade é dele.
+
+### Esforço: do usuário quando ele nomeia, seu por tarefa quando não
+
+Esforço alto paga exploração e decisão. Quando o worker começa, a spec já decidiu, o plano já
+explorou e os contratos estão congelados; o que sobra é escopo fechado, e o seu aceite confere o
+resultado de graça. Esforço máximo num worker paga de novo um raciocínio já feito. Decidido pelo
+usuário em 07/10/2026, depois de ver coordenadores pondo toda tarefa complexa em `xhigh` e
+workers em `max`.
+
+1. **Esforço nomeado pelo usuário vale para o ciclo inteiro**, reparos inclusive, como o modelo.
+   "Tudo em `xhigh`" é `xhigh` em tudo, sem você rebaixar.
+2. **Sem esforço nomeado, você escolhe por tarefa, entre `medium` e `xhigh`.** Nunca `low`, nunca
+   `max` ou acima num worker.
+   - **Baixa:** `medium`.
+   - **Média:** `medium`; `high` se a tarefa produz um contrato que outras tarefas consomem.
+   - **Complexa:** `high`. `xhigh` só quando ela carrega o que o plano não pôde resolver de
+     antemão: precedência ou invariante que vale em vários pontos, concorrência, dado de produção
+     ou passo irreversível, ou muitos arquivos e contratos segurados ao mesmo tempo. Ser grande
+     ou difícil não basta; o plano já a desmontou.
+   - **Reparo:** volta no esforço da tarefa original. Sobe um degrau uma vez, com o motivo
+     escrito na task, se a tarefa já voltou duas vezes no aceite.
+3. **Gate e advisor ficam fora disso:** o esforço deles é do usuário, e pode ser `max` ou acima.
+   Rodam uma ou duas vezes por ciclo, e o trabalho deles é achar o que ninguém decidiu; é aí que
+   o esforço máximo se paga (`references/correcao-pos-gate.md`). Linha vazia: pergunte.
+
+O esforço sobe pelo argumento que o CLI do worker aceita (alguns embutem no id do modelo; ver
+`references/orca-traps.md`) e se confere no rodapé do TUI junto com o modelo, na mesma leitura.
 
 ### A atribuição vale para a execução INTEIRA, não só para a onda 1
 
@@ -152,7 +179,7 @@ Sequência por worker, na ordem:
 
 1. `run-create` uma vez, no começo. Sem run vinculada, `task-list` falha.
 2. `task-create` para cada tarefa, com `--deps` refletindo o grafo do plano. O grafo vira estado, não fica só no documento.
-3. `terminal create`, com o flag de bypass de permissão **e o `--model` do nível** dentro da string de `--command`. Confira o modelo no TUI antes do dispatch (ver *Portão de atribuição de modelo*).
+3. `terminal create`, com o flag de bypass de permissão **e o `--model` e o esforço da tarefa** dentro da string de `--command`. Confira modelo e esforço no TUI antes do dispatch (ver *Portão de atribuição de modelo*).
 4. `terminal wait --for tui-idle` antes de despachar. Terminal que ainda está subindo engole o dispatch.
 5. `dispatch --inject` com o preâmbulo abaixo.
 6. `check --wait --types worker_done,escalation,decision_gate`.
@@ -643,7 +670,7 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
 6. Feche as tasks no Orca com o resultado real, e os terminais: `wave.sh sweep` tem de responder que não há terminal de task encerrada aberto, e o único terminal seu na árvore é o do coordenador. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
 7. Confira que toda task `ADV-n` tem o bloco de registro (recomendou / decidi / divergência) no documento do ciclo, e que cada divergência está no relatório ao usuário com essas palavras.
 8. Relate ao usuário o que ficou de fora, se ficou, e por quê.
-   Registre no documento do ciclo **uma linha de esforço**: modelos usados, número de workers,
+   Registre no documento do ciclo **uma linha de esforço**: modelos e esforço por tarefa, número de workers,
    rodadas de gate, duração, e tokens ou custo quando o runtime informar ("não disponível" quando
    não informar). Tire do que o orquestrador já registra; não crie coleta manual nem documento
    novo. Sem essa linha, ninguém sabe se um processo mais curto ficou mais barato ou só empurrou
