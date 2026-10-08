@@ -51,6 +51,16 @@ Leia o estado do projeto: arquivos que o pedido toca, `CLAUDE.md` / `AGENTS.md`,
 
 Não bloqueie: uma busca em andamento é um pré-requisito não resolvido, então só as perguntas que dependem dela esperam. Faça o resto da rodada agora.
 
+### Questione o caminho antes de abrir a árvore
+
+O pedido costuma chegar como um **caminho** ("portar a tela X para a plataforma Y"), não como um **objetivo** ("usar a tela X no lugar Z"). Se você monta a árvore de decisões do caminho, toda pergunta da entrevista refina um plano que talvez não devesse existir.
+
+Depois de ler o contexto e antes da primeira rodada, escreva em uma linha o objetivo por trás do pedido e pergunte se o caminho pedido é o mais barato até ele. Se existir caminho que chega no mesmo objetivo com uma fração do esforço, ou se o pedido contraria uma decisão já registrada no projeto, pare e apresente **antes de qualquer pergunta sobre o como**: "Você pediu X. O objetivo parece ser Y. Z chega em Y com uma fração do esforço, mas perde W. Recomendo Z porque…". Se não der para deduzir o objetivo, a primeira pergunta da entrevista é o "para quê".
+
+Não fabrique alternativa para parecer crítico: se o caminho pedido já é o melhor, siga sem comentar. Se o usuário reafirma o caminho depois de ver o trade-off, a decisão é dele: registre na spec como decisão com a alternativa descartada e siga.
+
+Vale no caminho **arquitetural** sempre e na **limitada** quando o pedido contraria um fato do projeto. Sonda não passa por aqui.
+
 **Se o pedido tem vários subsistemas independentes** ("uma plataforma com chat, arquivos, cobrança e analytics"), diga isso imediatamente, antes de gastar perguntas refinando detalhe. Ajude a decompor: quais são as peças independentes, como se relacionam, em que ordem. Cada peça ganha o próprio ciclo spec → plano → implementação.
 
 ## Fase 2 — as rodadas
@@ -205,6 +215,7 @@ Espere. Se ele pedir mudança, mude e refaça a auto-revisão. Só avance com o 
 | "Já tenho o suficiente pra escrever a spec" | Suficiente para escrever não é o critério. Rode o teste de fechamento. |
 | "Percorri a árvore inteira, então cobri tudo" | A árvore só tem os galhos que alguém abriu. Rode a varredura de cobertura. |
 | "Isso é detalhe, decido na implementação" | Detalhe decidido na implementação é decisão do usuário tomada por você às escondidas. |
+| "Ele pediu esse caminho, então é só detalhar" | O pedido é um meio. Escreva o objetivo e confira se existe caminho mais barato antes da primeira rodada. |
 | "Ele não questionou, então concordou" | Silêncio não é aval. Ele só viu o que você mostrou. |
 
 ## Documentação viva
