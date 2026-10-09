@@ -95,6 +95,20 @@ Formato no nível do comportamento: campos, tipos, semântica, o que é obrigat�
 pode ser nulo e o que nulo significa. O plano congela o literal em código a partir daqui.
 Esta seção é a fonte do contrato congelado, não o substitui.
 
+### 8.3 Referência e comportamento visual (só se houver interface afetada)
+
+Referência aprovada: `<arquivo, versão e variantes>`. Governa: `<composição / conteúdo /
+movimento>`. Adaptações permitidas: `<diferenças aprovadas e decisão do §9>`.
+
+| Elemento / ação | Posição, grupo e destaque | Estado em que aparece | FR |
+| --- | --- | --- | --- |
+| <ação> | <grupo e ordem, não apenas "na tela"> | <condição> | FR-n |
+
+Se houver transição: `<origem -> etapas -> destino; o que confirma a conclusão e o que
+pode aparecer junto>`. Interromper, sair e reabrir: `<estado preservado e quando repetir
+é permitido>`. Movimento reduzido: `<resultado equivalente>`. Tempos e tolerâncias vêm
+da referência medida ou de decisão explícita; não são inventados para preencher a seção.
+
 ## 9. Decisões, com autoria
 
 | # | Decisão | Autoria | Rodada / razão |
@@ -124,9 +138,9 @@ na fase de evidência do plano.
 Para cada FR: tipo de prova (unitário, integração, ponta a ponta, medição em produção) e o
 que ela tem que demonstrar. Prova que só existe escrita é hipótese.
 
-| FR | Tipo de prova | O que demonstra |
-| --- | --- | --- |
-| FR-1 | <tipo> | <o que tem que falhar se o FR não valer> |
+| FR | Tipo de prova | O que demonstra | Limite da prova |
+| --- | --- | --- | --- |
+| FR-1 | <tipo> | <o que tem que falhar se o FR não valer> | <o que fica simulado ou não observado> |
 
 ## 13. Decisões em aberto
 

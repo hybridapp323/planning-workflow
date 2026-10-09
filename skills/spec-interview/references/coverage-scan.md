@@ -48,6 +48,19 @@ inteira descoberta na fase de plano, onde a mesma pergunta já custa uma reescri
 - jornadas principais, em ordem
 - estados de erro, vazio, carregando, parcial
 - acessibilidade, idioma, fuso horário (se há interface)
+- **referência visual aprovada, se houver:** arquivo e versão; quais aspectos ela governa
+  (composição, conteúdo, movimento) e quais adaptações são permitidas. Código existente
+  não autoriza substituir silenciosamente uma decisão nova aprovada.
+- **posição e hierarquia das ações:** grupo ao qual pertencem, ordem, destaque e estados
+  em que aparecem. "Dentro da tela" não define agrupamento nem peso visual.
+- **transições, quando afetadas:** origem, destino, sequência, condição de conclusão e
+  quais elementos podem aparecer juntos; interrupção, retorno e repetição explícita.
+- **retorno com estado preservado:** sair e reabrir mantendo a sessão viva, além de abrir
+  do zero. Dado salvo não é, por si só, autorização para repetir uma apresentação.
+
+Preencha estes itens a partir da referência e do fluxo real; só lacunas e conflitos viram
+perguntas. A prova deve observar a integração afetada: em 2026-10-09, testes que simulavam
+transições passaram com duplicação visual e reinício indevido encontrados no app real.
 
 ### Não-funcionais
 

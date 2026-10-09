@@ -70,6 +70,11 @@ Exemplos reais:
 
 **"É UI, então é média."** UI que só compõe primitivas existentes é média. UI que inventa um padrão novo, que a partir dela vira referência para o resto do produto, é complexa.
 
+**"Reutiliza componentes, então é média."** Coordenação de montagem, navegação, animação
+e estado preservado é complexa quando a correção depende da ordem dos eventos ou de
+confirmação entre camadas. Separe essa coordenação da composição visual local quando
+houver fronteira clara; quantidade de arquivos não determina o nível.
+
 **Empate.** Suba. O modelo mais forte numa tarefa média custa menos que o retrabalho de uma complexa mal feita, e você descobre o erro mais tarde do que gostaria.
 
 ## Como isso aparece no plano

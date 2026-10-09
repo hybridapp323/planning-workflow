@@ -138,6 +138,15 @@ Escritos em C0, antes da onda 1. Ninguém altera sem passar pelo coordenador.
 
 Todo campo que não é cópia 1:1 de uma coluna tem esta tabela, e cada origem uma medição própria.
 
+### 4.5 <Ordem de eventos, se houver coordenação entre tarefas>
+
+| Estado / evento | Quem inicia e confirma | Condição para avançar | Cancelamento / retorno |
+| --- | --- | --- | --- |
+| <etapa> | <dono e confirmação observável> | <condição, não só uma flag> | <comportamento> |
+
+Identidade da execução: `<como rejeitar conclusão antiga>`. Para interface, referência:
+`<spec §8.3>`. Registre a visibilidade por etapa quando ela atravessar donos.
+
 ## 5. Tarefas
 
 ### T<n> — <título> · **<Nível>** · <dependências ou "sem dependência">
@@ -161,6 +170,10 @@ o buraco é na spec, e é lá que se conserta. Tarefa que mexe em detector de te
 a lista de variações e a amostra real de falso positivo (`references/classes-de-erro.md`, classe 17)>
 
 **Não faça:** <o que pertence a outra tarefa e vai dar vontade de fazer aqui>
+
+**Camada de prova:** <a mais barata que preserva o mecanismo afetado; peças reais,
+peças simuladas e o que não comprova>. Se o risco for de interação/ordem, primeira prova
+integrada: <percurso, dependências, dono e autorização necessária>, antes de ampliar variantes.
 
 ### S<n> — Gate de <o quê> · **Gate / Advisor** (`<MODELO_GATE>`) · depende de T<x>, T<y> · **bloqueia C<z>**
 

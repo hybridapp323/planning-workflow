@@ -365,6 +365,12 @@ Este é o item que faz o paralelismo existir. Workers não divergem na ordem das
 
 Congele, antes da primeira onda: tipos e interfaces compartilhadas, shape de request e response, nomes de chave de i18n, props na fronteira entre dois componentes, e a fixture de casos que serve de fonte da verdade de uma regra de negócio.
 
+**Ordem de eventos também é contrato.** Quando duas tarefas dividem uma transição ou
+operação assíncrona, congele estados, identidade da execução, quem inicia/confirma/cancela
+e a condição que libera a próxima etapa. Inclua interrupção e retorno com estado vivo.
+Flag alterada não prova efeito observado: indique qual confirmação a fronteira requer.
+Para interface com referência aprovada, vincule esse contrato ao §8.3 da spec.
+
 Quem escreve é o coordenador, num passo próprio antes de despachar qualquer worker, e commita. Não delegue a um worker o contrato de que os outros dependem.
 
 Escreva literal, em bloco de código completo. Contrato descrito em prosa é contrato não congelado.
@@ -414,6 +420,15 @@ só o cenário afetado, não a bateria. Paridade de predicado não prova correç
 comparação sobre o histórico mostra o alcance, e quem prova é o caso que passa pelo consumidor.
 Medido: no mesmo projeto, testes ponta a ponta pagos foram de 29% a 43% dos tokens gastos com o modelo no fluxo principal
 num mês.
+
+**A camada precisa preservar o mecanismo sob risco.** Liste as peças reais e as simuladas;
+simular a peça que causa o risco deixa aquele cenário pendente, mesmo com teste verde.
+Se o risco depende de interação ou ordem de eventos, planeje uma primeira prova do percurso
+crítico assim que suas dependências existirem, antes de ampliar variantes. Use a integração
+real e separe os eventos como acontecem nela; registre candidato, resultado e limitações.
+Esta é prova no aceite do coordenador, não outro gate adversarial, e respeita as autorizações
+do projeto. Medido em 2026-10-09: testes com etapas agrupadas passaram com falhas de transição
+e reabertura na aplicação real; a prova tardia exigiu novas rodadas de correção.
 
 ## Fase 2 — o grafo
 
@@ -669,6 +684,8 @@ sonda. Recorte antes de entregar (ver *Um pedido, uma família* e *Sonda não é
 - Nenhum passo de validação tem item que você já sabe que vai falhar por causa de tarefa
   posterior?
 - Todo contrato de que dois ou mais workers dependem está escrito literal e datado de antes da onda 1?
+- Quando há coordenação assíncrona, o contrato inclui estados, identidade e confirmação
+  entre donos? A tarefa indica peças reais/simuladas e quem executa a primeira prova integrada?
 - Nenhum contrato é mais restrito que o FR que implementa? Se é, a decisão está na spec, com autoria?
 - O gate é um por plano (ou um por produção, se o plano vai em etapas e diz por quê), antes do
   passo irreversível, sobre o candidato integrado, e nenhuma onda tem gate próprio?

@@ -45,7 +45,11 @@ Classifique o pedido **antes da primeira pergunta** e diga a classificação em 
 
 ## Fase 1 — contexto, antes da primeira pergunta
 
-Leia o estado do projeto: arquivos que o pedido toca, `CLAUDE.md` / `AGENTS.md`, commits recentes, docs de decisão se o projeto tiver.
+Leia o estado do projeto: arquivos que o pedido toca, `CLAUDE.md` / `AGENTS.md`,
+`.claude/plan-profile.md` se existir, commits recentes e docs de decisão. Quando houver
+interface ou protótipo aprovado, consulte as skills de design e adaptação indicadas pelo
+projeto antes de fechar o design. Extraia as decisões já visíveis na referência; pergunte
+só o que estiver ausente ou em conflito, sem reabrir a aprovação do protótipo.
 
 **Fato é trabalho seu, decisão é do usuário.** Se uma pergunta da rodada precisa de um fato do ambiente — o que a tabela tem hoje, quantos usuários caem nesse caso, se aquele componente já existe — despache um subagente para descobrir. Nunca pergunte ao usuário o que você mesmo pode olhar.
 

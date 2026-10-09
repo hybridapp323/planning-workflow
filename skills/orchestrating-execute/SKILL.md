@@ -25,6 +25,8 @@ Leia o plano inteiro antes de qualquer comando. Ele precisa ter, no mínimo:
 - contratos congelados escritos literal;
 - grafo com dependências e passos do coordenador;
 - **um `Pronto quando` por tarefa, copiado de um cenário de aceitação da spec.**
+- para tarefa com risco de interação/ordem, camada de prova, peças reais/simuladas e
+  primeira prova integrada com dependências e dono explícitos.
 
 Faltando qualquer um, **pare e volte para `power-plans`**. Executar um plano sem ownership é combinar colisão; sem contrato congelado é combinar divergência; **sem critério de pronto é combinar que o coordenador invente um — e ele vai inventar relendo a spec, que é exatamente onde o sentido se perde.** Custa menos consertar o documento agora.
 
@@ -434,6 +436,14 @@ mesmo terminal, com o que falta, quantas vezes precisar. Aceitou: confira a task
 terminal na hora (*O que fazer a cada `worker_done`*, acima). Isso é coordenar, não é gate.
 Medido em 20/09/2026: uma tarefa complexa aceita na terceira devolução custou duas devoluções ao
 mesmo worker e nenhuma rodada de revisor.
+
+**Aceite não herda o alcance declarado pelo teste.** Confira quais peças ele simula e
+se alguma delas é justamente a fronteira sob risco. Etapas assíncronas executadas juntas
+podem esconder uma corrida; iniciar do zero pode esconder defeito ao retornar com estado
+preservado. Execute a primeira prova integrada prevista no plano com essas peças reais.
+Registre candidato, cenário, resultado e limite: teste lógico aprovado e validação visual
+pendente são estados diferentes. Sem a prova exigida para aquela etapa, a entrega é
+parcial, não aceita; prova atribuída a uma etapa posterior permanece pendente nela.
 
 **Gate** é uma cartada: um revisor read-only, em outro modelo, **uma vez**, sobre o candidato
 integrado, imediatamente antes do passo irreversível que ele guarda (migration em produção,
