@@ -210,9 +210,13 @@ gravado**, de um teste feito dias antes. Três verificações de segundos derrub
 afirmação: ler o auxiliar, ler o teste vizinho, e dar um `select` na linha. Nenhuma foi feita
 porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
 
-> **A linha só fecha com a CONTAGEM do falsificador.** Escreva a consulta ou o `grep` que
-> conta o caso que derruba a afirmação, e o número que ela devolveu, mesmo que seja zero.
-> Contagem que confirma a afirmação mede outra coisa e não fecha a linha.
+> **A linha só fecha com a CONTAGEM do falsificador, sobre o universo inteiro da afirmação.**
+> Escreva a consulta ou o `grep` que conta o caso que derruba a afirmação, e o número que ela
+> devolveu, mesmo que seja zero. Contagem que confirma a afirmação mede outra coisa e não fecha
+> a linha. E amostra escolhida **porque mostrava o defeito** (os registros que a regra antiga
+> gravou errado) não refuta um "nunca": o contraexemplo costuma estar nos casos da mesma forma
+> em que a regra antiga acertou por outro caminho, e que por isso ficaram fora da amostra.
+> Conte também nesse resto.
 
 Medido em 2026-09-12: uma afirmação de carga dizia *"os vínculos persistidos cobrem a
 duplicação entre dois provedores"*, o falsificador estava escrito na frase certa (*"vínculo
@@ -220,6 +224,12 @@ não existe"*), e a coluna de resultado trazia `[MEDIDO: 149 linhas vinculadas]`
 que contava o falsificador tinha a mesma forma, com um `not exists` a mais, e devolvia 32
 pares sem vínculo em 90 dias. Ninguém a rodou porque a tabela aceitava qualquer `[MEDIDO:]`.
 Quem a rodou foi a revisão externa, e virou bloqueador.
+
+Medido em 2026-10-09: a afirmação *"essa forma de fala, sob aquela pergunta, nunca é
+orçamento"* foi contada nos 24 registros em que o defeito tinha gravado um teto: zero
+contraexemplos. A revisão externa procurou entre as respostas da mesma forma que **não**
+gravaram teto e achou um; a regra que o usuário tinha aprovado erraria exatamente esse caso, e
+ele teve de decidir de novo antes de qualquer código.
 
 ### As classes que morderam de verdade: confira estas por nome
 
