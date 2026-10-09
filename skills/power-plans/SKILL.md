@@ -242,7 +242,8 @@ estão em `references/classes-de-erro.md`: **leia a classe inteira quando ela se
 3. **O caso prometido dispara o critério novo?** Rode o critério contra o caso agora.
 4. **Caminho, comando e nome existem?** Arquivo novo cita o irmão existente; `--help` inteiro,
    nunca recortado.
-5. **Invariante que você promete preservar:** caminho de exceção procurado e testes existentes lidos.
+5. **Invariante que você promete preservar:** caminho de exceção procurado e testes existentes lidos;
+   se é isolamento, as escritas que mudam o pertencimento também.
 6. **Emissores do comportamento que você REMOVE:** chamadores, literal no código e literal nos
    dados; gate novo sobre saída existente é remoção.
 7. **Receita copiada de outro contexto:** a pré-condição dela vale aqui?
@@ -359,6 +360,15 @@ pelo literal do comportamento nos diretórios de teste, e não só pelo nome do 
 Sem isso, duas tarefas paralelas reescrevem o mesmo teste, ou o teste que exige o comportamento
 removido aparece só na bateria antes do deploy. Medido em 25/09/2026: as duas coisas no mesmo
 ciclo, uma achada pela revisão externa e a outra só na véspera da publicação.
+
+**Arquivo GERADO não tem dono sozinho: o dono é a fonte.** Quando um arquivo do plano é saída de
+um gerador (uma tabela derivada de um inventário, tipos derivados de um schema, um mapa derivado de
+um documento), a linha da matriz é a **fonte**, mais o comando que regenera e o teste que compara
+saída com fonte. Editar só a saída faz o teste de frescor reprovar, e regenerar depois desfaz a
+edição. Procure o gerador antes de atribuir: um teste que compara byte a byte é a pista. Os testes
+que consomem a saída (navegação, links) entram na matriz junto. Medido em 2026-10-10: um plano
+atribuiu a mudança de um mapa de rotas e não o inventário que o gera; a revisão externa achou o
+teste de frescor e mais três testes consumidores que quebrariam no aceite.
 
 **Linha NOVO cita o irmão.** Arquivo que ainda não existe entra na matriz com o irmão existente
 do mesmo tipo e a configuração que o descobre, os dois com `[LIDO:]`. Sem isso o caminho é

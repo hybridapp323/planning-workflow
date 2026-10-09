@@ -61,6 +61,19 @@ plano* e *Etiqueta de procedência* do `SKILL.md`.
    de carga (ver *A carga do plano*, no `SKILL.md`). O comentário do código **não é** evidência de G: comentário envelhece,
    e a contradição entre o comentário e o código é justamente onde o bug mora. Evidência de G é
    o caminho de exceção que você procurou e não achou, mais o teste que hoje trava G.
+
+   **Quando G é isolamento (quem vê, quem escreve, quem pertence), a refutação inclui as ESCRITAS
+   que mudam o pertencimento, não só a leitura do estado inicial.** Liste toda coluna ou relação que
+   decide a audiência (o grupo a que o registro pertence, o dono, a lista de permitidos) e pergunte,
+   para cada uma, quem pode mudá-la depois do insert e o que a mudança destrava. Um ramo que admite
+   "quem já participa" é uma porta que se abre por UPDATE; um ramo novo somado por `OR` herda essa
+   porta em vez de fechá-la; e quem sai da lista de permitidos continua dentro pelo ramo histórico.
+   O teste do isolamento faz a transição (muda o grupo, tira da lista) e só então tenta ler; "0
+   linhas" lido antes da transição não prova nada. Medido em 2026-10-10: um plano provava o
+   isolamento de um grupo de teste com quatro leituras negadas; a revisão externa achou que o dono
+   de qualquer registro podia mudar o grupo dele por UPDATE e passar pelo ramo "participante" das
+   funções de leitura. Redesenho localizado: congelar a coluna no UPDATE e dar precedência à lista
+   de permitidos sobre os ramos históricos.
 6. **Emissores de um comportamento que você vai REMOVER.** Quando a tarefa é "a partir de
    agora o sistema não pergunta mais X", a pergunta não é "onde está o X que eu achei", é
    **"quantos lugares conseguem emitir X?"**. Enumere todos antes de dimensionar a tarefa, e
