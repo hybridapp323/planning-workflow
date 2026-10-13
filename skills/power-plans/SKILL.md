@@ -603,7 +603,7 @@ número, não o veredito, que diz se a spec e o plano estavam sãos.
 
 Procedimento, mandato read-only, e como verificar depois que o revisor realmente não escreveu: `references/external-review.md`.
 
-**Ao receber o relatório, não valide os bloqueadores por deferência.** Verifique cada um você mesmo, separe o que é buraco real do que é decisão de negócio, e leve as decisões de negócio ao usuário com resumo e recomendação. Um revisor competente ainda erra de tamanho: superdimensiona o que não tem usuário e subdimensiona o que já está quebrado.
+**Ao receber o relatório, não valide os bloqueadores por deferência.** Verifique cada um você mesmo, separe o que é buraco real do que é decisão de negócio, e leve as decisões de negócio ao usuário com resumo e recomendação, **numa rodada de perguntas antes do commit**: plano não é entregue nem commitado com decisão do usuário em aberto, nem como "pendente" com recomendação ao lado. Medido em 13/10/2026: um plano saiu commitado com duas decisões nascidas da revisão externa, e o usuário o recusou como não fechado. Um revisor competente ainda erra de tamanho: superdimensiona o que não tem usuário e subdimensiona o que já está quebrado.
 
 ### A revisão externa roda UMA vez. Nova rodada só com autorização explícita do usuário
 
@@ -720,6 +720,10 @@ sonda. Recorte antes de entregar (ver *Um pedido, uma família* e *Sonda não é
   advisor (uma consulta por veredito de gate)?
 - A revisão externa da spec e do plano está FORA do grafo (nenhum `S0`, nenhum "bloqueia a onda
   1"), e o §0.1 registra a revisão feita ou "não solicitada"?
+- Nenhuma decisão do usuário está em aberto (nem "pendente" com recomendação)? Toda decisão de
+  negócio que sobrou, inclusive as que a revisão externa criou, foi perguntada e está registrada;
+  autorização de execução (ação externa, escrita em dado) fica escrita como pedida na hora, não como
+  decisão aberta. Ciclo sem `spec-interview` é onde isso escapa: ninguém aplicou o fechamento dela.
 
 ## Regras do projeto: de onde saem
 
@@ -744,7 +748,7 @@ Se o projeto guarda planos em pastas por estado (a fazer / em validação / feit
 
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
-Depois de escrever, commite o plano, ofereça a revisão externa em uma linha (Fase 3) e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.
+Depois de escrever, e sem nenhuma decisão do usuário em aberto, commite o plano, ofereça a revisão externa em uma linha (Fase 3) e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.
 
 ## Documentação viva
 
