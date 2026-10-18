@@ -1652,3 +1652,33 @@ criar o primeiro terminal*):
   `opencode run -m <outro-provedor>/<modelo>` respondeu na hora e fez um gate inteiro em TUI
   (`opencode --auto --model <outro-provedor>/<modelo>`, rodapé `Build auto · <modelo> <provedor>`).
   Diga ao usuário que a rota mudou.
+
+## Verificação pesada em N workers satura o host do Orca (2026-10-18)
+
+Quando o Orca roda num servidor remoto (VPS) e o coordenador despacha vários workers sobre o
+mesmo checkout, todos tendem a fechar a tarefa com o mesmo ritual: typecheck do projeto inteiro e
+suíte de testes. O brief pede "prove que passa" e cada worker obedece, ao mesmo tempo.
+
+Medido: 13 workers `codex`, 11 `tsc --noEmit` simultâneos a 0,5–3 GB cada (~23 GB) mais runners de
+teste, numa máquina de 32 GB. RAM 29/32 GB, swap 12/12 GB, load ~100, e o processo do servidor do
+Orca em estado D (swapado, sem dar `accept`). O sintoma não aparece onde está a causa: o **app
+móvel do Orca dá "connect timeout"** com a rede (Tailscale) perfeita. A fila de `accept` enche
+(`ss -ltn` com Recv-Q > 0), o TCP completa no kernel e o handshake nunca vem. Durou ~3 h e só
+passou porque os workers terminaram.
+
+**A regra: typecheck e testes são do coordenador, um de cada vez.**
+
+- O brief de cada worker diz que ele **não** roda typecheck do projeto inteiro nem a suíte
+  completa. Ele entrega o código e o relatório; a verificação vira parte do **aceite** (passo 2 de
+  *O que fazer a cada `worker_done`*).
+- O coordenador roda a verificação em série, nunca duas ao mesmo tempo, e cola a saída no registro
+  do ciclo. Isso também é o que dá a prova de que a árvore integrada compila, que o typecheck de
+  um worker (feito com os arquivos dos outros pela metade) nunca deu.
+- **Não é regra de limite de workers.** A concorrência de escrita não era o problema; o custo era
+  cada worker pagar sozinho uma verificação que é cara e que só faz sentido uma vez, sobre a
+  árvore inteira.
+
+Sintoma para reconhecer cedo, em qualquer máquina compartilhada: `ps --sort=-rss` com vários
+processos do mesmo comando de verificação no topo, e `uptime` com load muito acima do número de
+CPUs. Se o cliente remoto do Orca der timeout com a rede boa, olhe `uptime`, `free -m` e `ps`
+antes de culpar a rede.

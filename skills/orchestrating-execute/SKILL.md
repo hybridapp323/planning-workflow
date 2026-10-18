@@ -246,6 +246,7 @@ Todo worker recebe, sem exceção:
 - **Seus arquivos, listados.** Mais a frase: nenhum arquivo fora desta lista, nem para "corrigir de passagem".
 - **Os contratos que ele consome**, colados literal no dispatch, não por referência. Worker não deve depender de achar a seção certa.
 - **O que este projeto proíbe delegar.** Tipicamente git. Diga com essas palavras: não rode comando de git, quem commita é o coordenador.
+- **Quem roda a verificação pesada, quando o Orca roda num servidor remoto.** Typecheck do projeto inteiro e suíte completa são do coordenador, uma por vez, no aceite (passo 2 de *O que fazer a cada `worker_done`*); o brief diz que o worker não as roda. Não é limite de workers: ver `references/orca-traps.md`, *Verificação pesada em N workers satura o host do Orca*.
 - **Escalar em vez de improvisar.** Se a tarefa exigir sair do escopo, mudar contrato, ou tocar arquivo de outro, ele manda `escalation` e para. Um worker que improvisa custa mais que um worker que espera.
 - **Pronto quando:** o critério da tarefa, **copiado do plano — que por sua vez copiou o cenário da spec**. Se o plano não tem esse critério, você não o escreve de cabeça: volte ao plano (ver *Preflight*). Coordenador improvisando critério de pronto é o defeito, não o conserto.
 
