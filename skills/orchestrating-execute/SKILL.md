@@ -684,7 +684,8 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
    Registre no documento do ciclo **uma linha de esforço**: modelos e esforço por tarefa, número de workers,
    rodadas de gate, duração, e tokens ou custo quando o runtime informar ("não disponível" quando
    não informar). Tire do que o orquestrador já registra; não crie coleta manual nem documento
-   novo. Sem essa linha, ninguém sabe se um processo mais curto ficou mais barato ou só empurrou
+   novo. Ponha ao lado a estimativa do plano (tokens e relógio) e diga quantas vezes errou e em
+   qual parcela: é o que calibra a próxima estimativa. Sem essa linha, ninguém sabe se um processo mais curto ficou mais barato ou só empurrou
    trabalho para o ciclo seguinte.
 9. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
    arquivo, ou *"nada entra, porque X"*. Lição que fica só no relatório de revisão é lição que a

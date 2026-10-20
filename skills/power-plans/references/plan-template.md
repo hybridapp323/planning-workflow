@@ -61,6 +61,9 @@ O usuário preenche a coluna Modelo na hora de executar.
 
 **Caminho crítico:** C0 → T2 → C1 → T5 → S1 → C2
 
+**Estimativa (ordem de grandeza):** ~<N> M tokens totais · ~<N> k de saída no caminho crítico →
+~<N> min de geração + ~<N> min de esperas fixas (<quais>). Domina: <geração | esperas>.
+
 O gate é um só, antes do primeiro passo irreversível, sobre tudo que foi integrado até ali. A
 onda 1 não tem gate: quem a guarda é o aceite do coordenador em C1.
 

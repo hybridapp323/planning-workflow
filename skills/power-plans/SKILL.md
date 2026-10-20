@@ -462,6 +462,15 @@ Escreva três coisas, sempre:
 
 Marque o **caminho crítico**. É o que diz se vale acrescentar worker ou se você só vai acrescentar espera.
 
+**Estimativa: em tokens, nunca em dias.** "Dois dias", "uma semana" medem trabalho humano em
+série; aqui quem implementa é modelo em paralelo, e o que levaria dias costuma sair no mesmo dia.
+O plano dá três números, como ordem de grandeza: **tokens totais** (o custo), **tokens de saída**
+(o que os workers escrevem) e **tempo de relógio** ≈ tokens de saída do **caminho crítico** ÷ vazão
+do modelo (referência: ~60 tok/s), somado às esperas fixas (suíte, deploy, teste pago, aceite do
+usuário). Tarefas fora do caminho crítico entram no custo e não no relógio. Nunca divida o total
+pela vazão: quase todo o total é releitura de contexto, que não custa esse tempo, e a conta sai
+dezenas de vezes maior. Diga qual parcela domina; quando são as esperas, mais worker não adianta.
+
 **Sem número fixo de workers.** Tarefas que tocam arquivos diferentes e não dependem uma da
 outra rodam todas juntas na mesma onda; um teto como "3 por vez" só acrescenta espera. O único
 freio legítimo é a cota do dia nos modelos, e aí distribua entre provedores e comece pelo caminho
@@ -715,6 +724,8 @@ sonda. Recorte antes de entregar (ver *Um pedido, uma família* e *Sonda não é
   coordenador?
 - Algum worker precisa rodar comando que este projeto proíbe delegar?
 - O caminho crítico está marcado?
+- A estimativa está em tokens e tempo de relógio, sem "dias" ou "semanas", e o tempo saiu dos
+  tokens de saída do caminho crítico, não do total?
 - Sobrou placeholder de modelo, e nenhum modelo nomeado?
 - A tabela de níveis tem a linha `Gate / Advisor` com `<MODELO_GATE>`, e o §7 traz o orçamento do
   advisor (uma consulta por veredito de gate)?
