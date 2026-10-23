@@ -452,7 +452,28 @@ e reabertura na aplicação real; a prova tardia exigiu novas rodadas de correç
 
 ## Fase 2 — o grafo
 
-**Ondas.** Uma onda termina exatamente onde o coordenador precisa agir. Descubra o que este projeto proíbe delegar (ver *Regras do projeto*, abaixo): tipicamente git, migration, deploy e publicação. Esses passos viram passos do coordenador, e são eles que definem onde a onda quebra. Não é escolha estética.
+**Ondas são trilhas, não camadas.** Uma onda é uma sequência de tarefas ligadas por dependência, e termina exatamente onde o coordenador precisa agir. Descubra o que este projeto proíbe delegar (ver *Regras do projeto*, abaixo): tipicamente git, migration, deploy e publicação. Esses passos viram passos do coordenador, e são eles que definem onde a onda quebra. Não é escolha estética. Aceitar e commitar a entrega de uma tarefa não quebra onda: isso acontece por tarefa, dentro dela.
+
+Corte nesta ordem:
+
+1. **Separe as trilhas.** Trilha é um grupo de tarefas que dependem umas das outras (irmãs do mesmo
+   pai ficam juntas) e que se liga aos outros grupos por poucas arestas, cada uma resolvível por
+   contrato ou ponto de integração (abaixo). Não use "componente conexo do grafo": uma única aresta
+   cruzada junta tudo num grupo só, e o paralelo some de novo. Conte as arestas cruzadas e escreva o
+   número no §2.1.
+2. **Cada trilha vira uma onda paralela com coordenador secundário** (seção abaixo), sempre que for
+   seguro. É o padrão, não a exceção. Trilha de uma tarefa só não justifica coordenador: entra na
+   onda de quem a consome ou na do principal.
+3. **Dentro da onda, despache por dependência.** Uma tarefa sobe assim que as dependências dela
+   foram aceitas, sem esperar as vizinhas da mesma profundidade.
+
+O erro que isto evita: cortar o grafo por profundidade (o que só depende de C0 é a onda 1, o que
+depende da onda 1 é a onda 2). Assim toda onda depende da anterior por construção, a regra de ondas
+paralelas nunca dispara, e cada camada espera a tarefa mais lenta dela. Medido em 2026-10-23: um
+plano de 18 tarefas saiu em três camadas por profundidade; por dentro havia três grupos (servidor,
+compartilhar, telas) ligados por quatro arestas cruzadas, o do servidor sem depender de nenhum
+outro, e nenhum ganhou coordenador próprio. Quem notou foi o usuário. O exemplo do template também
+desenhava camadas, e o plano copiou o formato.
 
 Escreva três coisas, sempre:
 
@@ -470,9 +491,13 @@ do modelo (referência: ~60 tok/s), somado às esperas fixas (suíte, deploy, te
 usuário). Tarefas fora do caminho crítico entram no custo e não no relógio. Nunca divida o total
 pela vazão: quase todo o total é releitura de contexto, que não custa esse tempo, e a conta sai
 dezenas de vezes maior. Diga qual parcela domina; quando são as esperas, mais worker não adianta.
+Vale também na conversa: quando o usuário pergunta o prazo, a resposta sai desta conta, não de
+horas por onda somadas. Medido em 2026-10-23: a resposta em conversa somou horas por camada e deu
+2 a 3 dias para um plano cuja própria conta dava menos de um dia.
 
 **Sem número fixo de workers.** Tarefas que tocam arquivos diferentes e não dependem uma da
-outra rodam todas juntas na mesma onda; um teto como "3 por vez" só acrescenta espera. O único
+outra rodam todas ao mesmo tempo, na mesma trilha ou em trilhas paralelas; um teto como "3 por vez"
+só acrescenta espera. O único
 freio legítimo é a cota do dia nos modelos, e aí distribua entre provedores e comece pelo caminho
 crítico. Durante a onda, cada worker roda só os próprios testes; a suíte inteira roda no aceite.
 Medido em 24/09/2026: o plano saiu com teto de 3 workers que ninguém pediu, e o usuário mandou tirar.
@@ -495,11 +520,21 @@ não guarda nada. Reordene.
 Dentro de uma onda os workers dividem a árvore, e a ownership resolve. Duas ondas independentes na
 mesma árvore, não: cada uma tem aceite, suíte e commit próprios, a suíte de uma roda com o código
 pela metade da outra (a mesma classe de *Medir nas dependências do checkout compartilhado*, em
-`orchestrating-execute`), e o commit de uma estagia trabalho da outra. Quando o grafo tem duas ou
-mais ondas que não dependem uma da outra, cada onda paralela ganha worktree, branch e coordenador
-próprios; o coordenador principal toca uma delas na árvore atual. Onda que depende de outra espera
-a integração dela e não ganha worktree. Escala parcial não usa isto, e projeto que só aceita branch
-ou worktree a pedido pergunta antes.
+`orchestrating-execute`), e o commit de uma estagia trabalho da outra. Sempre que o grafo tem duas
+ou mais trilhas e é seguro, cada trilha ganha worktree, branch e coordenador secundário próprios; o
+coordenador principal toca uma delas na árvore atual. **Seguro** quer dizer: contratos congelados
+em C0, arquivos disjuntos ou com o trecho de cada onda nomeado, e todo recurso único (ambiente,
+migração, dado) com o principal pela tabela de papéis. Quando não é seguro, o §2.1 diz em uma linha
+"Ondas paralelas: não, porque …"; sem essa linha o plano não está pronto. Escala parcial não usa
+isto. Projeto que só aceita branch ou worktree a pedido: o plano traz as ondas paralelas mesmo
+assim, e a pergunta vai junto com a entrega do plano; nunca corte em silêncio.
+
+**Dependência cruzada não junta trilhas.** Quando uma tarefa de uma trilha consome a entrega de
+outra, tente nesta ordem: (a) congele em C0 o que a consumidora precisa (tipo, assinatura,
+fixture) e ela segue sem esperar o código; (b) marque um ponto de integração: o principal integra a
+tarefa produtora e a trilha consumidora faz rebase antes de despachar a consumidora; (c) só se
+nenhuma serve, mova a consumidora para a trilha produtora. Fundir duas trilhas inteiras por causa
+de uma aresta devolve o plano às camadas.
 
 O plano escreve quatro coisas:
 
@@ -719,6 +754,9 @@ sonda. Recorte antes de entregar (ver *Um pedido, uma família* e *Sonda não é
 - O gate é um por plano (ou um por produção, se o plano vai em etapas e diz por quê), antes do
   passo irreversível, sobre o candidato integrado, e nenhuma onda tem gate próprio?
 - Todo par "não pode junto" tem a razão escrita?
+- As ondas são trilhas, não camadas por profundidade? Toda trilha com mais de uma tarefa tem
+  coordenador secundário, ou o §2.1 diz em uma linha por que não é seguro? Dependência cruzada
+  resolvida por contrato, ponto de integração ou mudança de trilha, sem fundir trilhas inteiras?
 - Com onda em worktree própria: há tabela de papéis, todo arquivo tocado por duas ondas está no
   "não pode junto" com o trecho de cada uma, e a ordem de integração está nos passos do
   coordenador?

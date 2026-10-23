@@ -50,34 +50,44 @@ O usuário preenche a coluna Modelo na hora de executar.
 
 ## 2. Grafo de execução
 
-    C0 (coordenador: congela contratos)
+    C0 (principal: congela contratos, cria a worktree da W2)
      |
-     +-- T1 [Média]     ----+
-     +-- T2 [Complexa]  ----+--> C1 (coordenador: integra e aceita) --+
-     +-- T3 [Média]     ----+                                         |
-                                                                      v
-                                                  T5 [Complexa] --+
-                                                  T6 [Média]  ----+--> S1 [gate] --> C2 (migration, deploy)
+     +-- W1 · principal, árvore atual ----------------------------------+
+     |     T1 [Média] -----> T5 [Complexa]   (T5 sobe quando T1 é aceita) |
+     |     T2 [Complexa]                                                  |
+     +-- W2 · coordenador secundário, worktree e branch próprios --------+
+     |     T3 [Média] -----> T6 [Média]      (T6 espera I1)              |
+     |     I1: o principal integra T2; a W2 faz rebase antes de T6        |
+     +--------------------------------------------------------------------+
+     |
+     C1 (principal: integra o branch da W2 na ordem de §2.3, suíte, aceite)
+     |
+     S1 [gate] --> C2 (migration, deploy)
 
-**Caminho crítico:** C0 → T2 → C1 → T5 → S1 → C2
+**Caminho crítico:** C0 → T2 → I1 → T6 → C1 → S1 → C2
 
 **Estimativa (ordem de grandeza):** ~<N> M tokens totais · ~<N> k de saída no caminho crítico →
 ~<N> min de geração + ~<N> min de esperas fixas (<quais>). Domina: <geração | esperas>.
 
-O gate é um só, antes do primeiro passo irreversível, sobre tudo que foi integrado até ali. A
-onda 1 não tem gate: quem a guarda é o aceite do coordenador em C1.
+O gate é um só, antes do primeiro passo irreversível, sobre tudo que foi integrado até ali.
+Nenhuma onda tem gate: quem a guarda é o aceite do coordenador dela e a integração em C1.
 
 ### 2.1 O que roda junto
 
 | Onda | Tarefas | Onde | Por quê é seguro |
 | ---- | ------- | ---- | ---------------- |
-| 1    | T1, T2, T3 | árvore atual | arquivos disjuntos (§3), contratos já congelados em C0 |
+| W1   | T1, T2, T5 | árvore atual, principal | arquivos disjuntos (§3), contratos já congelados em C0 |
+| W2   | T3, T6 | worktree própria, coordenador secundário | arquivos disjuntos da W1; a única aresta cruzada (T6←T2) passa por I1 |
+
+Ondas paralelas: <sim: W1 (principal), W2 (secundário, §2.3) | não, porque <razão em uma linha>>.
+Dentro de cada onda, uma tarefa sobe assim que as dependências dela foram aceitas.
 
 ### 2.2 O que NÃO roda junto
 
 | Par | Razão |
 | --- | ----- |
-| T5 antes de C1 | T5 consome o contrato que a onda 1 entrega e C1 aceita |
+| T5 antes de T1 | T5 consome o contrato que T1 entrega e o principal aceita |
+| T6 antes de I1 | T6 chama a regra de T2, que só chega à worktree da W2 pela integração |
 | T2 antes de C0 | a fixture é a fonte da verdade da regra; sem ela T2 e T3 inventam regras diferentes |
 | <arquivo> em W1 e W2 | só com ondas em worktrees: W1 muda <trecho a>, W2 muda <trecho b>; W2 integra depois e concilia no rebase |
 

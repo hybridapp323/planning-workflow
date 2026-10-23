@@ -301,13 +301,14 @@ restaura sempre, inclusive quando o cenário falha.
 
 Para cada onda:
 
-1. Suba todos os workers da onda **no mesmo momento**, pelo caminho que dá posse do terminal
-   (`wave.sh spawn`, que é `worker-start`). Onda serializada é onda desperdiçada, e terminal sem
-   dono registrado é terminal que ninguém consegue fechar com prova.
+1. Suba **no mesmo momento** todos os workers da onda cujas dependências já foram aceitas, pelo
+   caminho que dá posse do terminal (`wave.sh spawn`, que é `worker-start`). Onda serializada é
+   onda desperdiçada, e terminal sem dono registrado é terminal que ninguém consegue fechar com prova.
 2. Espere as conclusões. Trate `escalation` na hora: worker escalando está parado.
 3. **A cada `worker_done`, feche o ciclo daquele worker sem esperar que o usuário peça:** leia o
    relatório, aceite com casos seus, confira a task, feche o terminal. A sequência exata está na
-   seção seguinte.
+   seção seguinte. Logo depois do aceite, suba as tarefas que ele destravou; elas não esperam o
+   resto da onda.
 4. Rode os passos do coordenador daquela onda, você mesmo.
 5. Verifique antes de abrir a próxima. Onda seguinte que começa em cima de passo do coordenador
    não confirmado propaga o erro para todos os workers de uma vez. E abra a próxima com a árvore
@@ -393,6 +394,11 @@ Quando o plano põe ondas paralelas em worktrees separadas (`power-plans`, Fase 
 coordenador **principal**: cria as worktrees em C0, toca a sua onda na árvore atual e integra as
 outras. Cada outra onda tem um coordenador de onda, uma sessão de agente aberta na worktree dela,
 com o modelo da linha `Coordenador de onda`.
+
+Plano que chega com ondas em camadas por profundidade, sem a linha "Ondas paralelas" no §2.1, e
+com trilhas que o grafo mostra sem dependência entre si: antes de C0, mostre as trilhas ao usuário
+e proponha um coordenador secundário por trilha (`power-plans`, *Ondas são trilhas, não camadas*).
+Não execute as camadas em silêncio.
 
 **O brief do coordenador de onda** leva o plano, a onda dele, a tabela de papéis copiada do plano,
 a atribuição de modelos já decidida (ele não roda o portão de atribuição de novo) e esta skill: ele roda o laço de ondas para a própria onda, com o mesmo aceite e o mesmo fechamento
