@@ -7,7 +7,7 @@
 | Ideia, feature nova, componente novo, mudança de comportamento, escopo ainda aberto | `spec-interview` |
 | Bug, teste falhando, erro, comportamento inesperado, "não funciona" | `systematic-debugging` |
 | Spec pronta, o próximo passo é planejar a implementação | `power-plans` |
-| Plano pronto, o próximo passo é executar | `orchestrating-execute` |
+| Plano pronto **e o usuário pediu explicitamente para executar** | `orchestrating-execute` |
 
 Se há chance real de uma delas se aplicar, invoque — e diga qual e por quê. Descobrir no meio do caminho que o pedido era maior do que parecia **sobe** para a skill; nada desce.
 

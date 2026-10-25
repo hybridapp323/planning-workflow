@@ -10,9 +10,10 @@ description: >-
   ouvir "escreve o plano", "plano de implementação", "como a gente paraleliza
   isso", "divide entre os agentes", "quantos workers", "monta o plano dessa
   feature", "prepara isso pra multi-agente". É o estado terminal da skill
-  `spec-interview`: design aprovado, invoque esta. Serve qualquer projeto — as
+  `spec-interview`: decisões fechadas e spec escrita, invoque esta direto. Serve qualquer projeto — as
   regras específicas saem do CLAUDE.md/AGENTS.md do repositório. Ela escreve o
-  plano e para: quem sobe worker é `orchestrating-execute`.
+  plano, para e pergunta: revisão externa ou commit e push. Quem sobe worker é
+  `orchestrating-execute`, e só a pedido explícito do usuário.
 ---
 
 # Plano de implementação para execução multi-agente
@@ -103,7 +104,7 @@ afirmações falsas num plano cujo snapshot de evidência tinha 17 KB.
 
 ### Validar a spec, e consertá-la se precisar
 
-A spec passou pela aprovação do usuário, mas quem a escreveu não estava tentando paralelizar. Três lacunas só aparecem agora, e as três quebram execução paralela:
+A spec saiu de uma entrevista com as decisões fechadas, mas quem a escreveu não estava tentando paralelizar. Três lacunas só aparecem agora, e as três quebram execução paralela:
 
 - **Contratos ausentes.** A spec descreve comportamento mas não fixa formato. Dois workers vão inventar dois formatos.
 - **Matriz de consumidores ausente, e ela é BIDIRECIONAL.** Quem mais **lê** o dado, o campo ou o arquivo que essa feature muda? Um resolver, um job agendado, uma exportação, uma tela secundária. E, na direção que quase sempre falta: quem mais **escreve ou emite** o comportamento que a feature altera? Feature nova morre num consumidor esquecido; feature que REMOVE comportamento morre num emissor esquecido.
@@ -584,12 +585,12 @@ com teto de uma consulta por veredito de gate. A consulta é emergente e não se
 teto e o modelo, sim: entram na tabela de níveis (linha `Gate / Advisor`) e no §7, como no
 esqueleto.
 
-### Revisão externa da spec e do plano: recomendada, e quem decide é o usuário
+### Revisão externa da spec e do plano: o agente para e pergunta, o usuário decide
 
 Uma revisão externa read-only da spec e do plano, por outro agente ou outro modelo, antes de
 executar, é **recomendada e opcional**. Quem decide se ela acontece, e com qual modelo, é o
-usuário: no pedido que abriu o ciclo ("use tal modelo para a revisão adversarial") ou na entrega
-do plano. A skill recomenda; não agenda.
+usuário: no pedido que abriu o ciclo ("use tal modelo para a revisão adversarial") ou na pergunta
+que encerra o plano. A skill recomenda; não agenda.
 
 Por que recomendar: quem escreveu o plano é o pior revisor dele. Medido em 2026-08-26, num plano
 com evidência medida, contratos congelados e auto-revisão feita, **a auto-revisão achou zero furos
@@ -599,12 +600,29 @@ decisão do usuário. Medido em 2026-09-21: oito bloqueadores, todos confirmados
 banco antes de qualquer linha escrita. Não foi falta de rigor na forma; confirmação e verificação
 parecem iguais por dentro.
 
-Como oferecer, ao entregar o plano, em uma linha: *"Recomendo revisão externa porque <o que este
-plano tem de caro: dado de produção, N tarefas em paralelo, invariante que ele promete preservar>.
-Quer? Se sim, diga o modelo."* Se o usuário já nomeou o modelo no pedido, não pergunte de novo:
-rode a revisão pelo procedimento de `references/external-review.md` e entregue o plano já
-adjudicado. Se ele não pediu, registre "não solicitada" no §0.1 e pare. Feature pequena: diga que
-não paga.
+**Plano escrito: pare e pergunte, sem commitar antes.** Uma pergunta, duas opções (modal nativo
+do harness quando houver), a recomendada primeiro:
+
+1. **Revisão externa** — *"recomendo porque <o que este plano tem de caro: dado de produção, N
+   tarefas em paralelo, invariante que ele promete preservar>; diga o modelo"*. Feature pequena:
+   diga que não paga e recomende a opção 2.
+2. **Commit e push** — spec e plano entram na branch principal sem revisão.
+
+Se o usuário já pediu a revisão (e nomeou o modelo) no pedido que abriu o ciclo, essa é a resposta:
+não pergunte, rode. Nada além destas duas opções acontece sozinho: nenhum worker, nenhuma
+implementação. Implementar exige pedido explícito do usuário, e a skill então é
+`orchestrating-execute`.
+
+**Depois da resposta, sem nova parada:**
+
+- **Commit e push:** registre "não solicitada" no §0.1, commite spec e plano juntos com caminhos
+  explícitos (nunca "adicione tudo") e dê push na branch principal, seguindo a convenção de git do
+  projeto. Relate os caminhos e o commit, e pare.
+- **Revisão externa:** rode pelo procedimento de `references/external-review.md`. Ao receber o
+  relatório, o coordenador o analisa como abaixo, decide o que entra e o que é recusado, aplica,
+  registra no §0.1, e commita e dá push na branch principal **sem pedir aval**. A única parada
+  antes do commit é decisão de negócio nascida da revisão (sem resposta técnica): essa vai ao
+  usuário numa rodada, e o commit vem logo depois da resposta.
 
 **O modelo nomeado decide o mecanismo, nunca o contrário.** Se o harness em que você roda
 oferece esse modelo como subagente, despache a revisão como subagente, sem orquestrador. Se não
@@ -647,13 +665,14 @@ número, não o veredito, que diz se a spec e o plano estavam sãos.
 
 Procedimento, mandato read-only, e como verificar depois que o revisor realmente não escreveu: `references/external-review.md`.
 
-**Ao receber o relatório, não valide os bloqueadores por deferência.** Verifique cada um você mesmo, separe o que é buraco real do que é decisão de negócio, e leve as decisões de negócio ao usuário com resumo e recomendação, **numa rodada de perguntas antes do commit**: plano não é entregue nem commitado com decisão do usuário em aberto, nem como "pendente" com recomendação ao lado. Medido em 13/10/2026: um plano saiu commitado com duas decisões nascidas da revisão externa, e o usuário o recusou como não fechado. Um revisor competente ainda erra de tamanho: superdimensiona o que não tem usuário e subdimensiona o que já está quebrado.
+**Ao receber o relatório, não valide os bloqueadores por deferência.** Verifique cada um você mesmo, separe o que é buraco real do que é decisão de negócio, decida você o que é técnico (aceitar, recusar, redimensionar, com o porquê no §0.1), e leve só as decisões de negócio ao usuário com resumo e recomendação, **numa rodada de perguntas antes do commit**: plano não é entregue nem commitado com decisão do usuário em aberto, nem como "pendente" com recomendação ao lado. Medido em 13/10/2026: um plano saiu commitado com duas decisões nascidas da revisão externa, e o usuário o recusou como não fechado. Um revisor competente ainda erra de tamanho: superdimensiona o que não tem usuário e subdimensiona o que já está quebrado.
 
 ### A revisão externa roda UMA vez. Nova rodada só com autorização explícita do usuário
 
 **Regra dura:** a revisão adversarial de spec e plano roda **uma vez** por pedido do usuário.
-Depois de incorporar os achados, você **para, relata o que mudou e pergunta** se ele quer outra
-rodada. Nunca despache a rodada 2 por conta própria, nem que o veredito tenha sido BLOQUEADO,
+Depois de incorporar os achados, commite e dê push (seção acima) e, no relato depois do push,
+diga o que mudou e que outra rodada só roda se ele pedir. A pergunta não segura o commit. Nunca
+despache a rodada 2 por conta própria, nem que o veredito tenha sido BLOQUEADO,
 nem que a mudança tenha sido grande, e nem que o próprio plano, escrito por você, diga "rodada 2
 antes do C0". Isso inclui não escrever no plano um gate de revisão repetida que o usuário não
 pediu. Um revisor bloqueando não autoriza nada; quem autoriza nova rodada é o usuário. Os gates
@@ -664,8 +683,8 @@ Medido em 22/09/2026: o usuário pediu uma revisão
 adversarial da spec e do plano. Ela veio BLOQUEADA com 4 achados reais, todos incorporados. Em
 seguida o coordenador escreveu no plano "rodada 2 antes do C0" e despachou sozinho uma segunda
 revisão no modelo mais caro. O usuário interrompeu: *"eu não pedi pra rodar outra revisão, não
-era pra você ter rodado"*. O certo era parar depois da incorporação, com o relato *"os 4 achados
-entraram assim; quer uma segunda rodada?"*.
+era pra você ter rodado"*. O certo era incorporar, commitar e relatar *"os 4 achados entraram
+assim; outra rodada só se você pedir"*.
 
 ## Fase 4 — fecho
 
@@ -797,7 +816,7 @@ Se o projeto guarda planos em pastas por estado (a fazer / em validação / feit
 
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
-Depois de escrever, e sem nenhuma decisão do usuário em aberto, commite o plano, ofereça a revisão externa em uma linha (Fase 3) e **pare**. Não suba worker. Se o usuário quiser executar, a skill é `orchestrating-execute`.
+Depois de escrever, e sem nenhuma decisão do usuário em aberto, **não commite ainda**: pare e pergunte *revisão externa ou commit e push* (Fase 3, seção da revisão externa). Com a resposta, siga até o push sem nova parada. Não suba worker nem implemente: só com pedido explícito do usuário, e a skill então é `orchestrating-execute`.
 
 ## Documentação viva
 

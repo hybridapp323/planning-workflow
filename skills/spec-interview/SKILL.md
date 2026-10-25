@@ -1,32 +1,37 @@
 ---
 name: spec-interview
 description: >-
-  Transforma uma ideia ainda aberta em uma spec aprovada, através de uma
+  Transforma uma ideia ainda aberta em uma spec fechada, através de uma
   entrevista em rodadas: mapeia a árvore de decisões, pergunta em lote tudo que
   já dá para decidir agora com a resposta recomendada em cada pergunta, busca
   sozinha os fatos que estão no código ou no banco, e só para quando não sobra
-  decisão em aberto. USE SEMPRE antes de qualquer trabalho criativo — feature
+  decisão em aberto; só então escreve a spec, sem pedir aprovação. USE SEMPRE antes de qualquer trabalho criativo — feature
   nova, componente novo, mudança de comportamento — e sempre que ouvir "quero
   fazer", "vamos construir", "tenho uma ideia", "me entrevista", "me pergunta",
   "não sei bem o que eu quero", "fecha o escopo comigo", "escreve a spec",
   "brainstorm". É o estado de entrada do ciclo: termina invocando `power-plans`,
   que escreve o plano de implementação. Nenhuma linha de código sai daqui sem
-  aprovação explícita.
+  pedido explícito de implementação.
 ---
 
-# Da ideia à spec aprovada
+# Da ideia à spec fechada
 
 ## O que sai daqui
 
-Uma spec aprovada pelo usuário, ou uma resposta em duas frases. Nunca código, nunca arquivo de projeto tocado, nunca worker no ar.
+Uma spec escrita só depois de todas as decisões fechadas, ou uma resposta em duas frases. Nunca código, nunca arquivo de projeto tocado, nunca worker no ar.
 
 Escreva no idioma em que o usuário está falando com você.
 
 <PORTAO-DURO>
 Não invoque skill de implementação, não escreva código, não crie arquivo de
-projeto e não execute nenhuma ação de implementação até ter dito ao usuário o
-que você pretende fazer e ele ter aprovado. Isso vale para TODA tarefa em TODO
-caminho abaixo. A cerimônia escala com a tarefa; o portão nunca escala.
+projeto e não execute nenhuma ação de implementação até o usuário pedir
+explicitamente a implementação. Spec e plano prontos não são esse pedido. Isso
+vale para TODA tarefa em TODO caminho abaixo. A cerimônia escala com a tarefa;
+o portão nunca escala.
+
+E um segundo portão, só do caminho arquitetural: **a spec não começa enquanto
+houver decisão em aberto ou galho da árvore sem resposta.** Em troca, ela não
+espera aprovação: decisões fechadas, spec escrita, plano escrito, direto.
 </PORTAO-DURO>
 
 ## Primeira decisão: o portão de escala
@@ -36,8 +41,8 @@ Classifique o pedido **antes da primeira pergunta** e diga a classificação em 
 | Caminho | O que é | O que produz |
 | --- | --- | --- |
 | **Sonda** | Pergunta de viabilidade: "dá pra…", "é possível…", "quero só saber se funciona". | Uma resposta, não código que fica. Apresente a pergunta e o que vai testar em 2–3 frases, colha um "pode", descubra do jeito mais barato que ainda esteja correto, e reporte como recomendação. O que você construiu fica marcado como descartável. |
-| **Limitada** | Mudança bem delimitada em código que **já existe neste repositório**: uma flag, um endpoint pequeno, um fix de um arquivo. | Uma ou duas rodadas de perguntas, um design curto no chat, aprovação, implementação direta. Sem arquivo de spec, sem plano. |
-| **Arquitetural** | Projeto novo, subsistema novo, mudança que altera como as peças se encaixam ou muda interface de que outros dependem. | O processo inteiro: contexto, rodadas até a fronteira esvaziar, opções, design por seções, spec escrita, auto-revisão, aprovação, `power-plans`. |
+| **Limitada** | Mudança bem delimitada em código que **já existe neste repositório**: uma flag, um endpoint pequeno, um fix de um arquivo. | Uma ou duas rodadas de perguntas, um design curto no chat, e a implementação só quando o usuário pedir (aprovar o design curto com "pode fazer" é esse pedido). Sem arquivo de spec, sem plano. |
+| **Arquitetural** | Projeto novo, subsistema novo, mudança que altera como as peças se encaixam ou muda interface de que outros dependem. | O processo inteiro: contexto, rodadas até a fronteira esvaziar (a escolha de abordagem é uma delas), spec escrita, auto-revisão, `power-plans` direto, sem portão de aprovação. |
 
 **Limitada mede o repositório, não a sua familiaridade.** Se o fluxo que você vai mudar não está aqui para ser lido, a tarefa não é limitada. Entender o tipo de app não basta.
 
@@ -118,9 +123,9 @@ Este é o ponto onde uma entrevista boa se distingue de um questionário. A tent
 Antes de declarar a entrevista encerrada, faça este exercício, sempre, e por escrito para você mesmo:
 
 1. **Liste toda decisão que você tomou sozinho** para conseguir descrever a solução — formato, nome, ordem, default, limite, o que acontece no caso vazio, onde o arquivo mora.
-2. **Cada item dessa lista é uma pergunta que faltou.** Ou ela vira pergunta na próxima rodada, ou ela vira uma linha explícita no design: *"assumi X; se não for, me diz."*
+2. **Cada item dessa lista é uma pergunta que faltou.** Se a escolha muda comportamento que o usuário vê, dado gravado ou custo, ela vira pergunta na próxima rodada, com a sua recomendação. Só detalhe sem efeito fora do código (nome interno, ordem de arquivo) pode ficar como "assumida por mim". Não existe mais portão de aprovação da spec para pegar a assumida errada: ela vai direto para o plano commitado.
 3. **Silêncio nunca conta como resposta.** Uma decisão que o usuário não viu não está aprovada só porque ele não reclamou.
-4. **Percorra a varredura de cobertura** (`references/coverage-scan.md`), marcando cada categoria Claro / Parcial / Ausente. Os passos 1 a 3 são introspectivos: acham o que você decidiu. Não acham o que você **não pensou**, porque nenhum galho da árvore levava até lá. A varredura é a lista externa que acha isso. Todo Parcial ou Ausente vira pergunta da próxima rodada, ou uma linha explícita na spec: *"não se aplica porque X"*.
+4. **Percorra a varredura de cobertura** (`references/coverage-scan.md`), marcando cada categoria Claro / Parcial / Ausente. Os passos 1 a 3 são introspectivos: acham o que você decidiu. Não acham o que você **não pensou**, porque nenhum galho da árvore levava até lá. A varredura é a lista externa que acha isso. Todo Parcial ou Ausente vira pergunta da próxima rodada, ou uma linha explícita na spec: *"não se aplica porque X"* (só quando não se aplicar de fato, não para fugir da pergunta).
 
 Se a lista do passo 1 tem mais de duas ou três linhas, ou a varredura do passo 4 deixou categoria sem resposta, você parou cedo: monte a próxima rodada com elas.
 
@@ -141,15 +146,15 @@ Uma resposta do usuário quase sempre abre galho novo — ele escolhe uma opçã
 
 ### Quando parar mesmo assim
 
-Duas exceções, e só elas: o usuário dizer explicitamente para tocar ("chega, escreve"), ou o caminho ser **sonda** ou **limitada** — nesses, a profundidade certa é rasa por definição. Se o usuário mandar parar com decisão em aberto, escreva as que ficaram abertas na spec, com o default que você assumiu em cada uma.
+Duas exceções, e só elas: o usuário dizer explicitamente para tocar ("chega, escreve"), ou o caminho ser **sonda** ou **limitada** — nesses, a profundidade certa é rasa por definição.
+
+"Chega, escreve" com decisão em aberto **não** autoriza spec com decisão aberta. Liste numa mensagem só cada decisão restante com a sua recomendação ("fecho Q3 com X, Q4 com Y") e peça um aval único. Com o aval, elas estão fechadas, registradas na spec como *decididas pelo usuário ao mandar seguir*, e a spec começa. Sem o aval, nada de spec.
 
 ## Fase 3 — o design
 
-Quando a fronteira esvaziar, apresente o design.
+No caminho arquitetural, a escolha entre **2 a 3 abordagens** é uma decisão da árvore como qualquer outra: entra numa rodada, com os trade-offs no texto de cada opção e a recomendada primeiro. Não é uma apresentação à parte que espera aval.
 
-Antes disso, no caminho arquitetural: proponha **2 a 3 abordagens** com trade-offs, liderando pela recomendada e dizendo por quê.
-
-Apresente o design em seções, cada uma dimensionada pela própria complexidade — algumas frases se for direto, até uns três parágrafos se for sutil. Pergunte depois de cada seção se está de pé. Cubra: arquitetura, componentes, fluxo do dado, tratamento de erro, e como se testa.
+Quando a fronteira esvaziar e a varredura não acusar categoria ausente, o design vai direto para a spec, sem apresentação por seções e sem perguntar "está de pé?". Se, ao montar o design, você descobrir uma decisão que ninguém tomou, ela não entra no design: volta como rodada de perguntas, e a spec espera. Cubra: arquitetura, componentes, fluxo do dado, tratamento de erro, e como se testa.
 
 **Desenhe para isolamento:** unidades pequenas, com um propósito claro cada, conversando por interface bem definida, testáveis em separado. Para cada uma, você tem que conseguir responder: o que faz, como se usa, de que depende.
 
@@ -164,7 +169,7 @@ Esqueleto pronto para copiar: `references/spec-template.md`. Copie a estrutura, 
 Além do design, a spec registra duas coisas que o plano vai precisar e ninguém mais vai lembrar:
 
 - **O que foi descartado, e por quê.** Sem isso, o primeiro implementador que achar a alternativa "melhor" vai implementá-la.
-- **As decisões, com autoria.** Cada decisão relevante marcada como *decidida pelo usuário* ou *assumida por mim*. As assumidas são a lista de revisão do usuário — é onde ele vai olhar primeiro.
+- **As decisões, com autoria.** Cada decisão relevante marcada como *decidida pelo usuário* ou *assumida por mim*. Assumida só cabe para detalhe sem efeito fora do código; decisão que muda comportamento, dado ou custo e está como assumida é pergunta que faltou (teste de fechamento, passo 2).
 
 ### Auto-revisão, antes de mostrar
 
@@ -179,30 +184,28 @@ Releia com olhos frios e conserte na hora:
    - recurso citado sem o que acontece quando ele falha, está vazio ou demora;
    - o mesmo conceito com dois nomes;
    - "por padrão", "provavelmente", "algo como", "etc.", "e afins".
-5. **Decisão órfã** — sobrou decisão marcada "assumida por mim" que devia ter virado pergunta?
+5. **Decisão órfã** — sobrou decisão marcada "assumida por mim" que devia ter virado pergunta? Se sim, pare a escrita e faça a rodada: não há aprovação depois para pegá-la.
 6. **Rastreabilidade** — todo FR tem cenário de aceitação e uma linha em "como se prova"? Todo SC tem número e baseline?
 7. **Exemplo é asserção, não ilustração** — toda tabela de valores de referência foi
    **calculada** a partir da regra que a spec enuncia, ou foi escrita à mão? Regra mais exemplos
    é uma redundância *derivável*, e ninguém pega a contradição lendo: só computando. Medido em
    2026-09-03: uma tabela de 6 perfis de referência trazia 3 linhas que nenhuma regra única de
-   arredondamento produzia; passou pela aprovação do usuário e só caiu na implementação, quando
+   arredondamento produzia; passou pela leitura do usuário e só caiu na implementação, quando
    um worker calculou os 6 e escalou em vez de dobrar o código para caber na tabela. Calcule
    antes de publicar, e **mostre a coluna intermediária** — erro que fica visível não sobrevive à
    revisão seguinte.
 
 Conserte inline. Não precisa revisar de novo.
 
-### Portão de revisão do usuário
+### Sem portão de aprovação: direto para o plano
 
-> "Spec escrita em `<caminho>`. Dá uma olhada e me diz se quer mudar alguma coisa antes de eu escrever o plano de implementação."
-
-Espere. Se ele pedir mudança, mude e refaça a auto-revisão. Só avance com o aval dele.
+A spec não espera aval do usuário. Auto-revisão feita, avise em uma linha onde ela está e invoque `power-plans` no mesmo turno. O controle do usuário fica nas duas pontas: a spec só começa com todas as decisões fechadas, e depois do plano o agente para e pergunta (revisão externa ou commit e push, em `power-plans`). Se o usuário pedir mudança na spec depois, mude, refaça a auto-revisão e ajuste o plano junto.
 
 ## Estado terminal
 
 - **Sonda:** uma recomendação reportada. Fim.
-- **Limitada:** design curto aprovado → implementação pelo fluxo normal do projeto. Sem documento de plano.
-- **Arquitetural:** spec aprovada → invoque **`power-plans`**, e nenhuma outra skill. Não invoque skill de implementação, de design de front-end, nem de execução. `power-plans` é o próximo passo, ponto.
+- **Limitada:** design curto aprovado com pedido de implementação → implementação pelo fluxo normal do projeto. Sem documento de plano.
+- **Arquitetural:** decisões fechadas e spec escrita → invoque **`power-plans`** direto, sem esperar aval, e nenhuma outra skill. Não invoque skill de implementação, de design de front-end, nem de execução. `power-plans` é o próximo passo, ponto.
 
 ## Sinais de que você está se enganando
 
@@ -210,10 +213,11 @@ Espere. Se ele pedir mudança, mude e refaça a auto-revisão. Só avance com o 
 | --- | --- |
 | "É simples demais pra precisar de design" | Simples significa design curto, não design nenhum. Duas frases e a aprovação. |
 | "Vou chamar de limitada e pular a spec" | Procurar um rótulo para pular trabalho **é** a dúvida. Suba o caminho. |
-| "O design é óbvio, começo enquanto ele lê" | O portão é a aprovação, não o tamanho do design. Apresente e pare. |
+| "O design é óbvio, começo enquanto ele lê" | Implementação só com pedido explícito do usuário. Spec e plano prontos não são pedido. |
+| "Falta uma decisão, mas escrevo a spec e ele corrige depois" | Spec não começa com decisão aberta. Não há aprovação depois para pegá-la: faça a rodada. |
 | "Eu conheço esse tipo de app, então é limitada" | Limitada mede o repositório. Projeto novo não tem fluxo existente: é arquitetural. |
 | "Cresceu, mas já estou quase acabando" | Complexidade escondida sobe o caminho no meio do trabalho. Pare e diga. |
-| "Ele aprovou a sonda, então o resto está aprovado" | Cada tarefa tem a própria classificação e a própria aprovação. |
+| "Ele aprovou a sonda, então o resto está aprovado" | Cada tarefa tem a própria classificação e o próprio pedido de implementação. |
 | "Pergunto ao usuário se essa tabela já existe" | Fato é trabalho seu. Despache um subagente e descubra. |
 | "Faço uma pergunta por mensagem pra não sobrecarregar" | A fronteira inteira vai numa rodada. Perguntar em fila multiplica as idas e voltas por dez. |
 | "Já tenho o suficiente pra escrever a spec" | Suficiente para escrever não é o critério. Rode o teste de fechamento. |
@@ -232,4 +236,4 @@ Como escrever: melhore a seção que já cobre o assunto antes de acrescentar li
 
 ---
 
-*A classificação em três caminhos, o portão duro de aprovação e a auto-revisão da spec são adaptados da skill `brainstorming` do plugin [superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent). O formato de rodadas de fronteira vem da skill `grilling`.*
+*A classificação em três caminhos, o portão duro antes da implementação e a auto-revisão da spec são adaptados da skill `brainstorming` do plugin [superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent). O formato de rodadas de fronteira vem da skill `grilling`.*

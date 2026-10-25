@@ -2,7 +2,7 @@
 
 Uma segunda opinião, de outro agente ou outro modelo, sobre a spec e o plano **antes** de executar. Ela não altera nada: produz um relatório com veredito (passa / bloqueia) e a lista de problemas.
 
-Vale quando a feature é grande, quando toca dado de produção, ou quando o usuário pede. Ofereça em uma linha; não imponha, não a agende como tarefa do plano, e não fixe qual agente ou modelo faz o papel. O usuário decide se ela acontece e nomeia o modelo; se ele já nomeou no pedido, rode sem perguntar de novo.
+Vale quando a feature é grande, quando toca dado de produção, ou quando o usuário pede. Ela é uma das duas opções da pergunta que encerra o plano (a outra é commit e push); não imponha, não a agende como tarefa do plano, e não fixe qual agente ou modelo faz o papel. O usuário decide se ela acontece e nomeia o modelo; se ele já nomeou no pedido, rode sem perguntar de novo.
 
 ## O que entregar ao revisor
 
@@ -105,13 +105,14 @@ Este é o passo que mais gera valor, e o mais fácil de pular.
 1. **Verifique cada bloqueador você mesmo.** Abra o arquivo. Rode a query. Um revisor competente ainda erra de tamanho.
 2. **Separe buraco real de decisão de negócio.** "O resolver descarta a segunda sessão do mesmo dia" é buraco: o código faz isso, está em `arquivo:linha`, e o plano ignorava. "Devemos suportar o terceiro idioma agora?" é decisão de negócio: não tem resposta técnica.
 3. **Redimensione com dado.** Um bloqueador que protege zero usuário hoje não é bloqueador. Traga a contagem, decida com ela, e registre o número no documento para a próxima pessoa não reabrir a discussão.
-4. **Leve as decisões de negócio ao usuário**, com resumo curto e recomendação explícita. Não decida por ele, e não empurre a decisão para dentro do plano disfarçada de detalhe técnico.
-5. **Aplique o que sobrou** na spec e no plano, e diga ao usuário onde você discordou do revisor e por quê.
+4. **Leve as decisões de negócio ao usuário**, com resumo curto e recomendação explícita, numa rodada só. Não decida por ele, e não empurre a decisão para dentro do plano disfarçada de detalhe técnico. O que é técnico você decide sozinho, sem pedir aval.
+5. **Aplique o que sobrou** na spec e no plano, e registre onde você discordou do revisor e por quê.
 6. **Conte por custo e registre no plano:** "N bloqueadores: n documentais, n decisão do usuário,
    n redesenho". É esse número, não o veredito, que diz se a spec e o plano estavam sãos.
-7. **Pare e pergunte antes de qualquer nova rodada.** A revisão roda uma vez por pedido do
-   usuário. Depois de aplicar o relatório, relate o que entrou e onde, e pergunte se ele quer
-   outra rodada. Não despache a rodada 2 por conta própria, mesmo com veredito BLOQUEIA, e não
+7. **Commite e dê push, sem pedir aval.** Spec e plano juntos, caminhos explícitos, branch
+   principal pela convenção de git do projeto, e repita a checagem read-only acima antes de
+   estagiar. Depois do push, relate o que entrou e onde, e que outra rodada só roda se o usuário
+   pedir: a revisão roda uma vez por pedido. Não despache a rodada 2 por conta própria, mesmo com veredito BLOQUEIA, e não
    escreva no plano um gate de revisão repetida que ele não pediu (regra e caso de 22/09/2026 em
    `SKILL.md`, seção *A revisão externa roda UMA vez*).
 8. **Feche a triagem com uma linha por skill:** o que entra em qual arquivo, ou *"nada entra,

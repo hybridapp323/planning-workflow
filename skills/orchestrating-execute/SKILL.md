@@ -12,9 +12,12 @@ description: >-
   acrescenta o que é específico de executar um plano: o portão de atribuição de
   modelo, o laço de ondas, o advisor de rumo com orçamento, o que nunca se delega, e
   as armadilhas já pagas. Se o plano ainda não existe, a skill é `power-plans`, não esta.
+  Nunca é continuação automática de `power-plans`: só roda com pedido explícito do usuário.
 ---
 
 # Executar um plano multi-agente
+
+**Só com pedido explícito.** Plano escrito, revisado ou commitado não é pedido de implementação. Esta skill nunca roda como continuação de `power-plans`; espere o usuário pedir.
 
 ## Preflight
 

@@ -4,8 +4,8 @@ Skills para o ciclo de vida de uma feature, da ideia crua até a execução, e a
 
 Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: três das quatro skills não dependem de nenhuma ferramenta específica e rodam em qualquer agente que aceite instruções em arquivo. Ver [Usar em outro agente](#usar-em-outro-agente-ou-outro-cli).
 
-- **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria) e aprovada.
-- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente, com o aparato na medida do risco (mínimo, parcial ou completo) e um plano por família de problema: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. A revisão externa da spec e do plano é recomendada e opcional: quem decide, e nomeia o modelo, é o usuário. O plano não cita orquestrador; a revisão só usa a skill `orchestration` quando o modelo nomeado não roda como subagente no harness.
+- **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria), sem portão de aprovação: a spec só começa com todas as decisões fechadas e segue direto para `power-plans`.
+- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente, com o aparato na medida do risco (mínimo, parcial ou completo) e um plano por família de problema: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. Plano escrito, ela para e pergunta: revisão externa (o usuário nomeia o modelo) ou commit e push. Depois da revisão, o coordenador analisa o relatório, decide o que entra, e commita e dá push na branch principal sem nova parada. O plano não cita orquestrador; a revisão só usa a skill `orchestration` quando o modelo nomeado não roda como subagente no harness.
 - **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas com aceite do coordenador por tarefa (aceitou: marca a task e fecha o terminal, sem que o usuário peça), um gate por plano em rodada única antes do passo irreversível, advisor de rumo com orçamento (uma consulta por veredito de gate, mesmo modelo do gate, registro obrigatório da divergência), e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
 - **`systematic-debugging`** — causa raiz antes de conserto: as quatro fases, o limite de três consertos falhados que vira questão de arquitetura, e as racionalizações que precedem cada banda-aid.
 
@@ -16,12 +16,16 @@ São genéricas de propósito. As regras específicas de cada repositório saem 
 ## Onde isso entra
 
 ```
-ideia  →  spec-interview  →  spec aprovada  →  power-plans  →  plano commitado  →  orchestrating-execute
-                                                                                            |
-                                                systematic-debugging  <---- quebrou --------+
+ideia  →  spec-interview  →  decisões fechadas  →  spec  →  power-plans  →  plano  →  PARA: revisão externa ou commit + push?
+                                                                                                  |
+                                                       (revisão → triagem do coordenador) → commit + push
+                                                                                                  |
+                                                       orchestrating-execute  <-- só a pedido explícito do usuário
+                                                                |
+                         systematic-debugging  <---- quebrou ---+
 ```
 
-`spec-interview` e `power-plans` param sozinhas: uma entrega a spec, a outra entrega o plano. Quem sobe worker é `orchestrating-execute`, e só quando o usuário mandar.
+`spec-interview` não para para aprovação: com as decisões fechadas, escreve a spec e chama `power-plans`. `power-plans` para depois do plano e pergunta revisão externa ou commit e push. Quem sobe worker é `orchestrating-execute`, e só quando o usuário pedir explicitamente a implementação.
 
 ## Instalar
 
