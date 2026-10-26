@@ -814,6 +814,42 @@ Siga a convenção do projeto. Procure planos anteriores (`docs/plans/`, `docs/*
 
 Se o projeto guarda planos em pastas por estado (a fazer / em validação / feito), o plano novo nasce em "a fazer", ao lado da spec. Quem o move para "em validação" é o fecho de `orchestrating-execute`; para "feito", quem obtém a prova que o plano promete. Plano que ainda não rodou fora de "a fazer" some da lista de trabalho.
 
+### Saída de "em validação": prazo e critério
+
+"Em validação" sem data vira depósito. Medido em 2026-10-26: 52 planos parados lá, e 27 deles
+já estavam em produção com usuários reais usando, esperando uma prova visual que ninguém ia
+colher. Por isso todo plano entra em "em validação" com as duas coisas escritas na linha de
+estado:
+
+- **Prazo:** `sai até AAAA-MM-DD`. Padrão: 14 dias depois de a mudança chegar a produção. Se o
+  plano promete uma medição com data própria (uma métrica aos 30 dias, um checkpoint marcado pelo
+  usuário), o prazo é essa data.
+- **Critério:** o que a funcionalidade precisa mostrar em produção. A pergunta é uma só: *o que
+  foi implementado está funcionando em produção, sem bug?*
+
+O que conta como prova, do mais barato ao mais caro. Pare no primeiro que responde:
+
+1. **Mudança só de interface** (tela, visual, animação, texto) que já está em produção: é feita.
+   Não exige prova visual nem aceite em aparelho; se quebrar, o relato de erro ou o suporte acusa.
+2. **Usuários reais já usam, e não há sinal de bug** (erro nos logs, chamado de suporte, falha
+   recorrente): é feita. Pagamento com cliente pagando, tela com uso diário, recurso com linhas
+   novas no banco.
+3. **A regra só aparece no dado** (cálculo, motor, rotina agendada, webhook, integração, saída de
+   IA) e não há evidência de uso: faça uma checagem leve, de 1 a 3 consultas agregadas nos logs
+   ou no banco. Não é auditoria.
+
+No prazo, o plano sai de "em validação" por um destes caminhos, nunca fica sem decisão:
+
+| Situação no prazo | Destino |
+| --- | --- |
+| Em produção, usado, sem sinal de bug | "feito", com a evidência na linha de estado |
+| Sinal de bug | abre a correção; o plano fica e ganha prazo novo contado da correção em produção |
+| Não entregue: atrás de chave desligada, só para admin ou lista fechada, parcial, sem uso real | pergunte ao usuário: feito como está, abandonado, ou prazo novo com o que falta. Uma prorrogação só; na segunda, a decisão é feito ou abandonado |
+
+A revisão é em lote e barata: liste os planos de prazo vencido, separe os que o critério 1 ou 2
+resolve sem consulta, e gaste checagem só onde falta evidência. Ao mover, a linha de estado diz
+a evidência em uma frase (`feito em AAAA-MM-DD: <evidência>`).
+
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
 Depois de escrever, e sem nenhuma decisão do usuário em aberto, **não commite ainda**: pare e pergunte *revisão externa ou commit e push* (Fase 3, seção da revisão externa). Com a resposta, siga até o push sem nova parada. Não suba worker nem implemente: só com pedido explícito do usuário, e a skill então é `orchestrating-execute`.

@@ -679,10 +679,12 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
    `AGENTS.md` der), a execução termina tirando os dois de "a fazer" e pondo em "em validação".
    Reescreva toda referência ao caminho antigo: índices, outros planos, skills, scripts e
    comentário de código. Link relativo de dentro da pasta movida muda de profundidade junto.
-   **Nunca mova para "feito" no fecho.** Feito exige a prova que o plano prometeu (medição em
-   produção, teste pago, aceite do usuário), e ela quase sempre chega depois da execução; quem
-   obtém a prova é quem move para "feito". No índice de planos, diga qual prova falta e quando
-   ela cabe. Se o projeto não tem pastas de estado, pergunte uma vez se quer adotá-las; sem
+   **Nunca mova para "feito" no fecho.** Feito exige ver a funcionalidade funcionando em
+   produção, e isso quase sempre chega depois da execução; quem vê é quem move para "feito".
+   Escreva na linha de estado o prazo de saída e o critério (`sai até AAAA-MM-DD`, regra em
+   `power-plans`, seção *Saída de "em validação"*): sem data, o plano fica parado lá. Se a
+   publicação em produção ainda não aconteceu, escreva o critério agora e a data fica para quem
+   publicar. Se o projeto não tem pastas de estado, pergunte uma vez se quer adotá-las; sem
    resposta, siga a convenção que existe.
 3. Commite com caminhos explícitos.
 4. Responda os portões de entrega do projeto, sem esperar o usuário perguntar. Se o projeto entrega por bundle ou build nativo, diga sim ou não para cada um.

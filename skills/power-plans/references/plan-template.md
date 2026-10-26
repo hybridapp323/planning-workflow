@@ -10,7 +10,7 @@ Copie a estrutura, não o conteúdo. Corte seções que a feature não usa, e di
 **Spec:** `<caminho da spec>`
 **Evidência:** `<caminho do snapshot da fase 0>` (diagnóstico) + `<fase 0.5>` (prescrição)
 **Escala escolhida:** completa | parcial | mínima — <por quê>
-**Estado:** a fazer | em validação desde AAAA-MM-DD (falta: <prova>) | feito em AAAA-MM-DD (<prova obtida>)
+**Estado:** a fazer | em validação desde AAAA-MM-DD, sai até AAAA-MM-DD (critério: <o que precisa funcionar em produção>) | feito em AAAA-MM-DD (<evidência>)
 
 ## 0. Como ler este plano
 
@@ -247,7 +247,7 @@ Só o coordenador roda estes. Nenhum worker.
 3. Portões de entrega deste projeto: <deploy? bundle? build nativo? publicação?>
 4. Documentação viva que precisa acompanhar: <quais arquivos>
 5. Mover plano e spec para <em validação> (pastas de estado do projeto, se houver) e reescrever as referências ao caminho antigo
-6. Prova que leva a <feito>, e quando ela cabe: <medição / E2E / aceite do usuário, com data>
+6. Prazo e critério de saída de <em validação> (power-plans, *Saída de "em validação"*): sai até <data, padrão 14 dias depois de chegar a produção>; critério: <o que precisa funcionar em produção; mudança só de interface já em produção não exige prova>
 
 ## 7. Riscos de orquestração
 
