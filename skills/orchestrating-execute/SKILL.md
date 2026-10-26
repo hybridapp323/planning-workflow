@@ -674,18 +674,21 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
 ## Fecho
 
 1. Rode lint e testes do projeto, você mesmo.
-2. **Mova plano e spec para "em validação"**, no mesmo commit do fecho. Se o projeto guarda
-   planos em pastas por estado (a fazer / em validação / feito, ou o nome que o `CLAUDE.md` /
-   `AGENTS.md` der), a execução termina tirando os dois de "a fazer" e pondo em "em validação".
+2. **Mova plano e spec pelo tipo de entrega que o plano declarou** (`power-plans`, seção
+   *Saída de "em validação"*), no mesmo commit do fecho. Se o projeto guarda planos em pastas
+   por estado (a fazer / em validação / feito, ou o nome que o `CLAUDE.md` / `AGENTS.md` der):
+   - **Com backend:** de "a fazer" para "em validação", com `sai até AAAA-MM-DD` na linha de
+     estado. Quando a mudança chegar a produção, agende o cron de verificação que o plano
+     especifica (no ambiente com Orca, skill `cron-orca`) e escreva o nome dele na linha de
+     estado. Se a publicação em produção é de outra sessão, deixe escrito que o cron falta, e
+     quem publicar agenda. **Nunca vá para "feito" no fecho:** quem move é quem lê o veredito.
+   - **Só interface:** o usuário valida antes de produção; publicada em produção, vai direto para
+     "feito", sem prazo nem cron. Se a publicação ainda não aconteceu, siga para "em validação"
+     com a nota "só interface: vai para feito ao publicar em produção".
    Reescreva toda referência ao caminho antigo: índices, outros planos, skills, scripts e
    comentário de código. Link relativo de dentro da pasta movida muda de profundidade junto.
-   **Nunca mova para "feito" no fecho.** Feito exige ver a funcionalidade funcionando em
-   produção, e isso quase sempre chega depois da execução; quem vê é quem move para "feito".
-   Escreva na linha de estado o prazo de saída e o critério (`sai até AAAA-MM-DD`, regra em
-   `power-plans`, seção *Saída de "em validação"*): sem data, o plano fica parado lá. Se a
-   publicação em produção ainda não aconteceu, escreva o critério agora e a data fica para quem
-   publicar. Se o projeto não tem pastas de estado, pergunte uma vez se quer adotá-las; sem
-   resposta, siga a convenção que existe.
+   Se o projeto não tem pastas de estado, pergunte uma vez se quer adotá-las; sem resposta,
+   siga a convenção que existe.
 3. Commite com caminhos explícitos.
 4. Responda os portões de entrega do projeto, sem esperar o usuário perguntar. Se o projeto entrega por bundle ou build nativo, diga sim ou não para cada um.
 5. Atualize a documentação que este projeto exige atualizar no mesmo commit.

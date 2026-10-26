@@ -10,7 +10,7 @@ Copie a estrutura, não o conteúdo. Corte seções que a feature não usa, e di
 **Spec:** `<caminho da spec>`
 **Evidência:** `<caminho do snapshot da fase 0>` (diagnóstico) + `<fase 0.5>` (prescrição)
 **Escala escolhida:** completa | parcial | mínima — <por quê>
-**Estado:** a fazer | em validação desde AAAA-MM-DD, sai até AAAA-MM-DD (critério: <o que precisa funcionar em produção>) | feito em AAAA-MM-DD (<evidência>)
+**Estado:** a fazer | em validação desde AAAA-MM-DD, sai até AAAA-MM-DD (cron: <nome do cron agendado>) | feito em AAAA-MM-DD (<evidência>)
 
 ## 0. Como ler este plano
 
@@ -247,7 +247,13 @@ Só o coordenador roda estes. Nenhum worker.
 3. Portões de entrega deste projeto: <deploy? bundle? build nativo? publicação?>
 4. Documentação viva que precisa acompanhar: <quais arquivos>
 5. Mover plano e spec para <em validação> (pastas de estado do projeto, se houver) e reescrever as referências ao caminho antigo
-6. Prazo e critério de saída de <em validação> (power-plans, *Saída de "em validação"*): sai até <data, padrão 14 dias depois de chegar a produção>; critério: <o que precisa funcionar em produção; mudança só de interface já em produção não exige prova>
+6. Saída de <em validação> (power-plans, *Saída de "em validação"*):
+   - Tipo: só interface (validada pelo usuário, publicada em produção, vai direto para <feito>) | com backend
+   - Prazo (só com backend): 14 | 30 dias depois de chegar a produção — <por quê>
+   - Cron de verificação (só com backend), agendado quando chegar a produção, roda no prazo:
+     - Funcionando: <1 a 3 consultas agregadas de uso real, sem contas de teste>
+     - Bug: <onde o erro apareceria e o limite que conta como bug>
+     - Saída: relatório com veredito funcionando | bug | sem uso; não move arquivo nem commita
 
 ## 7. Riscos de orquestração
 

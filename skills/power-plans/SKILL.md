@@ -690,7 +690,7 @@ assim; outra rodada só se você pedir"*.
 
 Escreva os passos do coordenador entre as ondas e depois da última: o que ele aplica, verifica, commita e deploya, em ordem, com o comando.
 
-Termine com os portões de entrega do projeto. Descubra quais são (ver abaixo) em vez de assumir: pode ser deploy, migration, bundle OTA, build nativo, publicação em loja. E inclua a documentação que este projeto exige atualizar no mesmo commit da mudança, se exigir.
+Termine com os portões de entrega do projeto. Descubra quais são (ver abaixo) em vez de assumir: pode ser deploy, migration, bundle OTA, build nativo, publicação em loja. E inclua a documentação que este projeto exige atualizar no mesmo commit da mudança, se exigir. E escreva a saída de "em validação": tipo de entrega, prazo e o cron de verificação (seção *Saída de "em validação"*, em *Onde salvar*).
 
 ## Auto-revisão antes de entregar
 
@@ -812,43 +812,54 @@ Se o projeto não tiver esses arquivos, pergunte ao usuário estas coisas antes 
 
 Siga a convenção do projeto. Procure planos anteriores (`docs/plans/`, `docs/**/plans/`, `plans/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/plans/AAAA-MM-DD-<topico>.md` e diga ao usuário que você criou a convenção.
 
-Se o projeto guarda planos em pastas por estado (a fazer / em validação / feito), o plano novo nasce em "a fazer", ao lado da spec. Quem o move para "em validação" é o fecho de `orchestrating-execute`; para "feito", quem obtém a prova que o plano promete. Plano que ainda não rodou fora de "a fazer" some da lista de trabalho.
+Se o projeto guarda planos em pastas por estado (a fazer / em validação / feito), o plano novo nasce em "a fazer", ao lado da spec. Quem o move para "em validação" é o fecho de `orchestrating-execute`; para "feito", quem lê o veredito do cron de verificação. Plano só de interface pula "em validação" (seção abaixo). Plano que ainda não rodou fora de "a fazer" some da lista de trabalho.
 
-### Saída de "em validação": prazo e critério
+### Saída de "em validação": tipo, prazo e cron de verificação
 
 "Em validação" sem data vira depósito. Medido em 2026-10-26: 52 planos parados lá, e 27 deles
 já estavam em produção com usuários reais usando, esperando uma prova visual que ninguém ia
-colher. Por isso todo plano entra em "em validação" com as duas coisas escritas na linha de
-estado:
+colher. Por isso o plano decide **na escrita** como vai sair de lá, em três campos da seção de
+fecho (modelo em `references/plan-template.md`, passo 6 do fecho):
 
-- **Prazo:** `sai até AAAA-MM-DD`. Padrão: 14 dias depois de a mudança chegar a produção. Se o
-  plano promete uma medição com data própria (uma métrica aos 30 dias, um checkpoint marcado pelo
-  usuário), o prazo é essa data.
-- **Critério:** o que a funcionalidade precisa mostrar em produção. A pergunta é uma só: *o que
-  foi implementado está funcionando em produção, sem bug?*
+**1. Tipo de entrega.** Decide se o plano passa por "em validação":
 
-O que conta como prova, do mais barato ao mais caro. Pare no primeiro que responde:
+| Tipo | Exemplos | Caminho |
+| --- | --- | --- |
+| **Só interface** | tela, visual, animação, texto, layout, sem regra nem dado novo | o usuário valida antes de produção; publicado em produção, vai **direto para "feito"** no mesmo commit que registra a publicação. Sem prazo, sem cron |
+| **Interface com backend** ou **só backend** | tela que grava ou lê dado novo, endpoint, migração, rotina agendada, webhook, pagamento, integração, cálculo, saída de IA | vai para "em validação" com prazo e cron agendado |
 
-1. **Mudança só de interface** (tela, visual, animação, texto) que já está em produção: é feita.
-   Não exige prova visual nem aceite em aparelho; se quebrar, o relato de erro ou o suporte acusa.
-2. **Usuários reais já usam, e não há sinal de bug** (erro nos logs, chamado de suporte, falha
-   recorrente): é feita. Pagamento com cliente pagando, tela com uso diário, recurso com linhas
-   novas no banco.
-3. **A regra só aparece no dado** (cálculo, motor, rotina agendada, webhook, integração, saída de
-   IA) e não há evidência de uso: faça uma checagem leve, de 1 a 3 consultas agregadas nos logs
-   ou no banco. Não é auditoria.
+Na dúvida, é o segundo: se um erro só apareceria no dado ou no log, não na tela, há backend.
 
-No prazo, o plano sai de "em validação" por um destes caminhos, nunca fica sem decisão:
+**2. Prazo.** `sai até AAAA-MM-DD`, contado da chegada a produção: **14 dias** por padrão,
+**30 dias** quando o efeito precisa de ciclo longo para aparecer (uso semanal, renovação de
+assinatura, métrica de retenção, rotina mensal) ou quando o plano promete uma medição nessa data.
+Escreva o motivo da escolha em uma linha.
 
-| Situação no prazo | Destino |
+**3. Cron de verificação.** Especifique no plano, para ser agendado assim que a mudança chegar a
+produção (no ambiente com Orca, pela skill `cron-orca`; sem ele, pelo agendador que o projeto
+usar). Ele roda na data do prazo, gateado pela data para não subir agente antes, e responde a
+pergunta do critério: *o que foi implementado está funcionando em produção, sem bug?*
+O plano deixa escrito:
+
+- **Sinais de funcionamento:** 1 a 3 consultas agregadas que provam uso real (linhas novas por
+  dia, usuários distintos, eventos de sucesso). Consulta pronta, com o filtro que exclui contas
+  de teste e do dono.
+- **Sinais de bug:** onde o erro apareceria (evento de erro do app, log da função, chamado de
+  suporte, falha recorrente, valor fora da faixa esperada) e o limite que conta como bug.
+- **Saída:** o relatório com o veredito (*funcionando*, *bug*, *sem uso*) e a evidência
+  numérica. O cron **não** move arquivo nem commita: quem move é a sessão que lê o veredito.
+
+No prazo, o veredito decide o destino. O plano nunca fica sem decisão:
+
+| Veredito | Destino |
 | --- | --- |
-| Em produção, usado, sem sinal de bug | "feito", com a evidência na linha de estado |
-| Sinal de bug | abre a correção; o plano fica e ganha prazo novo contado da correção em produção |
-| Não entregue: atrás de chave desligada, só para admin ou lista fechada, parcial, sem uso real | pergunte ao usuário: feito como está, abandonado, ou prazo novo com o que falta. Uma prorrogação só; na segunda, a decisão é feito ou abandonado |
+| Funcionando: em produção, usado, sem sinal de bug | "feito", com a evidência na linha de estado (`feito em AAAA-MM-DD: <evidência>`) |
+| Bug | abre a correção; o plano fica e ganha prazo novo e cron novo, contados da correção em produção |
+| Sem uso ou não entregue (atrás de chave desligada, só para admin, parcial) | pergunte ao usuário: feito como está, abandonado, ou prazo novo com o que falta. Uma prorrogação só; na segunda, a decisão é feito ou abandonado |
 
-A revisão é em lote e barata: liste os planos de prazo vencido, separe os que o critério 1 ou 2
-resolve sem consulta, e gaste checagem só onde falta evidência. Ao mover, a linha de estado diz
-a evidência em uma frase (`feito em AAAA-MM-DD: <evidência>`).
+Planos que já estão em "em validação" sem tipo nem cron se revisam em lote: separe os de só
+interface já em produção e os com uso real evidente, que saem sem consulta, e gaste checagem
+leve (1 a 3 consultas) só onde falta evidência.
 
 Esqueleto pronto para copiar: `references/plan-template.md`.
 
