@@ -263,6 +263,10 @@ estão em `references/classes-de-erro.md`: **leia a classe inteira quando ela se
     unicidade pode morar num índice.
 17. **Detector de texto:** falso positivo medido em amostra real, falso negativo com as frases
     vizinhas, lista de variações no `Pronto quando`.
+18. **"N itens acham par" não é "N vínculos" quando o alvo é único:** conte alvos distintos, do lado
+    da restrição (índice único, reserva no chamador).
+19. **Grant explícito não tira privilégio padrão herdado:** meça o privilégio efetivo depois de criar
+    o objeto, não o texto do `grant`.
 
 ### O que NÃO dá para decidir no plano — diga isso em vez de fingir
 
@@ -405,6 +409,27 @@ literal, formando par com corridas de rua.
 
 **Contrato não é mais restrito que o FR que implementa.** Se o plano aperta uma regra que a
 spec enuncia mais solta, isso é decisão com autoria na spec, não detalhe técnico do plano.
+
+**Contrato tem de ser executável inteiro: leia cada regra contra as outras antes de congelar.**
+Worker obediente não resolve contradição, escala, e cada escalação é um worker parado esperando o
+coordenador. Quatro formas que pararam workers, cada uma pegável em segundos na releitura:
+
+- **Ação exigida sob uma condição que, por definição, já não vale.** "Toda escrita exige ser o dono
+  do lease" mais "ao perder o lease, grave o motivo na linha": a segunda regra é inexecutável pela
+  primeira. Decida onde o efeito vai (log, outra tabela) no contrato.
+- **Duas exigências literais sobre o mesmo campo.** Formato fixo do texto e, em outra seção, "inclua
+  o valor original nesse texto quando X". Escreva o formato com a variação dentro.
+- **Comportamento de API externa citado como documentado sem a documentação dizer.** "Trate o erro
+  documentado de recurso já cancelado como sucesso", sem código nem corpo na doc. Ou meça, ou
+  congele a verificação que dispensa saber (ler o recurso de volta e conferir o estado).
+- **Linha de risco ou watchlist com ação de código.** "A tarefa X registra erro quando Y" numa tabela
+  de riscos, contradizendo o contrato que trata Y como válido. Ação de código em risco é requisito
+  escondido: vira contrato, ou sai do risco.
+
+Medido em 2026-10-29: plano de 7 tarefas com contratos literais e uma revisão externa já aplicada;
+na execução, **5 escalações**, todas uma destas quatro formas, nenhuma defeito de worker. Cada uma
+custou um worker parado e uma ida e volta; duas vieram em dobro (escalação e pergunta bloqueante
+com o mesmo texto).
 
 ### Critério de pronto: é contrato também, e cola literal
 

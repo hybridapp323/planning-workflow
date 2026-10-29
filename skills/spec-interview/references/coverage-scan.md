@@ -32,7 +32,8 @@ inteira descoberta na fase de plano, onde a mesma pergunta já custa uma reescri
 
 - entidades, atributos, relações
 - **identidade e unicidade**: o que faz duas linhas serem "a mesma coisa"; a chave que o
-  código usa é a chave certa?
+  código usa é a chave certa? E do outro lado: se o destino de um vínculo é único, conte alvos
+  distintos, não itens com par (40 itens com par único eram 35 alvos, 2026-10-29)
 - **ciclo de vida**: estados, transições, quem transita, o que é terminal
 - **semântica de cada campo lido ou escrito**: o nome diz uma coisa e a linha real diz
   outra? (um `created_at` que significa "quando fechou"; uma flag que descreve o que o

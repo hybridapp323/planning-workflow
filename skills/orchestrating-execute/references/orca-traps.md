@@ -1682,3 +1682,67 @@ Sintoma para reconhecer cedo, em qualquer máquina compartilhada: `ps --sort=-rs
 processos do mesmo comando de verificação no topo, e `uptime` com load muito acima do número de
 CPUs. Se o cliente remoto do Orca der timeout com a rede boa, olhe `uptime`, `free -m` e `ps`
 antes de culpar a rede.
+
+## opencode 2.x: o TUI não aceita `--model`, e o terminal parece criado (2026-10-29)
+
+A partir da 2.0, `opencode --model <provider/model>` só existe no subcomando `run`. No TUI
+(`opencode` puro) a flag é recusada com `Unrecognized flag: --model in command opencode`, o processo
+sai, e o terminal volta ao shell. O `terminal create` respondeu `ok:true` e o handle existe: nada
+avisa até você ler o pane.
+
+O que funciona: `--command "opencode --auto"` (sem `--model`) e **conferir o modelo no rodapé** do TUI
+(`Build auto · <modelo> · <esforço>`) antes de despachar. O TUI sobe no modelo padrão da configuração
+ou no último usado; se não for o atribuído, troque dentro do TUI ou fixe o padrão na configuração do
+opencode antes de criar os terminais. O smoke headless (`opencode run --model ...`) continua valendo
+para provar o modelo, não o TUI.
+
+Medido: 4 terminais criados com `--model`, os 4 caíram no shell; recriados sem a flag, subiram no
+modelo certo.
+
+## Codex: aviso "Hooks need review" na partida bloqueia todo `send` com texto (2026-10-29)
+
+Com hooks novos ou alterados no ambiente, o Codex sobe numa lista ("Review hooks / Trust all /
+Continue without trusting"). Enquanto ela está na tela, `orca terminal send --text "3" --enter` é
+recusado com `agent_prompt_blocked`, e `dispatch --inject` também não entra.
+
+O que funciona: bytes crus, **sem** `--enter`. Seta para baixo até a opção e depois Enter cru, em
+chamadas separadas:
+
+```bash
+orca terminal send --terminal <h> --text $'\x1b[B\x1b[B' --json   # duas setas
+orca terminal send --terminal <h> --text $'\r' --json               # confirma
+orca terminal send --terminal <h> --text $'\x1b' --json             # fecha o banner seguinte, se houver
+```
+
+Para worker e revisor, "continuar sem confiar" é a escolha segura: os hooks são do ambiente do usuário,
+não da tarefa. Depois, confira modelo **e esforço** no rodapé; se o esforço sair como `default`, abra
+`/model` no TUI e confira o nível marcado como atual (o rótulo do rodapé pode não refletir o `-c`).
+
+Medido: aconteceu em todo terminal Codex do ciclo (6).
+
+## Escalação e pergunta bloqueante com o mesmo texto: responder uma não solta o worker (2026-10-29)
+
+Um worker que encontra contradição no contrato pode mandar **as duas**: uma `escalation` e um
+`orchestration ask`, que bloqueia o turno dele. Responder a `escalation` com `reply` não desbloqueia:
+o TUI fica em "Waiting for background terminal", rodando o `ask`. A pergunta tem id próprio, `type:
+question`, e só a resposta a ela solta o worker.
+
+Ao ver uma escalação, procure a `question` do mesmo remetente e responda as duas, com o nudge depois.
+Se o terminal mostrar "Waiting for background terminal", há um `ask` pendente: ache o id em
+`check --all`. Atenção ao horário: `created_at` das mensagens é UTC, e filtrar pelo horário local
+esconde a pergunta (aconteceu, e custou mais uma ida e volta).
+
+Medido: 2 vezes no mesmo ciclo, cada uma com o worker parado alguns minutos depois da primeira resposta.
+
+## O Orca se atualiza sozinho no meio do run (2026-10-29)
+
+Sem aviso, o instalador do Orca roda, o binário sai do lugar e qualquer comando responde
+`orca: command not found` ou `runtime_unavailable: ... Start the Orca app first`. Não é queda do worker
+nem do run.
+
+O que fazer: nenhum comando de orquestração até `orca status --json` responder `state: ready` (espere
+em laço, não em `sleep` fixo; levou ~70 s). Depois: o `runtimeId` muda, os terminais sobreviveram e os
+workers continuaram trabalhando; confira com `terminal list` e uma leitura do pane, e só então volte
+a esperar. Não recrie terminal nem redespache por causa da atualização.
+
+Medido: uma vez, no meio do gate; nada perdido.

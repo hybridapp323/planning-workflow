@@ -238,6 +238,32 @@ plano* e *Etiqueta de procedência* do `SKILL.md`.
     variações que nenhuma fixture tinha. Foi a maior causa de devolução ao worker do ciclo. Cada um
     custava uma consulta de amostra ou uma linha na lista de variações.
 
+18. **"N itens acham par" não é "N vínculos" quando o alvo é único.** A contagem natural é do lado
+    do item: quantos registros encontram exatamente um candidato. O sistema pergunta do lado do
+    alvo: esse alvo já pertence a outro? Quando o destino tem unicidade (índice único, ou um
+    chamador que reserva o alvo dentro do lote), dois itens que apontam para o mesmo alvo rendem um
+    vínculo, e o outro fica de fora sem erro nenhum. A consulta que fecha a afirmação conta
+    **alvos distintos** entre os candidatos (`count(distinct alvo)` ao lado de `count(*)`) e lista
+    os alvos com mais de um item.
+    Medido em 2026-10-29: o plano prometia 40 vínculos novos a partir de 40 itens com par único;
+    eram **35 alvos distintos**, 5 pares disputando o mesmo destino. Passou pelo autor, pela spec e
+    pelo plano; quem achou foi a revisão externa, lendo o chamador e o índice. Custou uma decisão
+    do usuário (qual item do par fica) e os números de três seções refeitos.
+
+19. **Grant explícito não tira privilégio padrão herdado.** Num banco com privilégios padrão por
+    schema, a tabela nova nasce com o que o padrão concede a cada papel, e um `grant select ... to X`
+    na migration **acrescenta**, não substitui. A migration parece restritiva e não é. O controle de
+    linha (RLS ou equivalente) pode estar segurando o acesso, mas são camadas distintas, e a de
+    privilégio fica aberta para o primeiro caminho que não passa pela outra. Duas medições, as duas
+    de uma linha: o privilégio padrão do schema (`pg_default_acl` ou equivalente) antes de escrever
+    a migration, e o privilégio **efetivo** de cada papel depois de criá-la (`has_table_privilege`,
+    `has_function_privilege`). A migration começa com `revoke all ... from` os papéis públicos e só
+    então concede.
+    Medido em 2026-10-29: o padrão do schema concedia todos os privilégios de tabela aos papéis
+    anônimo e autenticado; a migration só "concedia leitura". Achado pelo gate, antes do passo
+    irreversível; custou uma tarefa de correção. Depois do `revoke all`, a medição efetiva confirmou
+    INSERT e DELETE negados.
+
 ### Cenário de teste escrito e não executado é HIPÓTESE, não cobertura
 
 Medido em 2026-08-27. Dois cenários E2E foram escritos junto
