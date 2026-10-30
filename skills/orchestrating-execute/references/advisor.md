@@ -11,16 +11,32 @@ final) está no `SKILL.md`; este arquivo é a mecânica.
 2. **Você já escreveu a direção que pretende tomar, com o motivo?** Sem isso não há o que
    discriminar, e o advisor refaz o gate.
 3. **O orçamento permite?** `orca orchestration task-list --json` e conte os títulos `ADV-`.
-   Uma por veredito de gate, uma por escalação que contradiz contrato, uma para montar opções ao
-   usuário. Já existe `ADV-` para este veredito ou esta escalação: não há segunda.
+   Uma por veredito, escalação de contrato ou episódio de freio técnico. Consuma o parecer
+   já emitido; outra consulta exige evidência ou decisão nova. SHA, worker e sessão não zeram
+   tentativas.
+
+## Retomada após freio técnico
+
+Limite de candidatas/tentativas ou segunda reprovação da mesma família aciona o advisor
+automaticamente, no mesmo modelo e esforço já definidos para o gate, sem nova pergunta ao
+usuário só pela contagem. Entregue histórico, critério ainda vermelho, custo/limites,
+direção pretendida e alternativas. Peça decisão de mecanismo, contraprova e lote mínimo.
+O coordenador só retoma dentro da autorização após prova causal offline e controles.
+Requisito, residual, ação sem autorização ou quota paga adicional continuam com o usuário.
+Modelo indisponível deve ser relatado sem troca silenciosa nem liberação do gasto.
+
+A alteração na skill global `orchestration` é reproduzível pelo
+[patch de integração](../assets/orchestration-advisor-recovery.patch), aplicado somente na
+cópia canônica; não crie uma segunda skill.
 
 ## Mecânica
 
 ```bash
-orca orchestration task-create --task-title "ADV-1: gatilho <1|2|3> — <a decisão em cinco palavras>" \
-  --display-name "ADV-1" --json
-# terminal no modelo da linha Gate / Advisor do portão; confira o rodapé antes de despachar
-orca orchestration dispatch --task <id> --to terminal:<handle> --return-preamble --json
+orca orchestration task-create --task-title "ADV-n: gatilho e decisão" \
+  --spec "<brief completo, mandato read-only e prova esperada>" --json
+# Use o task_id retornado; modelo e esforço são os já definidos para Gate / Advisor.
+orca orchestration worker-start --task <task_id> --worktree current \
+  --agent <agente-do-gate> --model <modelo-do-gate> --effort <esforço-do-gate> --json
 ```
 
 A task não tem `--deps` de código: ela nasce da reprovação ou da escalação que a motivou, e você a
@@ -28,7 +44,9 @@ fecha com o resultado real (recomendação recebida, decisão tomada, registro e
 fecha no `worker_done`, como o de qualquer worker.
 
 **O terminal do gate serve ao ADV-n que nasce do veredito dele**, quando o gate e o advisor estão
-na mesma linha do portão: o contexto já pago (spec, plano, código e as provas do próprio gate) vira
+na mesma linha do portão e o terminal é próprio, vivo e não assumido pelo usuário.
+Transfira a posse por novo `worker-start --task <novo_task_id> --terminal <handle> --worktree current`,
+com o handle do recibo anterior; terminal já fechado exige worker novo. O contexto já pago vira
 a leitura do advisor, e o brief só precisa trazer a direção pretendida e as descartadas. Medido em
 2026-09-30: consulta de gatilho 2 respondida em ~4 min, com critério, os casos de teste que o
 worker precisava e uma trava que o coordenador não tinha visto. Registre na task que o terminal foi
@@ -58,8 +76,8 @@ Caminhos absolutos, sem colar valor de credencial:
 1. Entre a direção pretendida e as alternativas, **qual restrição discrimina?** Não "qual é
    melhor": qual fato, se verdadeiro, decide.
 2. **O que tornaria a minha direção errada**, e como eu veria isso antes de despachar?
-3. Isto é decisão de rumo (do coordenador) ou decisão de negócio (do usuário)? Se de negócio,
-   diga e pare.
+3. A recuperação cabe na spec e autorização? Delimite prova offline e lote seguinte.
+   Nomeie qualquer decisão de produto, residual ou saldo adicional que dependa do usuário.
 4. **O que está faltando aqui que eu não teria como notar, porque fui eu que escrevi?**
 
 Escreva a pergunta com o critério dentro. Num ciclo de cobrança a pergunta feita foi "isso
@@ -83,6 +101,8 @@ Recomendação: <direção pretendida | alternativa N | outra, nomeada>
 Critério que discrimina: <o fato ou restrição, com arquivo:linha ou query quando houver>
 O que derrubaria a recomendação: <uma frase>
 Risco que o coordenador não viu: <ou "nenhum além dos listados">
+Prova para retomar: <caso causal, controles e lote seguinte>
+Limites de autorização: <o que continua sujeito ao usuário ou ao gate>
 Fora do meu alcance: <o que não conseguiu verificar>
 ```
 

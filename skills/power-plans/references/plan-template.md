@@ -257,12 +257,20 @@ Só o coordenador roda estes. Nenhum worker.
 
 ## 7. Riscos de orquestração
 
+Estado corrente único: <fonte; último aceite; falha/família; tentativas; consumo;
+evidência; próximo passo>. Atualizar, sem copiar a cronologia inteira.
+Limites: <tokens totais; saída; caminho crítico; candidatas/tentativas; runs já autorizados>.
+Estimativa não concede quota. Freio técnico chama advisor; produto, residual, ação não
+autorizada ou verba adicional continuam com o usuário.
+
 | Risco | Mitigação |
 | ----- | --------- |
 | <worker sai do escopo> | ownership normativo em §3 e "não faça" em cada tarefa |
 | <contrato divergente> | §4 congelado antes da onda 1 |
 | <worktrees divergindo de uma branch principal que recebe outra onda antes> | ordem fixa em §2.3, rebase e conflitos pela onda, suíte por nome depois de cada integração |
-| <correção pós-gate vai para o call site quando o defeito é de mecanismo> | advisor `ADV-n` (modelo `<MODELO_GATE>`) antes de despachar a onda de correção; no máximo uma consulta por veredito de gate; registro recomendou / decidi / divergência aqui neste §7 |
+| <correção fica no sintoma ou repete a mesma família> | advisor `ADV-n` no modelo/esforço de `Gate / Advisor`; uma consulta por veredito/episódio, com decisão e contraprova offline em §7 |
+| <freio técnico de candidatas/tentativas atingido> | consultar advisor automaticamente; não perguntar só pela contagem, zerar tentativas ou elevar quota paga |
+| <muitos testes verdes sem jornada aceita> | critério observável e prova integrada explícitos; campanha completa na candidata estabilizada |
 ```
 
 ---

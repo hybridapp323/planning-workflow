@@ -602,13 +602,17 @@ para correção, nunca para o gate. Escreva isso no plano com essas
 palavras: "C<z> não acontece sem a aprovação do gate" é a frase que faz o executor chamar o
 revisor de novo até ouvir PASSA.
 
-**O plano também declara o orçamento do advisor, sem agendar consulta nenhuma.** O advisor
-(`orchestrating-execute`, seção *O advisor*) é a segunda opinião de rumo que o coordenador
-consulta quando a lista do gate pede correção de mecanismo, quando um achado contradiz contrato
-congelado, ou ao montar opções para o usuário. Roda no modelo `<MODELO_GATE>`, o mesmo do gate,
-com teto de uma consulta por veredito de gate. A consulta é emergente e não se planeja; o
-teto e o modelo, sim: entram na tabela de níveis (linha `Gate / Advisor`) e no §7, como no
-esqueleto.
+**O plano declara o modelo e orçamento do advisor, sem agendar consulta.** Use o mesmo modelo
+e esforço da linha `Gate / Advisor`. Além de mecanismo/contrato, limite técnico de candidatas,
+tentativas ou esforço e segunda reprovação da mesma família acionam consulta automática,
+sem perguntar ao usuário se deve insistir.
+
+Em §7, declare aceitação observável, limites técnicos, tokens totais/saída/caminho crítico e
+saldo pago já autorizado. Mantenha fonte, último aceite, falha/família, tentativas, consumo,
+evidência e próximo passo em um estado corrente único. Trocar SHA/worker/sessão não zera
+contadores. O advisor define o rumo e a prova offline antes da campanha completa; não autoriza
+requisito novo, residual, ação irreversível ou quota adicional. Detalhe em
+`orchestrating-execute`, seção O advisor e `references/advisor.md`.
 
 ### Revisão externa da spec e do plano: o agente para e pergunta, o usuário decide
 

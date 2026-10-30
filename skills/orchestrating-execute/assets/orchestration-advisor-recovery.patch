@@ -1,0 +1,36 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1098,14 +1098,25 @@
+ este caso", **pare de pedir cobertura**. A terceira rodada não é "quase lá": é sinal de que a
+ CLASSE de solução está errada, e cada rodada custa um worker inteiro.
+ 
+-O protocolo, antes de despachar a 3ª rodada:
+-
+-1. Escreva UMA frase dizendo por que o mecanismo atual PODE dar certo. Se você não consegue
+-   escrever essa frase, troque o mecanismo em vez de ampliar a lista.
+-2. **Procure a solução dentro do próprio ciclo.** Uma tarefa irmã da mesma onda pode já ter
+-   resolvido o mesmo problema: cruze os relatórios (`orca orchestration dispatch-show --task <id> --json`)
+-   antes de abrir a rodada seguinte.
+-3. Só então despache — e despache a TROCA de mecanismo, não mais um remendo.
++O protocolo antes de outra candidata após a segunda reprovação da mesma família ou freio
++técnico do plano/runner, inclusive limites de três a cinco candidatas:
++
++1. Suspenda novos candidatos e gastos do lote. Preserve fonte, último aceite, família,
++   tentativas, consumo, evidência e próximo passo em um estado corrente único. SHA, worker,
++   sessão ou nome de tarefa novos não zeram contadores.
++2. **Acione automaticamente o advisor no mesmo modelo e esforço já escolhidos para o gate.**
++   Não pergunte ao usuário se deve insistir só pela contagem. Confirme a atribuição real;
++   não substitua por advisor opaco de outro modelo. Use task/dispatch próprios do ciclo.
++3. Entregue histórico, critério ainda vermelho, direção pretendida e alternativas; cruze
++   relatórios das tarefas irmãs. Peça diagnóstico do mecanismo e do instrumento, antes de
++   mais exemplos para a mesma lista.
++4. Registre recomendação, decisão e prova de retomada: caso vermelho antes/verde depois e
++   controles preservados. Mais uma frase reconhecida ou justificativa em prosa não basta.
++   Faça diagnóstico focal antes da campanha completa obrigatória.
++5. O coordenador retoma dentro da spec e do saldo autorizado. O advisor não substitui o gate,
++   não aceita residual, não autoriza ação irreversível nem aumenta quota paga; decisões reais desse
++   tipo continuam com o usuário. Consuma parecer já emitido sem consultas idênticas.
++
+ 
+ Sinal barato de conjunto aberto vs fechado: **se o predicado precisa ENUMERAR formas de dizer
+ algo em português, ele está do lado errado do problema.** Ancore em estado conhecido (um

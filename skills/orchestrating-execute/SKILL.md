@@ -56,6 +56,20 @@ ciclo despachando o revisor do plano, uma task no run e nenhum worker, sem que o
 pedido revisão. Gate (`S<n>` sobre código escrito, antes de passo irreversível) é outra coisa e
 segue a seção *Dois mecanismos de qualidade*.
 
+## Controle de avanço e custo
+
+Registre no plano o comportamento observável de aceitação, limites técnicos de candidatas e
+tentativas, estimativas de tokens totais/saída/caminho crítico e saldo pago já autorizado.
+Estimativa não concede quota. Mantenha um estado corrente único: fonte, último aceite,
+falha/família, tentativas acumuladas, consumo, evidência e próximo passo; ligue logs por
+referência. Contagem de testes verdes não aprova jornada vermelha ou prova modelo simulado.
+
+Faça diagnóstico focal e contraprovas durante o reparo; estabilize a candidata antes da
+campanha completa obrigatória. Repetir exige mudança relevante, falha ou dúvida concreta.
+A segunda reprovação da mesma família ou o freio técnico do plano/runner (inclusive três a
+cinco candidatas) chama automaticamente o advisor. Trocar SHA, worker ou sessão não zera
+tentativas. Para texto aberto, avalie estado estruturado e composição antes de mais exceções.
+
 ## Portão de atribuição de modelo
 
 **Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível:
@@ -547,8 +561,9 @@ Uma linha por lição. O caso que pagou cada uma, com a medição, está em
   o teste que fica vermelho quando ele é desfeito.
 - **Toda afirmação sua no documento do ciclo sobre entrega alheia** carrega o comando que a
   provou; sem ele é `[SUPOSTO:]`.
-- **Se o usuário pediu rodadas extras:** na terceira reprovação da mesma família, pare e leve
-  decisão de ship (residuais com dono, prova fora do gate, custo da próxima rodada).
+- **Freio técnico ou reprovação repetida:** consulte o advisor no mesmo modelo/esforço do gate
+  e prove a recuperação offline antes de outro candidato. Contagem sozinha não vira pergunta
+  ao usuário para insistir nem decisão de aceitar residuais.
 
 ## O advisor: segunda opinião de RUMO, com orçamento e rastro
 
@@ -582,9 +597,12 @@ Só nestes três pontos, e em nenhum outro:
 2. **Um achado ou uma escalação contradiz um contrato congelado ou uma afirmação de carga do
    plano.** Isso é redesenho, e redesenho no meio da execução é onde a pressa erra. Chame antes
    de reescrever o contrato.
-3. **Você vai levar uma decisão ao usuário e precisa montar as opções**: a questão de
-   arquitetura depois de três consertos falhados no mesmo teste (`systematic-debugging`), ou a
-   decisão de ship com residuais. O advisor ajuda a escrever as opções; quem decide é o usuário.
+3. **Um freio técnico disparou:** segunda reprovação da mesma família ou limite de candidatas,
+   tentativas ou esforço do plano/runner. Suspenda novos candidatos e gastos do lote; consulte
+   automaticamente o advisor do gate sobre causa, mecanismo e instrumento. O coordenador
+   retoma dentro da spec/autorização depois de contraprova offline, sem perguntar ao usuário
+   só pela contagem. Se a saída exigir requisito novo, aceite de residual, ação não autorizada
+   ou saldo pago adicional, essa decisão continua com o usuário.
 
 O que NÃO é advisor, mesmo quando parece decisão importante:
 
@@ -594,15 +612,16 @@ O que NÃO é advisor, mesmo quando parece decisão importante:
 - **confirmar o que você já decidiu.** Consulta cuja resposta você já sabe qual quer é
   deferência ao contrário, e gasta o orçamento de quem precisaria dele.
 
-### Orçamento: uma consulta por veredito, e o contador é o `task-list`
+### Orçamento: uma consulta por veredito ou episódio de freio
 
 - **Uma consulta por veredito de gate**, no máximo: a que decide por onde vai a correção. Com um
   gate por plano (seção *Dois mecanismos de qualidade*), isso costuma ser uma consulta no ciclo
   inteiro.
-- **Uma por escalação que contradiz contrato congelado ou afirmação de carga** (gatilho 2), e uma
-  para montar as opções de uma decisão que vai ao usuário (gatilho 3). Não existe segunda consulta
-  sobre o mesmo veredito ou a mesma escalação: se a primeira não decidiu, o que falta é direção
-  sua no brief, não outro advisor.
+- **Uma por escalação que contradiz contrato** e uma por episódio de freio técnico. Consuma
+  o parecer existente antes de abrir consulta idêntica; outra exige evidência ou decisão nova.
+- Retomar exige causa confirmada, decisão de mecanismo, caso vermelho antes/verde depois,
+  controles preservados e próximo lote delimitado. Mais uma frase reconhecida ou justificativa
+  em prosa não satisfaz isso. O advisor não zera contadores, não concede quota nem substitui o gate.
 - **Cada consulta é uma task do Orca chamada `ADV-1`, `ADV-2`, …**, read-only, no run do ciclo. O
   `task-list` é o contador; ninguém conta de cabeça. Gate posterior do plano, se houver, recebe
   os blocos `ADV-n` no brief.
@@ -640,11 +659,9 @@ rastro é a falha de idempotência que o gate teve de achar de novo.
   introduza modelo não listado.
 - Brief, mandato read-only, formato da resposta, mecânica da task e o registro:
   `references/advisor.md`.
-- Se o harness do coordenador tiver um advisor próprio (a ferramenta `advisor` do Claude Code,
-  que lê a conversa inteira), ele é opinião extra e gratuita: **não substitui a task `ADV-n`**
-  quando um gatilho dispara, e não conta no orçamento, porque o modelo dele não é o que o
-  usuário escolheu. O que ele disser sobre uma decisão de rumo entra no mesmo registro, com a
-  mesma exigência de divergência visível. Foi um advisor de harness que apontou aquela falha de idempotência.
+- Advisor interno do harness só serve a esse papel com identidade de modelo e esforço
+  comprovadamente igual à linha `Gate / Advisor`. Não suponha identidade ou gratuidade e não
+  substitua a task `ADV-n` por consulta opaca. Reutilize atribuição conhecida sem nova pergunta.
 
 ## Passos que são sempre seus
 

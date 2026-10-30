@@ -48,27 +48,18 @@ por que o domínio não fecha por enumeração. E a verificação do coordenador
 casos INDEPENDENTES (os seus, nunca só os do worker): aceitar correção
 re-rodando os testes do worker é aceitar a forma que ele imaginou.
 
-## Todo gate tem orçamento: a terceira reprovação da mesma família é decisão de ship
+## Reprovação repetida exige advisor antes de outra candidata
 
-Medido no mesmo ciclo: as rodadas 5–7 continuaram achando defeito real, mas
-cada vez mais exótico (anáfora parentética, rótulo só-emoji, dois estados
-terminais marcados ao mesmo tempo). O custo por rodada ficou constante e o risco residual
-encolheu — e quem parou o loop foi o usuário, não o plano. Nenhuma skill dizia
-quando parar.
+As rodadas 5–7 do ciclo medido continuaram achando defeitos com custo constante; o usuário
+teve de interromper o laço. O gate continua cartada única, e repetição autorizada não concede
+gastos ilimitados. A segunda reprovação da mesma família ou o freio técnico do plano suspende
+a estratégia e aciona automaticamente o advisor no mesmo modelo/esforço do gate.
 
-Este ciclo rodou sete rodadas **contra** a regra do gate como cartada única (`SKILL.md`, seção
-*Dois mecanismos de qualidade*, decidida pelo usuário em 12/09/2026): pelo desenho vigente a rodada dois de um gate só
-existe por pedido explícito dele. O que segue vale para esse caso, quando o usuário pediu
-as rodadas extras, e para o laço `teste → systematic-debugging`, onde a "família" é o mesmo
-teste voltando vermelho pela terceira vez.
-
-**A regra:** na terceira reprovação da MESMA família, pare de despachar
-correção e leve ao usuário uma decisão de ship, com três itens: o que falta
-corrigir (arquivo:linha + cadeia de cada residual), o que prova cada residual
-fora do gate (unitário determinístico? telemetria de produção? nada?), e o
-custo da próxima rodada. Residual aceito vira watchlist com dono e
-falsificador, não dívida silenciosa. "Reprovado pela sétima vez" sem essa
-decisão é o coordenador trocando o julgamento do usuário por persistência.
+Entregue histórico, critério de aceitação e alternativas. Não pergunte ao usuário se deve
+insistir só porque chegou ao limite. Antes de novo candidato, registre causa, mecanismo e
+contraprova offline com controles; mudar SHA, worker ou sessão não zera contadores.
+O advisor não substitui prova nem concede saldo. Decisão real de produto, ship com residual ou
+ação fora da autorização continua com o usuário; residual aceito exige dono e falsificador.
 
 ## Quando o revisor acusa o MECANISMO do teste, pare de despachar correção
 

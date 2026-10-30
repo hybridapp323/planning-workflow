@@ -84,14 +84,21 @@ Complete cada fase antes da seguinte.
 2. **Um conserto só.** Ataque a causa raiz identificada. Uma mudança por vez, sem "já que estou aqui", sem refatoração de carona.
 3. **Verifique.** O teste passa? Nenhum outro quebrou? O problema realmente sumiu — ou só mudou de lugar?
 4. **Se não funcionou: pare e conte.** Quantos consertos você já tentou?
-   - menos de 3 → volte à Fase 1 com a informação nova;
-   - **3 ou mais → pare e questione a arquitetura.** Não tente o quarto.
+   - primeira falha → volte à Fase 1 com a informação nova;
+   - **segunda reprovação da mesma família, três consertos falhados ou freio técnico do plano →
+     suspenda a estratégia e consulte o advisor do gate antes de outra tentativa.**
+   - a contagem é por família; trocar SHA, worker ou sessão não zera tentativas.
 
 5. **Três consertos falhados = problema de arquitetura, não hipótese errada.**
 
    O padrão é reconhecível: cada conserto revela um acoplamento novo em outro lugar; cada conserto exige "refatorar tudo" para caber; cada conserto cria sintoma novo.
 
-   Pare e questione o fundamento: esse padrão é sólido? Estamos seguindo com ele por inércia? Vale refatorar em vez de continuar consertando sintoma? **Converse com o usuário antes de tentar mais consertos.**
+   Acione o advisor no mesmo modelo e esforço já escolhidos para o gate, com causa observada,
+   tentativas, direção pretendida e alternativas. Peça decisão de mecanismo e contraprova.
+   O coordenador retoma dentro da spec após prova causal offline e controles, sem perguntar
+   ao usuário apenas por atingir três a cinco candidatas. Se a atribuição for desconhecida,
+   defina-a uma vez; não invente modelo. Produto, aceite de residual, ação sem autorização
+   ou verba paga adicional continuam com o usuário. Diagnóstico focal precede campanha completa.
 
 ### Depois da causa raiz: defesa em camadas
 
