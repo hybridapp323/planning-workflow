@@ -70,6 +70,15 @@ A segunda reprovação da mesma família ou o freio técnico do plano/runner (in
 cinco candidatas) chama automaticamente o advisor. Trocar SHA, worker ou sessão não zera
 tentativas. Para texto aberto, avalie estado estruturado e composição antes de mais exceções.
 
+**Lote com modelo estocástico não fecha em 100% por amostra.** Se cada cenário passa 96% das vezes, 25 juntos passam
+cerca de metade das vezes; corrigir a redação de cada vermelho novo abre uma candidata por rodada e não converge.
+Antes de abrir candidata, classifique o vermelho: defeito (repete no mesmo SHA, ou nasce do seu código) vai para
+correção; variação (abaixo de 1 em 3 no histórico do dia) vai como resíduo medido ao usuário, que decide. A
+correção de defeito de redação se prova contra o corpus de TODAS as respostas reais do dia, nunca contra a última
+frase. E verde não é aceite: leia as respostas dos verdes. Medido em 01/11/2026 (vertical nova, 5 candidatas):
+a leitura achou três defeitos que as asserções passavam, um deles por oráculo de substring curta ("IA" dentro de
+"informações").
+
 ## Portão de atribuição de modelo
 
 **Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível:
