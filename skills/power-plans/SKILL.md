@@ -864,7 +864,9 @@ Na dúvida, é o segundo: se um erro só apareceria no dado ou no log, não na t
 assinatura, métrica de retenção, rotina mensal) ou quando o plano promete uma medição nessa data.
 Escreva o motivo da escolha em uma linha.
 
-**3. Cron de verificação.** Especifique no plano, para ser agendado assim que a mudança chegar a
+**3. Cron de verificação.** Especifique no plano, para ser agendado no MESMO commit do fecho, nunca
+deixado pendente (`orchestrating-execute`, *Cron de verificação: nunca pendente*: skill `cron-orca`, modelo
+intermediário Claude Sonnet 5.5), gateado pela data e pelo `deploy_sha` da chegada a
 produção (no ambiente com Orca, pela skill `cron-orca`; sem ele, pelo agendador que o projeto
 usar). Ele roda na data do prazo, gateado pela data para não subir agente antes, e responde a
 pergunta do critério: *o que foi implementado está funcionando em produção, sem bug?*

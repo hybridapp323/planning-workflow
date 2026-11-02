@@ -697,6 +697,29 @@ outro ciclo durante a execução, e a do plano entraria fora de ordem.
 
 Ao commitar, estage caminho por caminho e confira o que está estagiado. Em checkout compartilhado por sessões paralelas, `add -A` varre trabalho alheio para dentro do seu commit, e ninguém acha depois pelo histórico.
 
+## Cron de verificação: nunca pendente
+
+Regra do usuário (02/11/2026): **terminou a tarefa, o cron entra agendado no mesmo commit.**
+Cron "a agendar", "falta o cron" ou tarefa no quadro para agendá-lo depois é cron pendente, e
+cron pendente não roda. Medido em 02/11/2026: um fecho entregou plano em "em validação" com o
+cron virado tarefa de backlog; o usuário teve de pedir de novo.
+
+1. **Diga que é cron do Orca e carregue a skill certa antes de escrever o script:** no ambiente
+   com Orca, a skill `cron-orca` (invoque-a; ela traz o script, o portão por data e as
+   armadilhas medidas). Sem Orca, o agendador que o projeto usa.
+2. **Modelo intermediário, fixo nas duas camadas:** no ambiente do usuário, **Claude Sonnet 5.5**
+   (`claude-sonnet-5-5`), nunca o default da conta nem o modelo do gate. Na automation:
+   `--provider claude --extra-agent-args="--model claude-sonnet-5-5 --effort medium"` (não
+   combina com `--reuse-session`); no script: `claude -p --model claude-sonnet-5-5 --effort
+   medium --strict-mcp-config`. Confira com `orca automations show <id> --json` que o argumento
+   ficou gravado.
+3. **Agende antes do commit do fecho**, gateado pela data (`--precheck`), mesmo que o deploy
+   em produção venha depois ou seja de outra sessão: o portão por data e por `deploy_sha` cuida
+   disso. O script entra no mesmo commit; o nome da automation vai para a linha de estado do
+   plano e para a tarefa do quadro.
+4. **Prova antes de entregar:** `run.sh --check-window` responde fechado hoje e aberto na data;
+   uma execução real em pasta descartável, sem anunciar, gera o relatório.
+
 ## Fecho
 
 1. Rode lint e testes do projeto, você mesmo.
@@ -704,10 +727,9 @@ Ao commitar, estage caminho por caminho e confira o que está estagiado. Em chec
    *Saída de "em validação"*), no mesmo commit do fecho. Se o projeto guarda planos em pastas
    por estado (a fazer / em validação / feito, ou o nome que o `CLAUDE.md` / `AGENTS.md` der):
    - **Com backend:** de "a fazer" para "em validação", com `sai até AAAA-MM-DD` na linha de
-     estado. Quando a mudança chegar a produção, agende o cron de verificação que o plano
-     especifica (no ambiente com Orca, skill `cron-orca`) e escreva o nome dele na linha de
-     estado. Se a publicação em produção é de outra sessão, deixe escrito que o cron falta, e
-     quem publicar agenda. **Nunca vá para "feito" no fecho:** quem move é quem lê o veredito.
+     estado, e o cron de verificação **já agendado**, com o nome dele na linha de estado, no
+     MESMO commit do fecho (ver *Cron de verificação: nunca pendente*, abaixo). **Nunca vá para
+     "feito" no fecho:** quem move é quem lê o veredito.
    - **Só interface:** o usuário valida antes de produção; publicada em produção, vai direto para
      "feito", sem prazo nem cron. Se a publicação ainda não aconteceu, siga para "em validação"
      com a nota "só interface: vai para feito ao publicar em produção".
