@@ -719,6 +719,17 @@ cron virado tarefa de backlog; o usuário teve de pedir de novo.
    plano e para a tarefa do quadro.
 4. **Prova antes de entregar:** `run.sh --check-window` responde fechado hoje e aberto na data;
    uma execução real em pasta descartável, sem anunciar, gera o relatório.
+5. **Mudança que envia algo a pessoas reais (push, WhatsApp, e-mail, qualquer mensagem) leva uma
+   SEGUNDA leitura, curta: 7 dias depois de ficar ligada para elas.** O cron do prazo (14 ou 30
+   dias) só veria um aviso duplicado ou errado semanas depois de gente de verdade já ter recebido.
+   Se o plano não trouxe essa leitura, **acrescente-a você mesmo** e diga no relato que acrescentou:
+   não espere o usuário pedir (medido em 03/11/2026: um plano de notificações entregou só o cron do
+   prazo, de 30 dias, e a leitura de 7 dias só existiu porque o usuário a pediu depois do fecho).
+   Ela mede dano, não sucesso: envio duplicado (mesma pessoa, mesmo tipo e dia), fora da janela de horário, no idioma errado, a quem já tinha feito a
+   ação que o aviso cobra; limite zero em cada. Mesmo script do cron do prazo, com a janela por
+   parâmetro e **pasta de controle própria** (o ponteiro da leitura curta não pode marcar o ciclo
+   longo como entregue). Se a chave de ligar ainda está desligada, o portão lê o estado e o instante
+   em que a chave foi ligada (e esse instante tem de ser regravado a cada ligada), não uma data fixa.
 
 ## Fecho
 
@@ -727,7 +738,8 @@ cron virado tarefa de backlog; o usuário teve de pedir de novo.
    *Saída de "em validação"*), no mesmo commit do fecho. Se o projeto guarda planos em pastas
    por estado (a fazer / em validação / feito, ou o nome que o `CLAUDE.md` / `AGENTS.md` der):
    - **Com backend:** de "a fazer" para "em validação", com `sai até AAAA-MM-DD` na linha de
-     estado, e o cron de verificação **já agendado**, com o nome dele na linha de estado, no
+     estado, e o(s) cron(s) de verificação **já agendado(s)** (o do prazo e, se a mudança envia
+     algo a pessoas reais, a leitura curta de 7 dias), com o nome de cada um na linha de estado, no
      MESMO commit do fecho (ver *Cron de verificação: nunca pendente*, abaixo). **Nunca vá para
      "feito" no fecho:** quem move é quem lê o veredito.
    - **Só interface:** o usuário valida antes de produção; publicada em produção, vai direto para

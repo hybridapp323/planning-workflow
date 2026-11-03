@@ -254,6 +254,9 @@ Só o coordenador roda estes. Nenhum worker.
      - Funcionando: <1 a 3 consultas agregadas de uso real, sem contas de teste>
      - Bug: <onde o erro apareceria e o limite que conta como bug>
      - Saída: relatório com veredito funcionando | bug | sem uso; não move arquivo nem commita
+   - Leitura curta de 7 dias (só se a mudança envia algo a pessoas reais), contada de quando for ligada:
+     - Dano: <duplicado | fora da janela | idioma errado | ação já feita; limite 0 em cada>
+     - Saída: relatório com veredito; mesmo script do cron do prazo, pasta de controle própria
 
 ## 7. Riscos de orquestração
 

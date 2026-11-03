@@ -880,6 +880,16 @@ O plano deixa escrito:
 - **Saída:** o relatório com o veredito (*funcionando*, *bug*, *sem uso*) e a evidência
   numérica. O cron **não** move arquivo nem commita: quem move é a sessão que lê o veredito.
 
+**Leitura curta, quando a mudança envia algo a pessoas reais.** Se o que foi implementado manda
+push, WhatsApp, e-mail ou qualquer mensagem a usuários, o plano especifica uma **segunda leitura,
+7 dias depois de a mudança ficar ligada para elas** (se estiver atrás de uma chave desligada, a
+contagem começa ao ligar, não no deploy). Ela não mede sucesso, mede dano: envio duplicado (mesma
+pessoa, mesmo tipo e dia), fora da janela de horário, no idioma errado, a quem já tinha feito a
+ação que o aviso cobra. O limite de cada checagem é zero. O cron do prazo continua existindo; a
+leitura curta é o alarme precoce. Sem ela, o aviso errado só seria visto no dia do prazo, com gente de verdade já
+tendo recebido (medido em 03/11/2026: o plano de uma funcionalidade de notificações trazia só o
+cron de 30 dias, e a leitura de 7 dias nasceu de um pedido do usuário depois do fecho).
+
 No prazo, o veredito decide o destino. O plano nunca fica sem decisão:
 
 | Veredito | Destino |
