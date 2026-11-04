@@ -112,6 +112,12 @@ workers em `max`.
 
 1. **Esforço nomeado pelo usuário vale para o ciclo inteiro**, reparos inclusive, como o modelo.
    "Tudo em `xhigh`" é `xhigh` em tudo, sem você rebaixar.
+   **Esforço fixado por modelo também é esforço nomeado, mesmo que o pedido do ciclo não o repita.**
+   Se o usuário já fixou o esforço de um modelo (na memória, na configuração do CLI ou no catálogo
+   da skill `orchestration`, ex.: "esse modelo só em `xhigh`"), ele vale para toda tarefa daquele
+   modelo, de qualquer nível; a tabela abaixo nunca o rebaixa. Medido em 04/11/2026: com o pedido
+   nomeando só o modelo das médias, o coordenador aplicou "Média: `medium`" a um modelo que o
+   usuário só aceitava em `xhigh`, aceitou o worker pelo rodapé e teve de refazer a tarefa.
 2. **Sem esforço nomeado, você escolhe por tarefa, entre `medium` e `xhigh`.** Nunca `low`, nunca
    `max` ou acima num worker.
    - **Baixa:** `medium`.
