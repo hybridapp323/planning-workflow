@@ -107,6 +107,14 @@ Este é o passo que mais gera valor, e o mais fácil de pular.
 3. **Redimensione com dado.** Um bloqueador que protege zero usuário hoje não é bloqueador. Traga a contagem, decida com ela, e registre o número no documento para a próxima pessoa não reabrir a discussão.
 4. **Leve as decisões de negócio ao usuário**, com resumo curto e recomendação explícita, numa rodada só. Não decida por ele, e não empurre a decisão para dentro do plano disfarçada de detalhe técnico. O que é técnico você decide sozinho, sem pedir aval.
 5. **Aplique o que sobrou** na spec e no plano, e registre onde você discordou do revisor e por quê.
+   **Correção substitui, nunca anexa:** quando o achado contradiz um `Pronto quando`, uma camada
+   de prova, um contrato ou um passo do coordenador, reescreva aquele texto no lugar. Um bloco
+   "correções da revisão" embaixo do critério antigo deixa as duas versões vivas, e o worker
+   obedece a que ler primeiro. Ao terminar, procure no plano cada termo que a correção aposentou
+   (o nome antigo da tabela, o comportamento removido) e conte zero. Medido em 08/11/2026: 11
+   bloqueadores incorporados como anexo deixaram 6 critérios de pronto e 4 camadas de prova
+   contradizendo a correção logo acima deles; quem achou foi o advisor, e custou uma segunda
+   passada no plano inteiro.
 6. **Conte por custo e registre no plano:** "N bloqueadores: n documentais, n decisão do usuário,
    n redesenho". É esse número, não o veredito, que diz se a spec e o plano estavam sãos.
 7. **Commite e dê push, sem pedir aval.** Spec e plano juntos, caminhos explícitos, branch
