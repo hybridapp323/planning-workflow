@@ -420,6 +420,36 @@ Duas exceções, e só estas:
 
 Fora disso, terminal de task aceita que continua aberto é erro seu, não pendência do usuário.
 
+### Entrega de front com protótipo aprovado: comparação lado a lado, sempre
+
+Se a spec ou o plano cita um protótipo aprovado pelo usuário (artefato, Figma, HTML, pranchas),
+**toda** tarefa que entrega tela só é aceita com a comparação lado a lado contra ele. Não é
+opcional, não depende de o plano repetir a exigência e não se troca por "revisei os screenshots".
+
+1. **Uma linha por estado de cada prancha que a tarefa toca:** a captura da implementação ao lado
+   da prancha aprovada, no mesmo estado (carregando, vazio, erro, resultado; computador e
+   celular). Interação e animação também entram: clique, seleção, progresso, transição e o que
+   aparece depois do clique. Para o que se mexe, grave (vídeo ou GIF) ou capture a sequência de
+   quadros, nos dois lados.
+2. **Confira composição, não só defeito:** layout e onde a tela vive (dentro do app ou fora),
+   navegação e destaque do item atual, imagens e exemplos que a prancha mostra, ordem e textos.
+   Revisar captura procurando bug (plural, transbordo) não é comparar com o protótipo: os dois
+   passam juntos e a tela sai diferente.
+3. **Diferença é devolução.** Cada divergência vira correção (`T<n>b`) ou adaptação aceita pelo
+   usuário por escrito, registrada no documento do ciclo com o motivo. Divergência que só você
+   aceitou é desvio do protótipo, não adaptação.
+4. **Guarde as comparações** no documento do ciclo (caminho das capturas, prancha e versão do
+   protótipo) e mande ao usuário na entrega. Sem elas, a tarefa de front não está aceita.
+
+O brief do worker de front leva o caminho das pranchas e esta exigência no `Pronto quando`; quem
+roda e julga a comparação final é você, no aceite.
+
+Medido em 09/11/2026: o plano mandava comparar com o protótipo, o aceite só revisou capturas
+procurando defeito, e a área foi para produção fora do layout do app, com abas sem destaque,
+itens de uma lista sem as imagens da prancha, opções de escolha sem o exemplo visual e um
+progresso diferente do aprovado. O usuário reprovou a UI inteira, e o redesign custou um ciclo
+novo.
+
 ### Ondas paralelas em worktrees: coordenador de onda e integração
 
 Quando o plano põe ondas paralelas em worktrees separadas (`power-plans`, Fase 2), você é o
@@ -756,6 +786,9 @@ cron virado tarefa de backlog; o usuário teve de pedir de novo.
    Se o projeto não tem pastas de estado, pergunte uma vez se quer adotá-las; sem resposta,
    siga a convenção que existe.
 3. Commite com caminhos explícitos.
+   **Com protótipo aprovado e entrega de front:** antes do commit, confira que cada tela entregue
+   tem a comparação lado a lado com a prancha (seção *Entrega de front com protótipo aprovado*).
+   Faltou uma, o ciclo não fecha.
 4. Responda os portões de entrega do projeto, sem esperar o usuário perguntar. Se o projeto entrega por bundle ou build nativo, diga sim ou não para cada um.
 5. Atualize a documentação que este projeto exige atualizar no mesmo commit.
 6. Feche as tasks no Orca com o resultado real, e os terminais: `wave.sh sweep` tem de responder que não há terminal de task encerrada aberto, e o único terminal seu na árvore é o do coordenador. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
