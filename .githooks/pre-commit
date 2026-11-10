@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Ative uma vez por clone: git config core.hooksPath .githooks (o sync-harnesses.sh faz isso).
+exec "$(git rev-parse --show-toplevel)/scripts/check-skills.sh"
