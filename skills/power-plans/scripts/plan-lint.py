@@ -446,7 +446,7 @@ def caminhos_da_celula(tokens, repo):
                 best = casa[0] if len(casa) == 1 else None
                 ambiguo = len(casa) > 1
             cam = best or cands[0]
-        out.append(dict(ref, caminho=cam, candidatos=cands, ambiguo=ambiguo and cam not in cands[:1] or ambiguo))
+        out.append(dict(ref, caminho=cam, candidatos=cands, ambiguo=ambiguo))
         anterior = cam
     return out
 
@@ -482,6 +482,8 @@ def check_ownership(plano, repo, rel):
             for ref in refs:
                 caminho = ref["caminho"]
                 planejados.add(caminho)
+                if novo:
+                    planejados.update(ref["candidatos"])  # o script/arquivo que a linha NOVO cria
                 achados, exato = repo.resolve(caminho)
                 if novo:
                     if irmao is None:
@@ -492,6 +494,8 @@ def check_ownership(plano, repo, rel):
                             rel.add("caminho-inexistente", n, f"irmão `{irmao['caminho']}` de linha NOVO não existe")
                         elif len(ach_i) > 1 and not exato_i:
                             rel.add("caminho-ambiguo", n, f"irmão `{irmao['caminho']}` casa com {len(ach_i)} arquivos")
+                elif ref["ambiguo"]:
+                    rel.add("caminho-ambiguo", n, f"`{ref['candidatos'][0]}` casa com mais de um arquivo do repositório")
                 elif not achados:
                     rel.add("caminho-inexistente", n, caminho)
                 elif len(achados) > 1 and not exato:
