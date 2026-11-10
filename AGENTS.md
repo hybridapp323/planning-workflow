@@ -72,9 +72,20 @@ repositório continuam fora, inclusive ali.
 
 - **Doc desatualizada é pior que doc ausente:** a próxima sessão segue a instrução errada com
   confiança. A edição entra no mesmo trabalho em que o aprendizado aconteceu, nunca "depois".
-- **Achou conteúdo que viola esta regra enquanto mexia na seção?** Generalize junto. Não abra
-  frente para varrer o repositório inteiro.
-- **Nunca `git add -A`.** Estas skills são documentação viva e costumam ter mudança de mais de
-  uma sessão na árvore ao mesmo tempo. Liste os caminhos.
-- O que cada skill aceita receber, e o que ela recusa, está na tabela *Documentação viva* do
-  [`README.md`](README.md).
+- **Verificação antes de prosa.** Se uma checagem mecânica pegaria o defeito, a lição vira
+  checagem (`plan-lint.py`, brief do verificador, `check-skills.sh`), não parágrafo. Medido em
+  11/2026: três meses de lições em texto dobraram a skill de plano, e os bloqueadores por
+  revisão externa não caíram; em dez casos a regra já existia e o defeito voltou.
+- **`SKILL.md` tem teto de 19 mil caracteres**, e `scripts/check-skills.sh` recusa o commit acima
+  dele: o que passa disso some depois de uma compactação de contexto. Regra nova entra em uma
+  linha no roteiro e o caso medido vai para `references/`. Para caber, corte ou mova: nunca suba
+  o teto.
+- **Achou conteúdo que viola a regra do conceito enquanto mexia na seção?** Generalize junto. Não
+  abra frente para varrer o repositório inteiro.
+- **Commit e push no mesmo trabalho.** Rode `scripts/check-skills.sh`, commite só os caminhos que
+  mudou (nunca `git add -A`: costuma haver mudança de mais de uma sessão na árvore), dê push na
+  branch principal e rode `scripts/sync-harnesses.sh`. Diga ao usuário o commit em uma linha. Não
+  deixe edição solta na árvore: lição não commitada não chega a nenhuma instalação. O histórico
+  do git é o backup; desfazer é um `git revert`.
+- O repositório é público: além de nome de projeto, nunca entra caminho de máquina, nome de
+  usuário, fala de pessoa ou número que identifique um cliente.

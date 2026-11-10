@@ -1,151 +1,132 @@
 # planning-workflow
 
-Skills para o ciclo de vida de uma feature, da ideia crua até a execução, e a depuração de quando algo quebra no caminho.
+Skills para o ciclo de vida de uma feature **grande**: da ideia com escopo aberto até a execução
+por vários agentes, e a depuração de quando algo quebra no caminho.
 
-Empacotado como plugin de Claude Code, mas o conteúdo é **markdown puro**: três das quatro skills não dependem de nenhuma ferramenta específica e rodam em qualquer agente que aceite instruções em arquivo. Ver [Usar em outro agente](#usar-em-outro-agente-ou-outro-cli).
+A primeira regra do plugin é quando **não** usá-lo. Mudança delimitada, que o usuário já descreveu
+por inteiro e que se desfaz com um revert, se faz direto: sem spec, sem arquivo de plano, sem
+revisão externa. O ciclo completo existe para feature nova, subsistema novo, escopo em aberto,
+trabalho de vários donos e passo irreversível.
 
-- **`spec-interview`** — entrevista em rodadas até a ideia fechar: classifica a escala (sonda / limitada / arquitetural), mapeia a árvore de decisões e pergunta a fronteira inteira por rodada com a recomendação em cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só para quando não sobra decisão em aberto: a fronteira da árvore vazia **e** a varredura de cobertura sem categoria ausente. Termina com a spec escrita no esqueleto (`references/spec-template.md`: requisito com id e cenário de aceitação, critério de sucesso com número, decisão com autoria), sem portão de aprovação: a spec só começa com todas as decisões fechadas e segue direto para `power-plans`.
-- **`power-plans`** — escreve o plano de implementação desenhado para execução multi-agente, com o aparato na medida do risco (mínimo, parcial ou completo) e um plano por família de problema: evidência antes de plano, níveis de complexidade, matriz de ownership de arquivo, contratos congelados, grafo de ondas e um gate antes do passo irreversível. Plano escrito, ela para e pergunta: revisão externa (o usuário nomeia o modelo) ou commit e push. Depois da revisão, o coordenador analisa o relatório, decide o que entra, e commita e dá push na branch principal sem nova parada. O plano não cita orquestrador; a revisão só usa a skill `orchestration` quando o modelo nomeado não roda como subagente no harness.
-- **`orchestrating-execute`** — executa esse plano: portão de atribuição de modelo por nível, laço de ondas com aceite do coordenador por tarefa (aceitou: marca a task e fecha o terminal, sem que o usuário peça), um gate por plano em rodada única antes do passo irreversível, advisor de rumo com orçamento (por veredito ou freio técnico, mesmo modelo/esforço do gate, recuperação offline e registro obrigatório; limite de candidatas não vira pergunta ao usuário), e o que nunca se delega. Usa a skill `orchestration` do Orca para a mecânica.
-- **`systematic-debugging`** — causa raiz antes de conserto: as quatro fases, a consulta automática ao advisor do gate após reprovação repetida ou freio técnico, com contraprova antes de retomar, e as racionalizações que precedem cada banda-aid.
+## As quatro skills
 
-São genéricas de propósito. As regras específicas de cada repositório saem do `CLAUDE.md` / `AGENTS.md` dele, e de um `.claude/plan-profile.md` opcional.
+- **`spec-interview`**: entrevista em rodadas até a ideia fechar. Classifica o pedido (sonda,
+  direta, limitada, arquitetural), pergunta a fronteira inteira por rodada com a recomendação em
+  cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só escreve a spec
+  quando não sobra decisão em aberto. Feature com tela só fecha com referência visual exercitada
+  pelo usuário, decisões visuais fechadas ou dispensa escrita.
+- **`power-plans`**: o plano de implementação, com o aparato na medida do risco (direto, mínimo,
+  parcial, completo): evidência antes de plano, um dono por arquivo, contratos congelados, grafo
+  de ondas e um gate antes do passo irreversível. Antes de mostrar o plano a alguém, roda o
+  **pré-voo**: um lint mecânico e um verificador de contexto limpo. Depois para e pergunta:
+  revisão externa ou commit e push.
+- **`orchestrating-execute`**: executa o plano. Portão de atribuição de modelo, laço de ondas com
+  aceite do coordenador por tarefa, comparação de tela com a referência aprovada como trava da
+  integração, um gate por plano em rodada única, advisor de rumo com registro. Usa a skill
+  `orchestration` do Orca para a mecânica.
+- **`systematic-debugging`**: causa raiz antes de conserto, em quatro fases.
 
-**E continuam genéricas por manutenção, não por sorte.** Quem edita este repositório segue o [`AGENTS.md`](AGENTS.md): entra o conceito, a peculiaridade do projeto onde o aprendizado aconteceu fica no `CLAUDE.md` dele. Uma linha escrita aqui é carregada em sessões de repositórios que não têm nada a ver entre si.
-
-## Onde isso entra
+São genéricas de propósito. As regras de cada repositório saem do `CLAUDE.md` / `AGENTS.md` dele e
+de um `.claude/plan-profile.md` opcional.
 
 ```
-ideia  →  spec-interview  →  decisões fechadas  →  spec  →  power-plans  →  plano  →  PARA: revisão externa ou commit + push?
-                                                                                                  |
-                                                       (revisão → triagem do coordenador) → commit + push
-                                                                                                  |
-                                                       orchestrating-execute  <-- só a pedido explícito do usuário
-                                                                |
-                         systematic-debugging  <---- quebrou ---+
+pedido ─┬─ delimitado ───────────────────────────────→ faça direto
+        ├─ bug ──────────────────────────────────────→ systematic-debugging
+        └─ grande ou com escopo aberto
+              → spec-interview → spec → power-plans → pré-voo → PARA: revisão externa ou commit?
+                                                                      |
+                                              orchestrating-execute  ←─ só a pedido explícito
 ```
 
-`spec-interview` não para para aprovação: com as decisões fechadas, escreve a spec e chama `power-plans`. `power-plans` para depois do plano e pergunta revisão externa ou commit e push. Quem sobe worker é `orchestrating-execute`, e só quando o usuário pedir explicitamente a implementação.
+## Como as skills são escritas
+
+Cada `SKILL.md` é um **roteiro curto**, com uma linha por regra e um ponteiro para o detalhe em
+`references/`, lido na hora de usar. O teto é de 19 mil caracteres por `SKILL.md`, e não é
+estético: depois de uma compactação de contexto, o harness devolve só o começo de cada skill. O
+que passa do teto some justamente nas sessões longas, que são as de execução.
+
+Três scripts sustentam isso:
+
+| Script | Faz |
+| --- | --- |
+| `skills/power-plans/scripts/plan-lint.py` | Confere o plano contra a spec e contra o repositório: requisito sem tarefa, caminho e linha que não existem, tarefa sem critério de pronto, célula vazia, arquivo com dois donos |
+| `scripts/check-skills.sh` | Recusa `SKILL.md` acima do teto ou que cite arquivo inexistente. Roda no `pre-commit` (`.githooks/`) |
+| `scripts/sync-harnesses.sh` | Instala as skills em cada CLI de agente da máquina e mantém todos atualizados |
+
+Regra de manutenção que vem da medição: **verificação antes de prosa.** Em três meses, a skill de
+plano dobrou de tamanho acrescentando lições em texto, e o número de bloqueadores por revisão
+externa não caiu. Defeito que uma checagem mecânica pegaria vira checagem.
 
 ## Instalar
 
-### Claude Code, pelo marketplace (recomendado)
-
-Dentro de uma sessão:
+### Claude Code
 
 ```
 /plugin marketplace add hybridapp323/planning-workflow
 /plugin install planning-workflow@planning-workflow
 ```
 
-O repositório é o próprio marketplace (`.claude-plugin/marketplace.json` na raiz). Marketplace de terceiro nasce **sem** atualização automática: ligue em `/plugin` → Marketplaces → `planning-workflow` → Enable auto-update, uma vez por máquina. Sem isso, atualizar é `/plugin marketplace update planning-workflow` à mão.
+O repositório é o próprio marketplace. Marketplace de terceiro nasce sem atualização automática:
+ligue em `/plugin` → Marketplaces → `planning-workflow` → Enable auto-update. O `plugin.json` não
+tem `version` de propósito: a versão é o commit, e todo push chega às instalações.
 
-O `plugin.json` não tem `version` de propósito: sem ela, a versão é o commit, e todo push chega nas instalações. Com uma `version` fixa, o Claude Code mantém a cópia em cache até alguém subir o número.
-
-### Claude Code, por clone
-
-Serve quando você quer editar as skills e versionar as mudanças de volta. O diretório precisa ser filho direto de `~/.claude/skills/`:
+### Todos os CLIs de agente da máquina
 
 ```bash
-git clone https://github.com/hybridapp323/planning-workflow.git ~/.claude/skills/planning-workflow
+git clone https://github.com/hybridapp323/planning-workflow.git
+planning-workflow/scripts/sync-harnesses.sh            # instala nos CLIs detectados
+planning-workflow/scripts/sync-harnesses.sh --check    # mostra o estado de cada um
+planning-workflow/scripts/sync-harnesses.sh --install-timer   # puxa o repositório e sincroniza sozinho
 ```
 
-Carrega na sessão seguinte, ou imediatamente com `/reload-plugins`. Atualizar: `git pull` nesse diretório. Depois de editar, `git add <caminhos> && git commit && git push` — nunca `git add -A`, porque as skills são documentação viva e costumam ter mudança de mais de uma sessão na árvore.
+Cada CLI descobre skills de um jeito, e o script trata cada um pelo dele:
 
-## Usar em outro agente ou outro CLI
-
-O núcleo é markdown com frontmatter YAML (`name`, `description`) e não tem código. O que muda de agente para agente é só como ele **descobre** e **carrega** o arquivo.
-
-**Portabilidade, honestamente:**
-
-| Skill | Portável? | O que prende |
+| CLI | Como recebe | Atualização |
 | --- | --- | --- |
-| `power-plans` | **sim, inteira** | nada. O plano não cita orquestrador: é um grafo com níveis, donos e contratos congelados. Só a revisão externa, quando o modelo pedido está fora do harness, aponta para a orquestração |
-| `systematic-debugging` | **sim, inteira** | nada |
-| `spec-interview` | **sim, com um detalhe** | prefere a ferramenta de pergunta em modal do harness (`AskUserQuestion`); sem ela, a própria skill traz o formato em texto numerado |
-| `orchestrating-execute` | **parcialmente** | a mecânica é do Orca (`orca`, `wave.sh`), a camada de orquestração usada aqui. A skill diz o que fazer sem ele: *"o plano continua válido, é um grafo com níveis, donos e contratos; execute com o mecanismo de subagente que houver"*. Já `references/orca-traps.md` é 100% específico e não serve fora do Orca |
+| Claude Code | plugin do marketplace (skills e gancho de roteamento) | `plugin marketplace update` + `plugin update` |
+| Codex | plugin do marketplace, com cache git próprio | `marketplace upgrade` e avanço do cache por fast-forward |
+| Grok | lê o plugin do Claude Code | junto com o Claude Code |
+| OpenCode, Muse, Antigravity | um link por skill, da pasta de skills do CLI para o clone | imediata: o link aponta para o clone |
 
-**Receita mínima em outro agente:**
+Sessão já aberta não vê a mudança: vale a partir da próxima. O `--install-timer` agenda
+`--pull` a cada 10 minutos no crontab do usuário, para a mudança feita em outra máquina chegar.
 
-1. Copie `skills/<nome>/SKILL.md` e o `references/` dele para onde aquele agente lê instrução (pasta de skills, regras, ou system prompt).
-2. Se o agente **não** faz seleção automática por `description`, cole `hooks/session-start.md` no prompt de sistema. São ~20 linhas com a tabela pedido → skill, e é o que faz o agente escolher a skill certa antes da primeira ferramenta.
-3. Ignore `.claude-plugin/` e `hooks/hooks.json`: são formato de Claude Code e não têm equivalente garantido em outro lugar.
-
-O ciclo em si — spec fecha antes do plano, plano fecha antes da execução, e cada um para no próprio portão — não depende de ferramenta nenhuma.
-
-## Estrutura
-
-```
-planning-workflow/
-├── .claude-plugin/
-│   ├── plugin.json         # manifesto do plugin
-│   └── marketplace.json    # o repo e o proprio marketplace: /plugin marketplace add
-├── LICENSE                 # MIT, + atribuicao do material de terceiro
-├── README.md
-├── AGENTS.md               # regra de quem edita: conceito geral, nunca o caso de um repo
-├── hooks/
-│   ├── hooks.json          # SessionStart: injeta o roteador do ciclo
-│   └── session-start.md    # o texto injetado
-└── skills/
-    ├── spec-interview/
-    │   ├── SKILL.md
-    │   └── references/
-    │       ├── spec-template.md    # esqueleto da spec: FR-n com cenário de aceitação, SC-n, decisões com autoria
-    │       └── coverage-scan.md    # segundo teste de fechamento: as categorias que a árvore não alcança
-    ├── power-plans/
-    │   ├── SKILL.md
-    │   └── references/
-    │       ├── plan-template.md
-    │       ├── complexity-rubric.md
-    │       ├── classes-de-erro.md  # as classes de erro medidas, com mecanismo e lastro
-    │       └── external-review.md
-    ├── orchestrating-execute/
-    │   ├── SKILL.md
-    │   └── references/
-    │       ├── orca-traps.md       # armadilhas medidas do Orca
-    │       ├── correcao-pos-gate.md # as lições medidas sobre a forma da correção depois do gate
-    │       └── advisor.md          # brief, mandato, task ADV-n e registro do advisor
-    └── systematic-debugging/
-        └── SKILL.md
-```
+Em um agente que o script não conhece: copie `skills/<nome>/` inteira (com `references/` e
+`scripts/`) para onde ele lê instruções. Se ele não escolhe skill pela `description`, cole
+`hooks/session-start.md` no prompt de sistema. `orchestrating-execute` depende do Orca para a
+mecânica; sem ele, o plano continua válido e se executa com o mecanismo de subagente que houver.
 
 ## O gancho de roteamento
 
-`hooks/hooks.json` injeta `hooks/session-start.md` no começo de cada sessão (`startup`, `clear`, `compact`). São ~20 linhas: a tabela pedido → skill, e a regra de que a decisão vem **antes** da primeira ferramenta.
+`hooks/hooks.json` injeta `hooks/session-start.md` no começo de cada sessão do Claude Code. São
+poucas linhas: começar pelo tamanho do pedido, a tabela pedido → caminho, e os sinais de que o
+agente está inflando ou encolhendo o processo.
 
-A descoberta da skill já funciona sem ele — toda `description` entra na lista da sessão de qualquer forma. O gancho existe para o caso ambíguo, em que o agente racionaliza ("isso é simples", "deixa eu só olhar o código") e começa a implementar sem passar pelo ciclo.
+## Medir se o processo melhora
 
-Se em alguma máquina o gancho não carregar (o carregamento de `hooks/` de um plugin instalado por diretório depende da versão do Claude Code), o mesmo efeito sai de seis linhas no `~/.claude/settings.json` daquela máquina, apontando para o mesmo arquivo:
-
-```json
-"SessionStart": [
-  { "matcher": "startup|clear|compact", "hooks": [
-    { "type": "command", "shell": "bash",
-      "command": "cat \"$HOME/.claude/skills/planning-workflow/hooks/session-start.md\"" } ] }
-]
-```
+Todo plano termina com um bloco `## Registro do ciclo`
+(`skills/power-plans/references/registro-do-ciclo.md`): escala, achados do pré-voo, bloqueadores
+da revisão por custo, emendas de contrato, veredito do gate, comparação de tela, rodadas de
+correção depois da entrega. É o que permite comparar antes e depois de uma mudança nestas skills.
 
 ## Documentação viva
 
-As quatro skills são documentação viva do próprio processo, e cada uma diz na seção final o que aceita receber. O critério de entrada é o mesmo em todas: **custou.**
+As skills melhoram com o uso, e o critério de entrada é um só: **custou, e vai custar de novo.**
 
-| Skill | O que entra | O que fica de fora |
-| --- | --- | --- |
-| `spec-interview` | Pergunta que faltou e virou retrabalho, bug, ou uma discussão que se repetiu pela segunda vez | Preferência de estilo; ideia de pergunta que nunca foi testada |
-| `power-plans` | Lacuna de plano que quebrou execução paralela — contrato não congelado, consumidor esquecido, colisão de ownership | Ajuste cosmético de template |
-| `orchestrating-execute` | Armadilha de execução paga na marra (`references/orca-traps.md`) | Erro pontual de digitação numa sessão |
-| `systematic-debugging` | Armadilha de diagnóstico que custou tempo real e vai custar de novo — camada que engole erro, log que mente | Bug específico de um repositório (isso é do `CLAUDE.md` dele) |
+Quem edita é o próprio agente, de dentro do projeto em que está trabalhando:
 
-Regra comum: a edição entra **no mesmo trabalho** em que o aprendizado aconteceu, nunca "depois". Doc desatualizada é pior que doc ausente — a próxima sessão segue a instrução errada com confiança.
+1. Melhora a seção que já cobre o assunto antes de acrescentar. Regra nova entra em uma linha no
+   roteiro; o caso medido vai para `references/`.
+2. Entra o conceito, nunca o caso de um repositório: o teste está no [`AGENTS.md`](AGENTS.md).
+3. Escreve no clone git do plugin, roda `scripts/check-skills.sh`, **commita só os caminhos que
+   mudou e dá push na branch principal, no mesmo trabalho**, roda `scripts/sync-harnesses.sh` e
+   diz ao usuário o commit em uma linha.
 
-Quem edita é o próprio agente, de dentro do projeto em que está trabalhando, e só quando julgar que o furo custou: melhora a seção que já existe antes de acrescentar, escreve no clone git de onde a skill foi carregada, **não commita nem dá push**, e avisa o usuário como follow-up. Quem confere e commita é o usuário. Instalação sem clone (cache do marketplace) não é editada: a proposta fica no relatório.
+O histórico do git é o backup: se uma mudança piorar o processo, `git revert` no commit dela.
 
-Regra comum número dois, e é a que mais escapa: **o que entra é o conceito, não o caso.** Um aprendizado só vira linha aqui depois de perder o nome da tabela, do cliente e do comando do repositório onde ele foi pago. O teste de três perguntas e o que nunca entra estão no [`AGENTS.md`](AGENTS.md).
+## Licença e créditos
 
-## Licença
-
-MIT, ver [`LICENSE`](LICENSE). `spec-interview` e `systematic-debugging` adaptam material MIT de terceiro; a atribuição está no arquivo de licença e nos créditos abaixo.
-
-## Créditos
-
-`spec-interview` e `systematic-debugging` adaptam material do plugin [superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent): a classificação em três caminhos e o portão de aprovação da skill `brainstorming`, e as quatro fases da `systematic-debugging`. O formato de rodadas de fronteira vem da skill `grilling`.
+MIT, ver [`LICENSE`](LICENSE). `spec-interview` e `systematic-debugging` adaptam material do plugin
+[superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent): a classificação em
+caminhos e a auto-revisão da skill `brainstorming`, e as quatro fases da `systematic-debugging`. O
+formato de rodadas de fronteira vem da skill `grilling`.
