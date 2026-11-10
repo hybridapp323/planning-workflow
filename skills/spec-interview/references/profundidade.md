@@ -19,7 +19,15 @@ Uma resposta do usuário quase sempre abre galho novo — ele escolhe uma opçã
 
 ### Quando parar mesmo assim
 
-Duas exceções, e só elas: o usuário dizer explicitamente para tocar ("chega, escreve"), ou o caminho ser **sonda** ou **limitada** — nesses, a profundidade certa é rasa por definição.
+Duas exceções, e só elas: o usuário dizer explicitamente para tocar ("chega, escreve"), ou o caminho ser **sonda** ou **limitada**. Nesses, raso quer dizer sem varredura de cobertura e sem arquivo de spec. Não quer dizer decisão em aberto.
+
+### O caminho leve não fecha decisão por omissão
+
+Os passos 1 a 3 do teste de fechamento valem em todo caminho, inclusive na mudança que se faz direto: o que você decidiria sozinho e muda o que o usuário vê, o dado gravado ou o custo vira pergunta **antes** da implementação. O caminho escolhe quanto documento se escreve, não quantas perguntas se fazem. Limitada com seis perguntas continua limitada; o que a faz subir é o tamanho da obra (o design não cabe em dez linhas de chat, aparece um segundo dono), nunca o número de perguntas.
+
+Conte as decisões antes de escolher o caminho leve. Um pedido de capacidade nova costuma chegar em uma ou duas frases, às vezes com uma única dúvida declarada, e a dúvida declarada esconde as outras: quanto custa, qual é o limite, o que acontece quando falha, o que muda para quem já usa. Medido em 11/2026, num ensaio de roteamento com doze pedidos de amostra: um pedido assim foi tratado como "uma pergunta e faz" nas duas rodadas de um modelo intermediário, e as decisões restantes ficariam para a implementação, que é onde decisão não tomada custa mais caro.
+
+O tamanho do documento se decide pela obra, depois de entender o pedido, e não pelo número de perguntas. Medido no mesmo ensaio, com uma mudança pequena de regra de processo que escondia quatro ou cinco decisões: com o critério "escopo ainda aberto", ela saiu arquitetural (spec e plano) em 3 de 3 rodadas do modelo mais forte, porque quanto melhor a entrevista, mais decisões aparecem; com o critério "tamanho da obra", saiu limitada em 3 de 3 (as mesmas perguntas, design curto no chat), e três capacidades novas continuaram arquiteturais, com três rodadas ou mais.
 
 "Chega, escreve" com decisão em aberto **não** autoriza spec com decisão aberta. Liste numa mensagem só cada decisão restante com a sua recomendação ("fecho Q3 com X, Q4 com Y") e peça um aval único. Com o aval, elas estão fechadas, registradas na spec como *decididas pelo usuário ao mandar seguir*, e a spec começa. Sem o aval, nada de spec.
 

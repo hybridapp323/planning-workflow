@@ -13,6 +13,12 @@ for skill in "$root"/skills/*/SKILL.md; do
     echo "ERRO $nome/SKILL.md: $chars caracteres, teto $limite. Mova detalhe para references/."
     falhas=$((falhas + 1))
   fi
+  # o corte da compactação foi medido em caracteres; quem o mede em bytes usa 20000: vale o mais apertado
+  bytes="$(wc -c < "$skill" | tr -d ' ')"
+  if [ "$bytes" -ge 20000 ]; then
+    echo "ERRO $nome/SKILL.md: $bytes bytes, teto 20000. Mova detalhe para references/."
+    falhas=$((falhas + 1))
+  fi
   head -1 "$skill" | grep -q '^---$' && grep -q '^name: ' "$skill" && grep -q '^description:' "$skill" || {
     echo "ERRO $nome/SKILL.md: frontmatter sem name ou description."; falhas=$((falhas + 1)); }
   # todo references/x.md e scripts/x citado no SKILL.md tem de existir na pasta da skill

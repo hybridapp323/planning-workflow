@@ -6,17 +6,17 @@
 | --- | --- |
 | Mudança delimitada: você consegue dizer os arquivos e a prova antes de começar, e ela se desfaz com um revert | **Direto, sem skill.** Leia o que vai tocar, diga em 3 a 5 linhas o que vai fazer e como prova, e faça. Sem spec, sem arquivo de plano, sem revisão externa |
 | Bug, teste falhando, erro, "não funciona" | `systematic-debugging` |
-| Feature nova grande, subsistema novo, ou pedido com **escopo ainda aberto**: sobram várias decisões de produto que ninguém tomou | `spec-interview` |
+| Feature nova grande, subsistema novo, ou pedido com **escopo ainda aberto**: sobram muitas decisões de produto que ninguém tomou, ou decisões em cadeia | `spec-interview` |
 | Spec fechada de trabalho com vários donos, contrato entre tarefas, ou passo irreversível sem portão próprio do projeto | `power-plans` |
 | Plano pronto **e o usuário pediu explicitamente para executar** | `orchestrating-execute` |
 
 Protótipo, investigação e pergunta ("dá pra…?", "como funciona…?") não abrem spec nem plano: responda, ou construa o protótipo. Pergunta sobre algo que parece quebrado ("por que não disparou?") é a linha do bug.
 
-Falta **uma ou duas decisões** num pedido delimitado, mesmo que seja "qual dos dois caminhos"? Isso não é escopo aberto: pergunte numa mensagem só, com a sua recomendação, e siga direto, sem skill.
+**O caminho leve corta documento, nunca pergunta.** Decisão de produto (muda o que o usuário vê, o dado gravado ou o custo) é do usuário; decisão técnica você toma e avisa, e os portões do projeto (aval, migração, deploy) continuam valendo. Antes de seguir o caminho leve, conte as de produto que você tomaria sozinho, inclusive o que o pedido não disse: o dado que já existe, quem mais usa, o caso de erro. Nenhuma: faça. Poucas e independentes entre si, mesmo que seja "qual dos dois caminhos": pergunte todas numa mensagem só, com a sua recomendação em cada uma, e siga direto, sem skill. Muitas, ou em cadeia (a resposta de uma abre outras): é escopo aberto, `spec-interview`. Capacidade que o produto ainda não tem, com custo, limite ou caminho de falha próprios, é sempre escopo aberto, por mais curto que seja o pedido: "adiciona login" cabe numa linha e esconde uma dúzia de decisões.
 
-**Na dúvida entre dois caminhos, comece pelo mais leve e suba quando aparecer o motivo:** um segundo dono, um contrato que outra tarefa consome, um dado que não volta atrás. Diga que subiu e por quê. Tamanho do diff, número de arquivos e "é em produção" não são motivo.
+**Na dúvida entre dois caminhos depois de contar, comece pelo mais leve e suba quando aparecer o motivo:** uma decisão a mais do que você contou, um segundo dono, um contrato que outra tarefa consome, um dado que não volta atrás. Diga que subiu e por quê. Tamanho do diff, número de arquivos e "é em produção" não são motivo.
 
 - **Você está inflando se:** o documento que vai escrever é maior que a mudança; o usuário já descreveu o pedido por inteiro e você abre entrevista; o plano teria uma tarefa só.
-- **Você está encolhendo se:** não sabe dizer o que fica de fora; a mudança mexe em dado que não se desfaz e o projeto não tem portão para isso; dois agentes vão trabalhar ao mesmo tempo.
+- **Você está encolhendo se:** vai decidir sozinho, no meio da implementação, algo que o usuário vê; não sabe dizer o que fica de fora; a mudança mexe em dado que não se desfaz e o projeto não tem portão para isso; dois agentes vão trabalhar ao mesmo tempo.
 
 Nada disso vale quando o usuário mandou usar ou pular uma skill, ou quando você é um subagente executando uma tarefa já delimitada.

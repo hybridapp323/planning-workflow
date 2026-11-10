@@ -19,7 +19,7 @@ description: >-
 
 ## O que sai daqui
 
-Uma spec escrita só depois de todas as decisões fechadas, ou uma resposta em duas frases. Nunca código, nunca arquivo de projeto tocado, nunca worker no ar.
+Decisões de produto fechadas antes de qualquer coisa ser construída: em obra grande viram uma spec escrita; em obra pequena, um design curto no chat. Nunca worker no ar.
 
 Escreva no idioma em que o usuário está falando com você.
 
@@ -30,25 +30,27 @@ explicitamente a implementação. Spec e plano prontos não são esse pedido. Is
 vale para TODA tarefa em TODO caminho abaixo. A cerimônia escala com a tarefa;
 o portão nunca escala.
 
-E um segundo portão, só do caminho arquitetural: **a spec não começa enquanto
-houver decisão em aberto ou galho da árvore sem resposta.** Em troca, ela não
-espera aprovação: decisões fechadas, spec escrita, plano escrito, direto.
+E um segundo portão: **nada se escreve, nem spec nem código, enquanto houver
+decisão de produto em aberto ou galho da árvore sem resposta.** Em troca, a spec
+não espera aprovação: decisões fechadas, spec escrita, plano escrito, direto.
 </PORTAO-DURO>
 
-## Primeira decisão: o portão de escala
+## Duas decisões separadas: quanto perguntar e quanto escrever
 
-Classifique o pedido **antes da primeira pergunta** e diga a classificação em voz alta — "isso me parece limitado, então vou apresentar um design curto aqui no chat em vez de escrever spec" — para o usuário poder corrigir na hora.
+**Quanto perguntar não depende do tamanho.** Decisão de produto (muda o que o usuário vê, o dado gravado ou o custo) vira pergunta, em todo caminho, até a fronteira esvaziar. Decisão técnica, e a de como você conduz o trabalho (onde salva, como mostra), você toma e avisa. Pedido curto não é pedido fechado: "adiciona login" cabe numa linha e esconde uma dúzia de decisões.
+
+**Quanto escrever depende do tamanho da obra.** Diga o caminho em voz alta, para o usuário poder corrigir: a estimativa antes da primeira pergunta ("isso me parece uma mudança pequena: pergunto o que está aberto e apresento um design curto no chat, sem spec") e o tamanho final quando as decisões fecharem.
 
 | Caminho | O que é | O que produz |
 | --- | --- | --- |
 | **Sonda** | Pergunta de viabilidade ou pedido de protótipo: "dá pra…", "é possível…", "faz um protótipo de…". | Uma resposta ou um protótipo, não código que fica. Diga em 2–3 frases o que vai testar, descubra do jeito mais barato que ainda esteja correto, e reporte como recomendação. |
-| **Direta** | Mudança delimitada em código que **já existe neste repositório**, que o usuário já descreveu por inteiro: você lista os arquivos e a prova antes de começar. | Nada desta skill. Diga em 3 a 5 linhas o que vai fazer e como prova, e faça. Se o pedido já é a ordem de implementar, não há rodada de perguntas nem espera por aval. |
-| **Limitada** | Mudança delimitada em que sobra **uma ou duas decisões** que mudam o que o usuário vê, o dado gravado ou o custo. | Uma rodada com essas perguntas, um design curto no chat, e a implementação. Sem arquivo de spec, sem plano. |
-| **Arquitetural** | Projeto ou subsistema novo, feature grande, ou mudança de interface de que outros dependem **com escopo ainda aberto**. | O processo inteiro: contexto, rodadas até a fronteira esvaziar, spec escrita, auto-revisão, `power-plans` direto, sem portão de aprovação. |
+| **Direta** | Mudança em código que **já existe neste repositório**, sem decisão de produto em aberto: você lista os arquivos e a prova antes de começar. | Nada desta skill. Diga em 3 a 5 linhas o que vai fazer e como prova, e faça. |
+| **Limitada** | Obra pequena com decisão de produto em aberto: um agente faz numa sessão, e ela se desfaz com um revert. | As rodadas que as decisões pedirem (quase sempre uma), um design curto no chat que diz o que você assumiu, e a implementação, pelos portões do projeto. Sem arquivo de spec, sem plano. |
+| **Arquitetural** | Obra grande: projeto ou subsistema novo, capacidade nova com fluxo próprio, vários donos ou tarefas com contrato entre elas, ou mudança que grava dado que não volta atrás. | O processo inteiro: contexto, rodadas até a fronteira esvaziar, varredura de cobertura, spec escrita, auto-revisão, `power-plans` direto, sem portão de aprovação. |
+
+**O que separa limitada de arquitetural é o tamanho da obra, não o número de perguntas.** Mudança pequena com seis perguntas continua limitada; "é em produção" e "outros usam" não a fazem subir. Suba quando o design não couber em dez linhas de chat ou aparecer um segundo dono, e diga por quê. Os dois erros custam: inflar (spec e plano para mudança de um arquivo) aparece como demora; encolher aparece como decisão do usuário tomada por você no meio da implementação.
 
 **Direta e limitada medem o repositório, não a sua familiaridade.** Se o fluxo que você vai mudar não está aqui para ser lido, a tarefa não é nenhuma das duas.
-
-**Na dúvida entre dois caminhos, o mais leve.** Suba quando o motivo aparecer (uma decisão que ninguém tomou, um segundo dono, um dado que não volta atrás), diga que subiu e refaça a classificação. Classificar como arquitetural "por segurança" o que o usuário pediu simples custa entrevista, spec, plano e revisão para uma mudança de um arquivo: é o erro mais caro desta skill, e ele aparece para o usuário como demora.
 
 ## Fase 1 — contexto, antes da primeira pergunta
 
@@ -56,7 +58,7 @@ Leia o estado do projeto: arquivos que o pedido toca, `CLAUDE.md` / `AGENTS.md`,
 `.claude/plan-profile.md` se existir, commits recentes e docs de decisão.
 
 **Feature com tela só fecha com referência visual.** Decisão de tela não se toma em texto: o
-usuário decide vendo. Antes de fechar a spec de qualquer coisa com interface, uma destas três
+usuário decide vendo. Antes de fechar a spec (ou o design curto, na limitada) de qualquer coisa com interface, uma destas três
 tem de valer, e a spec diz qual (§8.3): (1) há um protótipo ou uma tela existente apontada como
 referência, **aprovada e exercitada pelo usuário** (ele percorreu os estados, não só olhou a
 primeira prancha); (2) a spec lista as decisões visuais e o usuário as fechou na entrevista
@@ -68,13 +70,13 @@ pergunte só o que estiver ausente ou em conflito, sem reabrir a aprovação.
 **Fato externo é sonda, não premissa.** Resposta de API de terceiro ou comportamento de modelo
 de que o desenho depende se mede com uma chamada real, agora ou como primeiro passo do plano.
 
-**Fato é trabalho seu, decisão é do usuário.** Se uma pergunta da rodada precisa de um fato do ambiente — o que a tabela tem hoje, quantos usuários caem nesse caso, se aquele componente já existe — despache um subagente para descobrir. Nunca pergunte ao usuário o que você mesmo pode olhar.
+**Fato é trabalho seu, decisão é do usuário.** Se uma pergunta da rodada precisa de um fato do ambiente — o que a tabela tem hoje, quantos usuários caem nesse caso, se aquele componente já existe — despache um subagente de contexto limpo para descobrir. Nunca pergunte ao usuário o que você mesmo pode olhar.
 
-Não bloqueie: uma busca em andamento é um pré-requisito não resolvido, então só as perguntas que dependem dela esperam. Faça o resto da rodada agora.
+Não bloqueie: só as perguntas que dependem de uma busca em andamento esperam; faça o resto da rodada agora.
 
 ### Questione o caminho antes de abrir a árvore
 
-O pedido costuma chegar como um **caminho**, não como um **objetivo**. Depois de ler o contexto, escreva em uma linha o objetivo por trás do pedido e confira se o caminho pedido é o mais barato até ele. Se existe um que chega lá com uma fração do esforço, ou se o pedido contraria decisão já registrada no projeto, apresente o trade-off e a recomendação **antes** de qualquer pergunta sobre o como. Não fabrique alternativa para parecer crítico; se o usuário reafirma o caminho, registre a decisão com a alternativa descartada e siga. Pedido com vários subsistemas independentes: diga isso de saída e decomponha, um ciclo por peça. Detalhe: `references/profundidade.md`.
+O pedido costuma chegar como um **caminho**, não como um **objetivo**. Depois de ler o contexto, escreva em uma linha o objetivo por trás do pedido (se o usuário não disse o para quê, essa é a primeira pergunta, aberta, sem opções) e confira se o caminho pedido é o mais barato até ele. Se existe um que chega lá com uma fração do esforço, ou se o pedido contraria decisão já registrada no projeto, apresente o trade-off e a recomendação **antes** de qualquer pergunta sobre o como. Não fabrique alternativa para parecer crítico; se o usuário reafirma o caminho, registre a decisão com a alternativa descartada e siga. Pedido com vários subsistemas independentes: diga isso de saída e decomponha, um ciclo por peça. Detalhe: `references/profundidade.md`.
 
 ## Fase 2 — as rodadas
 
@@ -102,11 +104,11 @@ Cada resposta do usuário reformata a árvore: decisão fechada empurra a fronte
 ❓ **Q2** — ...
 ```
 
-Nos dois formatos, **toda pergunta vem com a sua recomendação**: sem ela, você transfere ao usuário um trabalho que é seu.
+Nos dois formatos, **toda pergunta vem com a sua recomendação**, redigida para que um "sim" a aceite: sem ela, você transfere ao usuário um trabalho que é seu.
 
 ### O que perguntar
 
-Propósito, restrição, critério de sucesso. E, especificamente, o que costuma ficar assumido em silêncio:
+Propósito, restrição, critério de sucesso. **Traga o que o usuário não pensou:** a pergunta que mais vale é a que ele não faria sozinho. Especificamente, o que costuma ficar assumido em silêncio:
 
 - **O que está fora de escopo** — a lista do que essa feature explicitamente *não* faz.
 - **Quem mais consome** o dado, a tela ou o arquivo que isso muda.
@@ -122,7 +124,7 @@ Corte sem dó o que ninguém pediu (YAGNI).
 
 ### O teste de fechamento
 
-Antes de declarar a entrevista encerrada, faça este exercício, sempre, e por escrito para você mesmo:
+Antes de declarar a entrevista encerrada, em todo caminho, faça este exercício por escrito para você mesmo (na limitada, o passo 4 é passar pela lista de *O que perguntar*):
 
 1. **Liste toda decisão que você tomou sozinho** para conseguir descrever a solução — formato, nome, ordem, default, limite, o que acontece no caso vazio, onde o arquivo mora.
 2. **Cada item dessa lista é uma pergunta que faltou.** Se a escolha muda comportamento que o usuário vê, dado gravado ou custo, ela vira pergunta na próxima rodada, com a sua recomendação. Só detalhe sem efeito fora do código (nome interno, ordem de arquivo) pode ficar como "assumida por mim".
@@ -133,7 +135,7 @@ Se a lista do passo 1 tem mais de duas ou três linhas, ou a varredura do passo 
 
 ### Rodadas, parada precoce e quando parar
 
-- **Só pare quando uma rodada inteira não abrir galho novo.** No caminho arquitetural, uma rodada é sempre pouco.
+- **Só pare quando uma rodada inteira não abrir galho novo.** No caminho arquitetural, uma rodada é sempre pouco: a primeira estabelece o quê, a segunda descobre o como e o que quebra, a terceira encontra o que ninguém tinha visto.
 - **Você parou cedo se:** escreveu "por padrão" ou "provavelmente" no design; daria para implementar de duas formas bem diferentes; não sabe dizer o que fica de fora, nem o que acontece com quem já usa; o usuário respondeu "tanto faz" (ofereça a recomendação e feche); ou uma opção contradiz um requisito já dito e o texto da opção não avisa.
 - **"Chega, escreve" com decisão aberta** não autoriza spec com decisão aberta: liste cada decisão restante com a sua recomendação e peça um aval único. Sem o aval, nada de spec.
 
@@ -147,11 +149,11 @@ Quando a fronteira esvaziar e a varredura não acusar categoria ausente, o desig
 
 **Desenhe para isolamento:** unidades pequenas, com um propósito claro cada, conversando por interface bem definida, testáveis em separado. Para cada uma, você tem que conseguir responder: o que faz, como se usa, de que depende.
 
-**Em código que já existe:** siga os padrões que estão lá. Melhoria pontual no que atrapalha o trabalho entra no design; refatoração não relacionada, não.
+**Em código que já existe:** siga os padrões que estão lá; refatoração não relacionada fica fora.
 
 ## Fase 4 — escrever a spec (só no caminho arquitetural)
 
-Salve seguindo a convenção do projeto. Procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga ao usuário que você criou a convenção. Se o projeto guarda specs em pastas por estado (a fazer / em validação / feito), a spec nasce em "a fazer" e anda junto com o plano dela.
+Salve seguindo a convenção do projeto: procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite caminho e formato de nome. Sem nenhuma, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga que criou a convenção. Se o projeto guarda specs em pastas por estado (a fazer / em validação / feito), a spec nasce em "a fazer" e anda junto com o plano dela.
 
 Esqueleto pronto para copiar: `references/spec-template.md`. Copie a estrutura, não o conteúdo; corte seção que a feature não usa e diga que cortou. Três coisas do esqueleto não são opcionais, porque o plano vai citá-las: requisito com id (`FR-n`) e pelo menos um cenário de aceitação (*dado / quando / então*); critério de sucesso com id (`SC-n`), número e baseline; e a lista de quem mais consome e emite o que muda, nas duas direções.
 
@@ -177,27 +179,23 @@ Conserte inline. Não precisa revisar de novo.
 
 ### Sem portão de aprovação: direto para o plano
 
-A spec não espera aval do usuário. Auto-revisão feita, **mostre no chat, em até dez linhas, o que ele pode querer contestar**: as decisões marcadas "assumida por mim", o que ficou fora de escopo e, se há tela, a referência que governa. Não é pedido de aval, e você não espera resposta: é a lista de revisão dele, que sem isso ninguém vê. Diga onde a spec está e invoque `power-plans` no mesmo turno. Se o usuário pedir mudança na spec depois, mude, refaça a auto-revisão e ajuste o plano junto.
+A spec não espera aval do usuário. Auto-revisão feita, **mostre no chat, em até dez linhas, o que ele pode querer contestar**: as decisões marcadas "assumida por mim", o que ficou fora de escopo e, se há tela, a referência que governa. Não é pedido de aval e você não espera resposta: é a lista de revisão dele. Diga onde a spec está e invoque `power-plans` no mesmo turno. Se o usuário pedir mudança na spec depois, mude, refaça a auto-revisão e ajuste o plano junto.
 
 ## Estado terminal
 
-- **Sonda:** uma recomendação ou um protótipo reportado. Fim.
-- **Direta:** a mudança feita e provada, pelo fluxo normal do projeto. Sem spec, sem plano.
-- **Limitada:** design curto e implementação pelo fluxo normal do projeto. Sem documento de plano.
+- **Sonda, direta e limitada:** o que a tabela de caminhos diz, pelo fluxo normal do projeto. Sem documento de plano.
 - **Arquitetural:** decisões fechadas e spec escrita → invoque **`power-plans`** direto, sem esperar aval, e nenhuma outra skill. Não invoque skill de implementação, de design de front-end, nem de execução. `power-plans` é o próximo passo, ponto.
 
 ## Sinais de que você está se enganando
 
 | Pensamento | Realidade |
 | --- | --- |
-| "Melhor abrir a spec, por segurança" | O usuário descreveu o pedido por inteiro e a mudança se desfaz com um revert: é direta. Inflar também é erro, e ele paga em demora. |
-| "É pequeno, mas vou entrevistar para alinhar" | Se não sobra decisão que mude o que ele vê, o dado ou o custo, não há o que perguntar. Faça. |
+| "Tem muita pergunta, melhor abrir a spec" | Quem pede spec é o tamanho da obra, não o número de perguntas. Obra pequena: pergunte tudo, design curto no chat, e faça. |
 | "O design é óbvio, começo enquanto ele lê" | No caminho arquitetural, implementação só com pedido explícito. Spec e plano prontos não são pedido. |
 | "Falta uma decisão, mas escrevo a spec e ele corrige depois" | Spec não começa com decisão aberta. Não há aprovação depois para pegá-la: faça a rodada. |
 | "Eu conheço esse tipo de app, então é direta" | Direta mede o repositório. Projeto novo não tem fluxo existente: é arquitetural. |
 | "Cresceu, mas já estou quase acabando" | Complexidade escondida sobe o caminho no meio do trabalho. Pare e diga. |
-| "Pergunto ao usuário se essa tabela já existe" | Fato é trabalho seu. Despache um subagente e descubra. |
-| "Faço uma pergunta por mensagem pra não sobrecarregar" | A fronteira inteira vai numa rodada. Perguntar em fila multiplica as idas e voltas. |
+| "Isso é detalhe, decido na implementação" | Se muda o que o usuário vê, o dado ou o custo, é decisão dele tomada às escondidas. Pergunte, em qualquer caminho. |
 | "Já tenho o suficiente pra escrever a spec" | Suficiente para escrever não é o critério. Rode o teste de fechamento. |
 | "Percorri a árvore inteira, então cobri tudo" | A árvore só tem os galhos que alguém abriu. Rode a varredura de cobertura. |
 | "A tela eu descrevo em texto" | Decisão de tela se toma vendo. Referência exercitada, decisões visuais fechadas, ou dispensa escrita. |
@@ -206,12 +204,12 @@ A spec não espera aval do usuário. Auto-revisão feita, **mostre no chat, em a
 
 ## Documentação viva
 
-Esta skill melhora com o uso. Quando uma sessão revelar uma pergunta que **faltou** e custou retrabalho depois, ela entra aqui — na lista da Fase 2, numa categoria de `references/coverage-scan.md`, numa seção de `references/spec-template.md`, nos sinais de parada precoce, ou na tabela acima — **no mesmo trabalho**, não "depois".
+Quando uma sessão revelar uma pergunta que **faltou** e custou retrabalho, ela entra aqui (lista da Fase 2, categoria de `references/coverage-scan.md`, seção de `references/spec-template.md`, sinais de parada precoce ou a tabela acima) **no mesmo trabalho**, não "depois".
 
-O critério para entrar é um só: **custou.** Uma pergunta esquecida que virou bug, escopo refeito, ou uma discussão que se repetiu pela segunda vez. Preferência de estilo e ideia não testada ficam de fora — a skill perde o fio se virar depósito.
+O critério para entrar é um só: **custou** (bug, escopo refeito, discussão que se repetiu). Preferência de estilo e ideia não testada ficam de fora.
 
-Como escrever: melhore a seção que já cobre o assunto antes de acrescentar linha (este arquivo tem teto de 19 mil caracteres, conferido por `scripts/check-skills.sh`; o caso medido vai para `references/`); siga o `AGENTS.md` da raiz do plugin (conceito, não caso); escreva no clone git do plugin (a pasta desta skill, se for repositório git; senão o caminho em `~/.config/planning-workflow/clone`; sem nenhum, deixe a proposta no relatório). **Commit e push no mesmo trabalho:** rode `scripts/check-skills.sh`, commite só os caminhos que mudou, dê push na branch principal, rode `scripts/sync-harnesses.sh` se existir e diga ao usuário o commit em uma linha. O histórico do git é o backup.
+Como escrever e publicar: pelo `AGENTS.md` da raiz do plugin (conceito, não caso; teto de 19 mil caracteres neste arquivo, o caso medido vai para `references/`; **commit e push no mesmo trabalho**). O clone git do plugin é a pasta desta skill, se for repositório git; senão o caminho em `~/.config/planning-workflow/clone`; sem nenhum, deixe a proposta no relatório.
 
 ---
 
-*A classificação em três caminhos, o portão duro antes da implementação e a auto-revisão da spec são adaptados da skill `brainstorming` do plugin [superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent). O formato de rodadas de fronteira vem da skill `grilling`.*
+*A classificação por caminhos, o portão duro antes da implementação e a auto-revisão da spec são adaptados da skill `brainstorming` do plugin [superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent). As rodadas de fronteira vêm da skill `grilling`.*

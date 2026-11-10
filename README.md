@@ -8,12 +8,17 @@ por inteiro e que se desfaz com um revert, se faz direto: sem spec, sem arquivo 
 revisão externa. O ciclo completo existe para feature nova, subsistema novo, escopo em aberto,
 trabalho de vários donos e passo irreversível.
 
+A segunda: **o tamanho da obra corta documento, nunca pergunta.** Decisão de produto em aberto
+(muda o que o usuário vê, o dado gravado ou o custo) vira pergunta em qualquer tamanho de pedido;
+decisão técnica o agente toma e avisa.
+
 ## As quatro skills
 
-- **`spec-interview`**: entrevista em rodadas até a ideia fechar. Classifica o pedido (sonda,
-  direta, limitada, arquitetural), pergunta a fronteira inteira por rodada com a recomendação em
-  cada pergunta, busca sozinha os fatos que estão no código ou no banco, e só escreve a spec
-  quando não sobra decisão em aberto. Feature com tela só fecha com referência visual exercitada
+- **`spec-interview`**: entrevista em rodadas até a ideia fechar. Pergunta a fronteira inteira por
+  rodada com a recomendação em cada pergunta, traz o que o usuário não pensou, busca sozinha os
+  fatos que estão no código ou no banco, e nada escreve enquanto sobrar decisão de produto em
+  aberto. O tamanho da obra decide só o documento (sonda, direta, limitada, arquitetural): obra
+  pequena termina num design curto no chat, obra grande numa spec escrita. Feature com tela só fecha com referência visual exercitada
   pelo usuário, decisões visuais fechadas ou dispensa escrita.
 - **`power-plans`**: o plano de implementação, com o aparato na medida do risco (direto, mínimo,
   parcial, completo): evidência antes de plano, um dono por arquivo, contratos congelados, grafo
