@@ -70,6 +70,11 @@ transições passaram com duplicação visual e reinício indevido encontrados n
 - disponibilidade e recuperação
 - **observabilidade**: que log, métrica ou evento prova em produção que funcionou
 - segurança e privacidade: autenticação, autorização, dado pessoal, o que vaza se der errado
+- **"somente leitura" protege escrita, não sigilo**: para cada credencial dada a um agente ou job,
+  liste o que ela LÊ (segredos, chaves, tokens de sessão) e por onde um texto produzido por ele sai
+  (notificação, renderizador que carrega URL, log, provedor externo). Medido em 2026-10-04: o papel
+  read-only escolhido para um agente lia o cofre de segredos e as chaves dos clientes; a spec o
+  tratava como fronteira e só a revisão externa contou.
 - conformidade, se houver
 
 ### Integrações e dependências externas
@@ -83,6 +88,10 @@ transições passaram com duplicação visual e reinício indevido encontrados n
 - cenários negativos
 - limites, throttling, cota
 - **concorrência e conflito**: duas ações ao mesmo tempo, retry, idempotência, ordem de eventos
+- **posse abandonada**: todo job que reivindica um item (status "em andamento") precisa dizer o que
+  acontece se o processo morrer depois de reivindicar; sem prazo de posse, o item fica preso para
+  sempre e bloqueia os seguintes. Medido em 2026-10-04: um índice de "um aberto por conversa" teria
+  travado a conversa depois de uma única queda.
 - **idempotência é por SUPERFÍCIE DE ESCRITA, não por feature.** Enumere cada botão, endpoint e
   job que grava, e responda *"e se disparar duas vezes?"* para **cada um**. A resposta muda entre
   superfícies da mesma feature, e é por isso que a pergunta feita uma vez só engana: no botão

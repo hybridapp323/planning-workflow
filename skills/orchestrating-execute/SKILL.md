@@ -216,7 +216,7 @@ Sequência por worker, na ordem:
 3. `terminal create`, com o flag de bypass de permissão **e o `--model` e o esforço da tarefa** dentro da string de `--command`. Confira modelo e esforço no TUI antes do dispatch (ver *Portão de atribuição de modelo*).
 4. `terminal wait --for tui-idle` antes de despachar. Terminal que ainda está subindo engole o dispatch.
 5. `dispatch --inject` com o preâmbulo abaixo.
-6. `check --wait --types worker_done,escalation,decision_gate`.
+6. Arme a espera pela skill `orchestration`: `wave.sh wait 3600` numa chamada só dela, em background, e trate o retorno (`0` evento, `2` triagem, `4` nenhum worker trabalhando: despache agora). Não use `check --wait` cru: ele não lê o corpo antes de armar nem volta quando o evento já estava na caixa (incidente de 26/10/2026, documentado na skill `orchestration`).
 
 Armadilhas medidas, que custam tempo quando descobertas na marra: `references/orca-traps.md`. Leia antes da primeira onda.
 
