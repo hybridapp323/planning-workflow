@@ -5,19 +5,30 @@ ao usuário ou a um revisor externo.
 
 ## Por que existe
 
-A revisão externa é o passo mais caro do planejamento, e ela vinha sendo gasta em defeito barato.
-Medido em 11/2026, em 57 revisões externas de plano de dois projetos: mediana de 7 a 8 bloqueadores
-por revisão, sem queda ao longo de três meses em que esta skill dobrou de tamanho. Cerca de 70%
-deles eram fato não conferido, consumidor esquecido, contradição ou ordem de publicação errada, que
-um grep, uma consulta ou uma leitura cruzada mostraria. Em dez casos a regra já estava escrita aqui
-e o defeito da mesma classe voltou. Regra em prosa depende de o autor lembrar; checagem roda sozinha.
+A revisão externa é o passo mais caro do planejamento, e ela vinha sendo gasta também em defeito
+barato. Medido em 11/2026, em 57 revisões externas de plano de dois projetos: mediana de 7 a 8
+bloqueadores por revisão, sem queda ao longo de três meses em que esta skill dobrou de tamanho. Em
+dez casos a regra já estava escrita aqui e o defeito da mesma classe voltou. Regra em prosa depende
+de o autor lembrar; checagem roda sozinha.
 
-O pré-voo tem duas peças, e elas pegam coisas diferentes. Medido em 11/2026, sobre a versão
-anterior à revisão de 6 planos (35 bloqueadores registrados): o lint achou 5 defeitos reais, e
-**nenhum deles estava entre os 35**. O lint pega o defeito de formato e de âncora que nem o
-revisor externo viu (em 10 planos já revisados ele ainda achou 7). Quem ataca a classe dos
-bloqueadores da revisão (fato que o código desmente, consumidor esquecido, ordem errada) é o
-verificador de contexto limpo. Não pule o segundo por o primeiro ter passado limpo.
+O pré-voo tem duas peças, e elas pegam coisas diferentes. Medido em 11/2026 sobre 4 planos, na
+versão exata em que foram mandados à revisão externa (34 bloqueadores registrados; versões
+reconstruídas do transcript da sessão, porque o plano só era commitado depois da revisão):
+
+- O **lint** achou 7 erros, e nenhum estava entre os 34. Ele pega formato e âncora (tarefa sem
+  `Cobre`, caminho citado que não existe), não o que o revisor aponta.
+- O **verificador de contexto limpo**, com o brief abaixo, uma rodada, modelo intermediário e sem
+  acesso ao banco, apontou 13 dos 34 (38%) e mais 5 em parte. Trouxe perto de 15 achados por plano;
+  os que não coincidem com a revisão não foram triados. Custo medido: cerca de 280 mil tokens e 10
+  minutos por plano.
+
+O que o verificador pegou: contrato que cita tipo ou função que não existe, chamador ou emissor fora
+da matriz, ordem errada entre commit, migração e publicação, prova que passa sem o conserto, nulo em
+filtro. O que passou por ele: semântica de falha e de repetição (timeout, segundo efeito),
+autorização entre recursos, decisão de tela, colisão de ambiente entre tarefas paralelas.
+
+Não pule o verificador por o lint ter passado limpo. E o pré-voo não substitui a revisão externa:
+nesta medição ele tira perto de quatro em cada dez bloqueadores, não a maioria.
 
 Nenhuma das duas peças julga o desenho: isso é do revisor externo e do usuário.
 
@@ -27,7 +38,8 @@ Nenhuma das duas peças julga o desenho: isso é do revisor externo e do usuári
 python3 <pasta desta skill>/scripts/plan-lint.py <plano.md> --spec <spec.md>
 ```
 
-Roda da raiz do projeto. Confere, entre outras coisas: requisito da spec que nenhuma tarefa cita;
+Roda da raiz do projeto (fora de um repositório git, a raiz é a pasta atual ou `--root`). Confere,
+entre outras coisas: requisito da spec que nenhuma tarefa cita;
 caminho de arquivo que não existe; `arquivo:linha` além do fim do arquivo; `[SUPOSTO:]` sustentando
 uma tarefa sem "PARE"; tarefa sem `Pronto quando` ou sem `Cobre`; célula vazia em tabela
 obrigatória; arquivo com dois donos; script citado nos passos do coordenador que não existe. Com
@@ -63,13 +75,16 @@ credencial colada>.
    (template, configuração, seed). Liste os que não estão na matriz de ownership nem no traçado.
 4. ORDEM. Compare os passos do coordenador com o script ou roteiro real de publicação e de
    migração do projeto: o que o plano publica cobre tudo que importa o que mudou? Algum passo liga
-   um comportamento antes de o código dele existir?
+   um comportamento antes de o código dele existir, ou depende de algo que só nasce num passo
+   posterior?
 5. CONTRATOS. Leia cada regra dos contratos congelados contra as outras e contra os requisitos da
-   spec: contradição, regra inexecutável, contrato mais restrito que o requisito.
+   spec: contradição, regra inexecutável, contrato mais restrito ou mais frouxo que o requisito,
+   caso que o contrato não cobre.
 
-Responda em tabela: achado | evidência (arquivo:linha ou saída do comando) | classe (fato errado,
-consumidor esquecido, contradição, ordem, prova que não prova). Depois, "conferido e correto": o
-que você abriu e estava certo. Sem opinião sobre o desenho.
+Responda em tabela, do mais grave ao menos grave, só o confirmado com evidência, no máximo 15:
+achado | evidência (arquivo:linha ou saída do comando) | classe (fato errado, consumidor esquecido,
+contradição, ordem, prova que não prova, contrato incompleto). Depois, "conferido e correto" (o que
+você abriu e estava certo) e "não conferível". Sem opinião sobre o desenho.
 ```
 
 ## 3. Depois do pré-voo

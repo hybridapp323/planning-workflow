@@ -735,7 +735,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="pré-voo mecânico de um plano do power-plans")
     ap.add_argument("plano", help="arquivo .md do plano, ou pasta com plan.md")
     ap.add_argument("--spec", help="spec (senão, o cabeçalho **Spec:** do plano)")
-    ap.add_argument("--root", help="raiz do projeto (padrão: raiz git do plano)")
+    ap.add_argument("--root", help="raiz do projeto (padrão: raiz git do plano; sem git, a pasta atual)")
     ap.add_argument("--retired", default="", help="termos aposentados, separados por vírgula")
     ap.add_argument("--json", action="store_true", help="saída estruturada")
     a = ap.parse_args(argv)
@@ -747,7 +747,7 @@ def main(argv=None):
         print(f"plan-lint: plano não encontrado: {a.plano}", file=sys.stderr)
         return 2
     caminho = caminho.resolve()
-    raiz = Path(a.root).resolve() if a.root else (git_topo(caminho.parent) or caminho.parent)
+    raiz = Path(a.root).resolve() if a.root else (git_topo(caminho.parent) or Path.cwd())
     if not raiz.is_dir():
         print(f"plan-lint: raiz não é pasta: {raiz}", file=sys.stderr)
         return 2
