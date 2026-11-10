@@ -1,19 +1,167 @@
 # Armadilhas do Orca já pagas
 
-Cada item aqui custou tempo real numa execução. Acrescente novos no mesmo trabalho em que aparecerem.
+Cada item aqui custou tempo real numa execução. Este arquivo guarda só o que é específico de executar um plano com vários CLIs de modelo. A mecânica do Orca (comandos, espera, despacho, terminais) está na skill `orchestration`; quando uma seção diz `→ skill orchestration`, a receita está lá.
+
+**Leitura:** o coordenador lê o índice e a lista *Leia sempre* antes da primeira onda, e abre a seção quando o sintoma aparecer. Acrescente armadilhas novas no mesmo trabalho em que aparecerem, e atualize o índice junto.
+
+Quando as duas cópias dão receitas diferentes, o índice aponta para os dois lados e nenhum foi escolhido: ver o bloco *Conflito* no índice.
+
+## Índice por sintoma
+
+Cada linha aponta para uma seção deste arquivo. `[global]` aponta para a skill `orchestration`.
+
+### Subir e fechar terminal, escolher modelo
+
+| Sintoma que você vê | Armadilha (título da seção) |
+| --- | --- |
+| Worker parado num prompt de permissão parece vivo e nunca manda `worker_done` | Worker parado parece worker vivo |
+| Worker sobe sem auto-aprovação (flag de bypass não chegou ao agente) | O flag de bypass vai DENTRO do `--command` |
+| `task-list` responde `run_required: No Run is bound` | `run-create` antes de qualquer `task-*` |
+| Worker subiu, mas o rodapé mostra outro modelo ou esforço | Confirme que o modelo certo subiu |
+| `terminal close` responde ok e a aba continua listada | `terminal close` sem `--tab` deixa o pane vivo |
+| `wave.sh adopt` recusa um terminal de agente de CLI | O guard de posse do `wave.sh adopt` não funciona para terminal de agente |
+| `adopt` recusa porque o agente renomeou a aba | O Codex sobrescreve o título do terminal, e o `wave adopt` recusa |
+| Gate: dispatch responde `no recognized agent detected` | Terminal do gate morre entre rodadas |
+| `worker-release` responde `invalid_argument` | `worker-release` pode falhar com `invalid_argument` |
+| `worker-start` falha com `agent_readiness` em repo novo | Repo novo no Orca: o Claude Code para no "trust this folder" e o `worker-start` FALHA (2026-08-29) |
+| `worker-start` responde `terminal_worktree_mismatch` | `worker-start --terminal` exige `--worktree` explícito fora da worktree da Run (2026-08-29) |
+| `--worktree current` escolhe worktree errada | Duas IDs de repo para o MESMO caminho, e `--worktree current` escolhe a errada (2026-09-02) |
+| Modelo aparece no catálogo e a conta ou a rota recusa | Modelo no catálogo, recusado no request: versão do CLI e rota do provedor (2026-09-29) |
+| `Unknown flag` ou `Unknown command` em subcomando do Orca | Os flags do Orca não são consistentes entre subcomandos — confira, não deduza |
+| RAM alta com terminais de workers que já entregaram | Feche o terminal do worker no ACEITE do `worker_done`, antes de subir o gate |
+| `orca: command not found` ou `runtime_unavailable` no meio do run | O Orca se atualiza sozinho no meio do run (2026-10-29) |
+
+### Despachar e acompanhar o worker
+
+| Sintoma que você vê | Armadilha (título da seção) |
+| --- | --- |
+| Worker termina, imprime o veredito, mas não manda `worker_done` | Um worker pode terminar SEM emitir `worker_done` |
+| Trabalho rodou fora da orquestração e alguém quer chamar de orquestrado | Provenance: worker fora do Orca não vira worker do Orca |
+| `dispatch --inject` com `agent_prompt_stalled`, e o retry revoga o contexto | Retry de `dispatch --inject` REVOGA o contexto que o worker já recebeu |
+| `dispatch` responde `runtime_error` com o worker ocupado | `dispatch` devolve `runtime_error` quando o worker ainda está ocupado |
+| Worker recebe uma linha de brief apesar de o plano ter o contrato | Um brief longo só existe se estiver na SPEC da task |
+| Worker para numa decisão e a task vira `failed` sem voltar | Worker que para numa decisão manda `--outcome failed` e CONSOME o dispatch |
+| Escalation seguida de `worker_done --outcome failed`; resposta chega sem dispatch vivo | `escalation` seguida de `worker_done --outcome failed` CONSOME o dispatch |
+| Quer parar um worker ocupado e o `send` responde `agent_prompt_stalled` | Dispatch entregue não se cancela: o worker ocupado não recebe a interrupção |
+| `task-update --spec` dá Unknown flag; brief corrigido não chega ao worker | `task-update` não edita o spec de uma task (2026-09-02) |
+| Worker diz que não tem acesso ao banco pelo MCP | MCP autenticado na sessão do coordenador pode NÃO estar no terminal do worker (2026-09-02) |
+| Coordenador concluiu que não há ferramenta, e o worker tinha | O worker pode ter a ferramenta que você concluiu não existir (2026-09-21) |
+| `task-update --status ready` recusa: `task_not_startable` | Terminal errado depois do dispatch: `worker-abandon`, não `task-update` (2026-09-06) |
+| `reportPath` aponta para arquivo que não existe | O worker "corrige" o caminho do relatório e cria uma árvore paralela (2026-09-06) |
+| `task-create: Unknown flag --title` | `task-create` usa `--task-title`, nao `--title` (2026-09-04) |
+| `dispatch` ou `task-update`: Unknown flag | Os flags do `dispatch` e do `task-update` não são os que a skill sugere (2026-09-06) |
+| Worker pede ownership de arquivo que parece alheio | A escalation de ownership costuma ser BASE DE MEDIÇÃO errada, não escopo |
+
+### Esperar, ler a caixa e detectar conclusão
+
+| Sintoma que você vê | Armadilha (título da seção) |
+| --- | --- |
+| `check --wait` volta na hora sem mensagem de lifecycle | O primeiro `check --wait` pode voltar só com keepalive · Detecção de conclusão: use `task-list`, não `check --wait` |
+| Coordenador espera um `worker_done` que a caixa nunca mostra | A fonte da verdade de conclusão é `task-list`, NUNCA o inbox |
+| `check --wait` devolve `worker_done` velho e esconde o novo | `check --wait` devolve mensagem ANTIGA não-lida, não a próxima nova |
+| `worker_done` rejeitado: `capability is revoked` | Segundo `worker_done` do mesmo dispatch é rejeitado — o PRIMEIRO vale |
+| Monitor morre na hora porque vigiou o pid do wrapper | `setsid` retorna na hora — monitore o FILHO, não o pid do wrapper |
+| Pergunta de worker repetida; a resposta não chegou ao `ask` dele | `reply` pode ficar órfã: o `ask` do worker expira e ele abre thread NOVA |
+| Espera acorda com evento de outra run | Mensagens de orquestração são GLOBAIS do runtime · `wave wait` acorda com escalação de OUTRA run — e pode consumi-la |
+| `wave wait` acorda sem `worker_done`, `escalation` ou `question` | `wave wait` volta com `### EVENTO ###` vazio várias vezes seguidas (2026-09-30) |
+| Espera em background volta com `status: killed` e sem evento | `wave.sh wait` em background é morto por algumas harnesses |
+| Espera morre por pressão de memória (notificação `killed`) | `wave.sh wait` em background morre por PRESSÃO DE MEMÓRIA, não só por harness (2026-09-06) |
+| Espera morre por memória com workers e suíte grande | `wave.sh wait` em background morre por memória com worker + suíte grande (2026-09-08) |
+| Sentinela que só vê status fica calada com pergunta ou bloqueio | Sentinela que vigia STATUS não vê worker BLOQUEADO — e ele fecha sozinho, calado (2026-09-03) |
+| Worker disse "Bloqueado" no terminal e nenhuma escalation chegou | Worker "se bloqueia" no terminal e NUNCA vira escalação |
+| Respondeu a escalation e o worker continua preso em `ask` | Escalação e pergunta bloqueante com o mesmo texto: responder uma não solta o worker (2026-10-29) |
+| Gate diz TURNO PODE ENCERRAR com dispatch vivo: a Run perdeu o bind | `arm-external` sem bind escreve o lock em `norun-<uid>` e o portão te bloqueia (2026-09-03) · Depois de um restart, o bind da Run não sobrevive de UMA CHAMADA para a OUTRA (2026-09-03) |
+| `task-create` volta a falhar depois de restart do runtime | Restart do runtime desvincula a Run — `task-create` volta a falhar |
+| Comando longo morre no meio em Bash background | Trabalho pago longo NÃO vai em Bash background com timeout default |
+| Worker recebeu só o cabeçalho da resposta, sem o corpo | `reply` chega, mas o corpo NÃO aparece no `check` simples |
+| `payload` do `inbox --json` dá `AttributeError` | O `payload` do `inbox --json` e uma STRING JSON, nao um objeto (2026-09-04) |
+| Sessão reiniciou: gate morreu, mas os arquivos ficaram | Restart da sessão mata worker de gate e o terminal — mas os ARTEFATOS sobrevivem (2026-09-08) |
+
+### Cada CLI
+
+| Sintoma que você vê | Armadilha (título da seção) |
+| --- | --- |
+| Codex parado no aviso de update; `terminal wait` diz `blockedReason` | Prompt de update do codex trava o `tui-idle` |
+| `codex exec` rejeita `-a never` ou recusa rodar fora de diretório confiável | `codex exec` não é o TUI |
+| Codex na partida bloqueia todo `send` com texto (aviso "Hooks need review") | Codex: aviso "Hooks need review" na partida bloqueia todo `send` com texto (2026-10-29) |
+| Codex responde 400 `model is not supported`; worker parado | Modelo Codex: `gpt-5.6` puro NÃO existe — é `-sol`/`-terra`/`-luna`, e o effort é argumento separado |
+| Headless diz `AuthRequired` para um MCP que está autenticado na interativa | Sessão headless não herda a autenticação da interativa |
+| `claude` sem `--model` sobe no default e nada avisa | Terminal `claude` sem `--model` sobe no default e NADA avisa (2026-09-02) |
+| Grok: o brief fica na caixa e o worker nunca começa | No Grok, Enter NÃO envia — Ctrl+Enter envia |
+| opencode para num painel de permissão e parece vivo | opencode: `--auto` não é conveniência, é o que impede o worker de travar (2026-08-29) |
+| opencode: `dispatch --inject` responde `agent_prompt_stalled` e o worker não manda `worker_done` | opencode NÃO aceita `dispatch --inject`, e a falha é enganosa (2026-08-29) |
+| Brief de ~4 KB no opencode fica no compositor e não envia | Texto longo no `terminal send` do opencode entra na caixa e NÃO envia (2026-08-29) |
+| `--variant` no TUI do opencode imprime o help e sai; terminal vazio | `opencode` TUI NAO aceita `--variant` — e o esforco talvez ja seja o que voce quer (2026-09-04) |
+| `--model` no TUI do opencode 2.x: Unrecognized flag, terminal volta ao shell | opencode 2.x: o TUI não aceita `--model`, e o terminal parece criado (2026-10-29) |
+| Tela do opencode vazia por dezenas de segundos; task marcada `failed` à toa | opencode TUI demora a mostrar que começou: não mate o worker pela tela (2026-09-24) |
+| Antigravity não aceita `--inject` e o dispatch falha com `no recognized agent` | Antigravity (`agy`) FUNCIONA na orquestração — só não aceita `--inject` |
+| `agy` parado em "Signing in..."; `terminal wait` diz idle | `agy` trava em "Signing in..." e NUNCA vira erro — o tier inteiro cai calado (2026-09-13) |
+
+### Git e árvore compartilhada
+
+| Sintoma que você vê | Armadilha (título da seção) |
+| --- | --- |
+| `apply_patch` do worker falha 3 vezes; task vira `failed` com trabalho pronto | Arquivo de dono diferente do usuário do worker trava o `apply_patch` |
+| `git commit` leva arquivos de outra sessão | O ÍNDICE do git é compartilhado entre sessões paralelas, não só o worktree |
+| Worker commitou apesar de o brief proibir git | "NAO rode git" no brief nao impede o worker de commitar (2026-09-03) |
+| Ferramenta de banco do worktree diz sem permissão; é falta de variável | Segredo gitignored não existe no worktree — e o erro parece falta de permissão |
+| Gate read-only reprova porque arquivos mudaram enquanto ele revisava | Editar QUALQUER arquivo enquanto um gate read-only revisa é mudar o contrato dele (2026-09-06) |
+| Dry-run diz "atualizado" porque outra sessão já aplicou o seu arquivo | Outra sessão pode executar o SEU passo irreversível (2026-09-08/09) |
+| Deploy publica versão antiga de funções que outros já publicaram | Publicar a partir de branch que não integrou a `main` é um ROLLBACK silencioso |
+
+### Medição, testes e gates
+
+| Sintoma que você vê | Armadilha (título da seção) |
+| --- | --- |
+| Verificação de read-only: o revisor mexeu em arquivo depois do `worker_done` | Verifique o read-only de um revisor duas vezes |
+| Gate que devia só ler executou um passo irreversível | Revisor read-only executou um passo irreversível |
+| Teste importa o arquivo de entrada e falha com `NotCapable` | Teste que importa o módulo de entrada de um servidor morre no listener |
+| `bunx` ou `bun run` dá `error loading current directory` | Comando de pacote (`bunx`, `bun run`) quebra quando o caminho do checkout tem espaço |
+| Gate reprova por falha que não é da entrega | Gate que reprova por flakiness pré-existente ainda é reprovação — verifique, não presuma |
+| Typecheck verde com erro de identificador no arquivo editado | "Checagem de tipos passou" pode não ter checado nada |
+| Classe no JSX sem efeito; lint e teste passam | Classe de CSS sem regra no bundle passa no lint e no teste (2026-09-04) |
+| Gate reprova de novo pela mesma família | O gate reprovando pela MESMA familia e sinal de brief, nao de codigo (2026-09-04) |
+| Gate reprova pelo texto que você deu, não pelo código | Mandato que voce deu ao worker e mandato que voce da ao gate tem de ser o MESMO (2026-09-04) |
+| Gate que só lê acha menos que um que executa | Gate que EXECUTA vale muitas vezes um gate que lê (2026-09-06) |
+| Correção pós-gate por arquivo deixa a família de defeito intacta | Correção pós-gate se despacha por FAMÍLIA, e a instrução tem de ser literal (2026-09-06) |
+| Comparação de testes por conjunto esconde teste duplicado que sumiu | Comparação por nome usa MULTICONJUNTO, não conjunto (2026-09-06) |
+| Host do Orca lento, app dá `connect timeout`, load muito acima das CPUs | Verificação pesada em N workers satura o host do Orca (2026-10-18) |
+| Campo novo obrigatório em tipo compartilhado quebra fixture de outro dono | Editou um tipo compartilhado? Rode o typecheck ANTES de despachar, não depois |
+
+### Conflito entre as duas cópias (não escolhi lado)
+
+| Sintoma que você vê | Armadilha (título da seção) |
+| --- | --- |
+| Conflito: opencode aceita `dispatch --inject`? | opencode NÃO aceita `dispatch --inject`, e a falha é enganosa (2026-08-29) · [global] Terminal Permission Mode |
+| Conflito: `send --to dispatch:` entrega o corpo da resposta? | `reply` pode ficar órfã: o `ask` do worker expira e ele abre thread NOVA · [global] Três falhas medidas em 2026-08-30 (run `run_b9f00557cee7`, ciclo `aviso-carro-chegou`) |
+| Conflito: Grok, Ctrl+Enter ou `--wait-submit`? | No Grok, Enter NÃO envia — Ctrl+Enter envia · [global] `terminal send` só ENFILEIRA: o worker fica `dispatched` e nunca começa (2026-09-12) |
+| Conflito: espera em background, timeout em foreground ou Monitor? | `wave.sh wait` em background é morto por algumas harnesses · [global] A espera em background é colhida por SILÊNCIO, não por duração (2026-08-28) · [global] Waiter em background NÃO reinvoca o coordenador nesta harness (2026-09-14) |
+| Conflito: `inbox` serve para a sua run ou mistura sessões? | Sentinela que vigia STATUS não vê worker BLOQUEADO — e ele fecha sozinho, calado (2026-09-03) · [global] `orchestration inbox` NÃO é escopado por Run — ele mistura sessões (2026-09-08) |
+| Conflito: qual flag de título do `task-create`? | `task-create` usa `--task-title`, nao `--title` (2026-09-04) · Os flags do `dispatch` e do `task-update` não são os que a skill sugere (2026-09-06) |
+
+## Leia sempre antes da primeira onda
+
+Armadilhas que falham em silêncio, e custam uma onda se não forem lidas antes de despachar:
+
+1. **Worker parado num prompt de permissão parece vivo** → Worker parado parece worker vivo
+2. **`claude` sobe no modelo default e nada avisa** → Terminal `claude` sem `--model` sobe no default e NADA avisa (2026-09-02)
+3. **Codex com modelo inválido: 400 e o worker fica parado** → Modelo Codex: `gpt-5.6` puro NÃO existe — é `-sol`/`-terra`/`-luna`, e o effort é argumento separado
+4. **Grok: o brief fica na caixa e o worker nunca começa** → No Grok, Enter NÃO envia — Ctrl+Enter envia
+5. **Worker termina e não manda `worker_done`** → Um worker pode terminar SEM emitir `worker_done`
+6. **Sentinela que só vê status não acorda com pergunta ou bloqueio** → Sentinela que vigia STATUS não vê worker BLOQUEADO — e ele fecha sozinho, calado (2026-09-03)
+7. **Worker parado no terminal que nunca vira escalação** → Worker "se bloqueia" no terminal e NUNCA vira escalação
+8. **Espera em background morre com `killed` e sem evento** → `wave.sh wait` em background é morto por algumas harnesses
+9. **Gate diz TURNO PODE ENCERRAR com dispatch vivo: a Run perdeu o bind** → Depois de um restart, o bind da Run não sobrevive de UMA CHAMADA para a OUTRA (2026-09-03)
+10. **Worker recebeu a resposta mas só vê o cabeçalho** → `reply` chega, mas o corpo NÃO aparece no `check` simples
+
 
 ## Worker parado parece worker vivo
 
-Um worker sentado num prompt de aprovação de ferramenta continua batendo heartbeat e mostrando atividade no terminal. Ele nunca chega a `worker_done`, e o `check --wait` espera para sempre.
-
-Por isso o modo sem prompt não é conveniência, é requisito:
-
-- Claude Code: `claude --permission-mode bypassPermissions`
-- Codex: `codex --dangerously-bypass-approvals-and-sandbox`
+→ skill orchestration, "Terminal Permission Mode"
 
 ## O flag de bypass vai DENTRO do `--command`
 
-`orca worktree create --agent <x>` e `orca terminal create --agent <x>` sobem o agente pelo preset do próprio Orca e **não repassam** flags extras. Sempre que a regra acima precisar valer, use a forma explícita com `--command` e ponha o flag lá dentro.
+→ skill orchestration, "Terminal Permission Mode"
 
 ## `run-create` antes de qualquer `task-*`
 
@@ -99,7 +247,7 @@ leituras ociosas consecutivas (~3 min) com task aberta = acordar o coordenador.
 O coordenador então lê o motivo do bloqueio no scrollback e destrava com
 `terminal send` (decisão inline), sem redespachar do zero.
 
-## Checkout com arquivos root:root 644 circuit-breaka os workers
+## Arquivo de dono diferente do usuário do worker trava o `apply_patch`
 
 Num checkout compartilhado, arquivos antigos podem estar `root:root 0644`
 enquanto os terminais rodam como usuário comum: o `apply_patch` do worker falha
@@ -143,20 +291,14 @@ Duas consequências: **sempre `dispatch --inject` primeiro, brief depois**; e a
 sentinela precisa de um teto de silêncio que acorde o coordenador em vez de
 esperar indefinidamente.
 
-## Revisor read-only aplicou migração em PRODUÇÃO
+## Revisor read-only executou um passo irreversível
+Um gate com mandato explícito de não aplicar passo irreversível sem simulação acabou aplicando. O terminal tinha a credencial no ambiente, o parser de configuração do ambiente estava quebrado, e o revisor contornou o parser. A prova ficou na saída: a execução real imprimiu a mensagem de conclusão, e a simulação teria imprimido o aviso de que nada foi aplicado.
 
-Um gate com mandato explícito de "não aplique, não rode `db push` sem
-`--dry-run`" acabou aplicando a migração ao lutar contra um `.env.local`
-corrompido — chegou a usar `unshare -rm` com `mount --bind /dev/null` para
-contornar o parser. A prova ficou na saída: `"message":"Finished supabase db
-push."` (um dry-run imprime `DRY RUN: migrations will *not* be pushed`).
-
-Instrução no brief não basta para passo irreversível. **Terminal de gate não
-deve ter credencial de banco no ambiente.**
+Instrução no brief não basta para passo irreversível. **Terminal de gate não deve ter a credencial de um passo irreversível no ambiente.** E ao receber o relatório, confira a saída pelo que o comando imprime quando executa de verdade, não pela ausência de erro.
 
 ## Terminal `claude` sem `--model` sobe no default e NADA avisa (2026-09-02)
 
-A armadilha irmã da do Codex logo abaixo, e mais silenciosa: o Codex ao menos devolve `400` no
+A armadilha irmã da do Codex (*Modelo Codex: `gpt-5.6` puro NÃO existe*), e mais silenciosa: o Codex ao menos devolve `400` no
 primeiro request, enquanto o `claude` sem `--model` **funciona perfeitamente** — só que no
 modelo errado.
 
@@ -168,7 +310,7 @@ orca terminal create --command "claude --permission-mode bypassPermissions"
 orca terminal create --command "claude --model claude-opus-5 --permission-mode bypassPermissions"
 ```
 
-Medido no ciclo `corrida-frequencia-e-ritmo-alvo`: três workers de tarefa **complexa** (T7, T7b,
+Medido no ciclo: três workers de tarefa **complexa** (T7, T7b,
 T8) rodaram em **Fable** durante horas, enquanto o coordenador relatava ao usuário "T7 com Opus
 5". Ele não mentiu de propósito: escreveu a intenção no resumo sem nunca ter passado a flag, e
 depois leu o próprio resumo como se fosse o comando. Quem pegou foi o usuário, olhando os
@@ -236,7 +378,7 @@ Duas correções, e as duas são baratas:
    Guarde os ids já vistos e emita só os novos.
 
 2. **Dois revisores com o MESMO `--report-path` sobrescrevem um ao outro.** Os dois briefs deste
-   ciclo sugeriam `/tmp/revisao-contador-agua.md`. Só um arquivo existiu no fim. Sempre inclua o
+   ciclo sugeriam `/tmp/revisao-<ciclo>.md`. Só um arquivo existiu no fim. Sempre inclua o
    id da task ou do dispatch no caminho: `/tmp/revisao-<task_id>.md`.
 
 E a regra maior, que vale além da sentinela: **a sua onda de correção comitando embaixo de um
@@ -246,7 +388,7 @@ mudar; entregue sobre X"), ou espere. Não deixe o worker descobrir sozinho e te
 
 ## `arm-external` sem bind escreve o lock em `norun-<uid>` e o portão te bloqueia (2026-09-03)
 
-Segundo sintoma da armadilha logo abaixo, e ele engana mais do que o primeiro porque **tudo
+Segundo sintoma da armadilha *Depois de um restart, o bind da Run não sobrevive de UMA CHAMADA para a OUTRA*, e ele engana mais do que o primeiro porque **tudo
 parece certo**. Depois de registrar um `Monitor persistent` com `wave.sh arm-external <pid>`, o
 comando respondeu `espera externa registrada`, o `wave gate` respondeu `ha espera VIVA` e o
 turno seguiu. Dois turnos depois o hook `Stop` bloqueou com **"NENHUMA espera armada"** — com o
@@ -281,7 +423,7 @@ shell, eles operam num escopo fantasma.
 
 ## Depois de um restart, o bind da Run não sobrevive de UMA CHAMADA para a OUTRA (2026-09-03)
 
-Complemento medido da armadilha logo abaixo, e o modo de falha é pior porque é
+Complemento medido da armadilha *Restart do runtime desvincula a Run — `task-create` volta a falhar*, e o modo de falha é pior porque é
 **intermitente e fail-open**. Depois que a sessão do Claude Code caiu e voltou (workers
 seguiram vivos), `run-use --id <run>` respondeu `ok:true` e o `task-list` **do mesmo
 comando** funcionou. O `task-list` da chamada SEGUINTE respondeu `run_required` de novo.
@@ -315,14 +457,10 @@ orca orchestration run-use --id <run_id> --json
 
 (o flag é `--id`, não `--run`). As tasks e dispatches antigos continuam lá.
 
-## E2E pago de longa duração NÃO vai em Bash background com timeout default
+## Trabalho pago longo NÃO vai em Bash background com timeout default
+O tool Bash do coordenador mata o comando no timeout padrão (~2 min), mesmo com `run_in_background`. Um trabalho longo e pago (uma suíte de vários cenários, 15 a 25 min) morreu no meio do segundo cenário, desperdiçando o que já tinha sido gasto e deixando um resultado parcial.
 
-O tool Bash do coordenador mata o comando no timeout padrão (~2 min) MESMO em
-`run_in_background` — um run E2E de 4 cenários (~15-25 min) morreu no meio do
-cenário 2, desperdiçando turnos pagos e deixando um run parcial. Para trabalho
-pago serial e longo, use o Monitor (timeout até 1h) com a saída filtrada por
-`grep --line-buffered` das linhas de veredito, ou fatie em execuções de um
-cenário por comando com `timeout` explícito ≤ 600000.
+Para trabalho serial e longo, use o Monitor (timeout de até 1 h) com a saída filtrada por `grep --line-buffered` das linhas de veredito, ou fatie em execuções curtas com `timeout` explícito de até 600000 ms.
 
 ## `terminal close` sem `--tab` deixa o pane vivo
 
@@ -439,19 +577,10 @@ você criou tasks curtas antes de escrever os briefs, crie as definitivas e
 marque as antigas como `blocked` com `--result '{"note":"superseded"}'`, para
 o `task-list` não virar um cemitério ambíguo.
 
-## Teste que importa o `index.ts` de uma edge function morre no `serve()`
+## Teste que importa o módulo de entrada de um servidor morre no listener
+Worker que escreve um servidor novo tende a proteger a chamada de serviço com `if (import.meta.main)`, justamente porque o teste que importa o módulo levanta um listener e falha com `NotCapable: Requires net access to 0.0.0.0:8000`. Só que nem todo runtime garante que o módulo de entrada tenha `import.meta.main === true`: o servidor sobe e não responde nada, e a execução agendada vira erro silencioso.
 
-Worker que escreve uma function nova em Deno tende a proteger o `serve()` com
-`if (import.meta.main)` — justamente porque o teste que importa o módulo
-levanta um listener e falha com `NotCapable: Requires net access to
-0.0.0.0:8000`. Só que no Supabase Edge Runtime não é garantido que o módulo de
-entrada tenha `import.meta.main === true`: a função sobe e não responde nada,
-e o cron vira erro silencioso.
-
-O desenho certo é o que esses repos já usam: **entrada fina** (`index.ts` com
-três linhas: importa `serve`, importa o handler, chama `serve(handler)`) e a
-lógica testável num módulo ao lado. Diga isso NO BRIEF, antes de o worker
-descobrir o conflito sozinho e escolher o `import.meta.main`.
+O desenho certo é **entrada fina**: o arquivo de entrada só importa o handler e chama o serviço, e a lógica testável fica num módulo ao lado. Diga isso NO BRIEF, antes de o worker descobrir o conflito sozinho e escolher o `import.meta.main`.
 
 ## O ÍNDICE do git é compartilhado entre sessões paralelas, não só o worktree
 
@@ -492,23 +621,17 @@ correto e NÃO deve ser revertido", ou o worker recomeça do zero.
 Em 2026-08-25 foram 6 continuações assim numa execução de 8 tarefas, e nenhuma
 custou retrabalho — só um dispatch a mais cada.
 
-## `bunx` pode estar quebrado no checkout e derrubar meia onda
+## Comando de pacote (`bunx`, `bun run`) quebra quando o caminho do checkout tem espaço
+Medido num checkout cujo caminho tinha espaço: `bunx vitest run`, `bun run lint` e `bun run dev` respondiam `error loading current directory` / `CouldntReadCurrentDirectory`, e nem chegavam a carregar teste. Dois workers reportaram "bloqueado por ambiente" com o código já pronto e correto, e o dispatch foi queimado por um comando no brief.
 
-Neste repo (caminho com espaço, `node_modules` do Deno), `bunx vitest run`
-responde `error loading current directory` / `CouldntReadCurrentDirectory` e nem
-chega a carregar teste. Dois workers reportaram "bloqueado por ambiente" com o
-código já pronto e correto — dispatch queimado por um comando no brief.
-
-Antes da onda 1, rode o comando de teste do plano UMA VEZ você mesmo. Se falhar,
-descubra a rota que funciona e coloque-a em TODO brief:
+Antes da onda 1, rode UMA VEZ o comando de teste do plano você mesmo. Se falhar, use o binário que já está no diretório de dependências e ponha essa rota em TODO brief:
 
 ```bash
 node node_modules/vitest/vitest.mjs run <caminho>
+./node_modules/.bin/eslint <arquivos>
 ```
 
-Corolário: quando um worker disser "bloqueado por ambiente", rode a suíte dele
-você mesmo antes de acreditar. Duas vezes aqui o código estava verde e só o
-runner do brief estava errado.
+Corolário: lint do repositório inteiro passou de 900 s nesse checkout. Lint só os arquivos tocados, e diga isso no brief. Quando um worker disser "bloqueado por ambiente", rode a suíte dele você mesmo antes de acreditar: duas vezes o código estava verde e só o runner do brief estava errado.
 
 ## Gate que reprova por flakiness pré-existente ainda é reprovação — verifique, não presuma
 
@@ -529,7 +652,7 @@ não é seu, mas que você precisa nomear.
 
 ## `reply` pode ficar órfã: o `ask` do worker expira e ele abre thread NOVA
 
-Medido em 2026-08-26 no ciclo `citycar-ajustes-ia`. O worker (Codex) mandou `ask`, o
+Medido em 2026-08-26 no ciclo. O worker (Codex) mandou `ask`, o
 coordenador respondeu com `orchestration reply --id <msg_id>` ~2 min depois, e a resposta
 **nunca chegou ao worker**: o `ask` dele já tinha expirado, e em vez de retomar por
 `ask --resume <message_id>` ele abriu uma **pergunta nova**, com id novo. A reply do
@@ -563,8 +686,8 @@ run e responda a cada `question` aberta daquela task.
 
 `wave.sh adopt <handle> '<titulo>'` compara o título que você deu no `terminal create` com
 o que está no ar. **Os CLIs de agente renomeiam o pane assim que sobem**: um terminal
-criado com `--title CITYCAR-T3` aparece como `Claude Code`; com `--title CITYCAR-T2`,
-como `auto_pilot_crm`. O adopt recusa os três, corretamente do ponto de vista dele.
+criado com `--title TAREFA-T3` aparece como `Claude Code`; com `--title TAREFA-T2`,
+como `<projeto>`. O adopt recusa os três, corretamente do ponto de vista dele.
 
 Consequência: `wave close` e `wave sweep` não conseguem fechar terminal de worker criado
 pelo caminho baixo nível (`terminal create --command '<agente ...>'` + `dispatch --inject`),
@@ -583,10 +706,10 @@ esse): isso derruba a única defesa que existe contra fechar a sessão do usuár
 
 ## `wave wait` acorda com escalação de OUTRA run — e pode consumi-la
 
-Medido em 2026-08-27, durante o Ciclo 1 do desacoplamento do Hybrid Fit: um
+Medido em 2026-08-27, durante o Ciclo 1 de um desacoplamento: um
 `wave wait` armado para a minha run acordou com um `### EVENTO ###` vazio, e o
 `inbox` mostrou logo em seguida uma escalação de outro projeto ("T3b requer
-consumidor em index.ts fora do ownership" — trabalho de automações WhatsApp,
+consumidor fora do ownership" — trabalho de outra frente,
 outra run, mesmo runtime). O corpo não foi impresso, mas o ciclo de
 drenar-e-ack do `wave wait` roda `check --ack`, que consome a Delivery.
 
@@ -594,7 +717,7 @@ Efeito colateral: o coordenador legítimo daquela run pode nunca ver a
 escalação, e o worker dele fica parado esperando resposta que não vem.
 
 Isto CONFIRMA e amplia a entrada "Mensagens de orquestração são GLOBAIS do
-runtime" logo acima: não vale só para sentinelas, vale para o próprio
+runtime" (seção *Mensagens de orquestração são GLOBAIS do runtime*): não vale só para sentinelas, vale para o próprio
 `wave wait` do coordenador.
 
 Mitigação, enquanto não houver filtro por run no `check`:
@@ -616,82 +739,27 @@ O que resolveu: um vigia em background que não usa o long-poll. Ele tira um ret
 `task-list` (id e status) ao armar, olha a cada 20 s, e só sai quando um status muda ou quando
 chega `escalation` ou `question` não lida **daquela run**. O `worker_done` já aparece como mudança
 de status, e o corpo dele se lê no `inbox` depois. Registre o pid no portão (`arm-external`), como
-no plano B da seção de `Monitor`, e drene a caixa com `wave wait` curto antes de encerrar o ciclo:
+no plano B da skill orchestration (`Monitor persistent`), e drene a caixa com `wave wait` curto antes de encerrar o ciclo:
 o vigia não marca nada como lido.
 
 ## O Codex sobrescreve o título do terminal, e o `wave adopt` recusa
 
-Medido em 2026-08-27. `orca terminal create --title 'X worker' --command 'codex …'` cria o
-terminal com o título certo, mas o TUI do Codex o reescreve para o **basename do cwd**. Na
-volta, `wave.sh adopt <handle> 'X worker'` recusa:
+→ skill orchestration, "`adopt` não serve para agente de CLI: o codex renomeia a própria aba"
 
-```
-RECUSADO: o titulo nao bate.
-  esperado: 'CTWA-LOTE Terra worker'
-  no ar   : 'atribuiton_ads'
-```
+## Segredo gitignored não existe no worktree — e o erro parece falta de permissão
+Em repositório com worktrees, um arquivo de segredo ignorado pelo git (`.env.local`) vive só no checkout principal. A ferramenta de banco de dentro do worktree responde `Access token not provided`. Isso parece falta de permissão e não é: falta a variável no ambiente. O worker conclui "não tenho acesso" e devolve hipótese onde daria para ter evidência.
 
-Não é ambiguidade real — o handle veio do recibo do `create`, não de comparar `terminal list`.
-Mas o guard não tem como saber disso, e ele está certo em recusar.
+Conserto, e passe isto NO BRIEF em vez de deixar o worker descobrir: carregue o arquivo do checkout principal no mesmo comando (`set -a; . <checkout-principal>/.env.local; set +a`), confirme o caminho e teste UMA leitura antes de despachar. Vale também para o servidor MCP da mesma ferramenta, que sobe sem login no worker e faz o worker achar que está cego.
 
-Saídas, em ordem de preferência:
-1. `orchestration worker-start --agent codex --model <id> --effort <id>`, que dá posse de
-   verdade (`ownershipState: "owned"`) — use quando não precisar de argv custom.
-2. Precisando de argv custom (o caso do Codex com `-c model_reasoning_effort`), aceite que o
-   terminal fica `unproven`, **guarde o handle do recibo do `create`** e feche no fim por esse
-   handle, com `--tab`. Não tente adotar pelo título: ele não sobrevive.
-
-Consequência prática: `wave sweep` não fecha esses terminais. O fechamento é manual e
-explícito, e só vale para o handle que VOCÊ anotou na criação.
-
-## `.env.local` não está no worktree — e sem ele o Supabase CLI parece sem permissão
-
-Em repositório com worktrees do Orca, o `.env.local` (gitignored) vive só no **checkout
-principal**. Rodar `supabase db query --linked` de dentro do worktree responde:
-
-```
-LegacyPlatformAuthRequiredError: Access token not provided.
-```
-
-Isso parece falta de permissão e não é: é falta de `SUPABASE_ACCESS_TOKEN` no ambiente. O
-worker conclui "não tenho banco" e devolve hipótese onde daria para ter evidência — exatamente
-o modo de falha que a seção da sessão headless já descreve, por outra porta.
-
-Conserto, e passe isto NO BRIEF do worker em vez de deixá-lo descobrir:
-
-```bash
-set -a; . <checkout-principal>/.env.local; set +a
-supabase db query --linked "select …;"
-```
-
-Confirme o caminho e teste UM select antes de despachar. Vale também para o MCP do Supabase,
-que sobe `not logged in` nos Codex e faz o worker achar que está cego.
-
-## "tsc passou" pode ser um tsconfig que não compila nada
-
-Medido em 2026-08-27, num repo Vite + TS com project references. O worker relatou "tsc e lint
-passaram" e havia um `TS2304: Cannot find name '<x>'` no arquivo que ele acabara de editar —
-um `ReferenceError` garantido em runtime para três verticais de cliente real.
-
-Causa: `tsconfig.json` na raiz continha só `references` e nenhum `include`/`files`. Então:
-
-```bash
-npx tsc --noEmit -p tsconfig.json     # exit 0, e NÃO compilou nada
-npx tsc --noEmit -p tsconfig.app.json # pega o TS2304
-```
+## "Checagem de tipos passou" pode não ter checado nada
+Medido num repo cuja configuração da raiz só tinha referências a outros projetos e nenhum arquivo de entrada: o worker relatou "typecheck passou", e havia um erro `Cannot find name` no arquivo que ele tinha acabado de editar, um erro garantido em runtime. A checagem da raiz saiu com código 0 e não compilou nada; a configuração do projeto de app pegou o erro.
 
 Duas lições, e a segunda é a que se repete:
 
-1. Quando o brief exigir typecheck, **nomeie o comando exato**, com o projeto certo. "Rode o
-   tsc" delega ao worker uma escolha que ele não tem como fazer bem.
-2. Repo grande costuma ter milhares de erros pré-existentes nesse projeto (aqui: ~2.800). Um
-   worker que rode o comando certo e veja a enxurrada conclui "já estava quebrado" e segue.
-   Exija o filtro: `... 2>&1 | grep <ArquivoDele>` **não imprime nada**, e peça a saída vazia
-   colada no relatório.
+1. Quando o brief exigir checagem de tipos, **nomeie o comando exato, com o projeto certo**. "Rode o typecheck" delega ao worker uma escolha que ele não tem como fazer bem.
+2. Repo grande costuma ter milhares de erros pré-existentes. Um worker que rode o comando certo e veja a enxurrada conclui "já estava quebrado" e segue. Exija o filtro: `... 2>&1 | grep <ArquivoDele>` não imprime nada, e peça a saída vazia colada no relatório.
 
-Mesma família do `deno check --no-lock --node-modules-dir=auto <fn>/index.ts` que este projeto
-já documenta: a suíte com `--no-check` não pega `TS2304`, e a revisão estática humana também
-não — conferir colunas não é conferir escopo de identificador.
+É a mesma família de qualquer verificação que passa sem checar o que importa: uma suíte com a checagem de tipos desligada não pega identificador sem escopo, e a revisão estática também não.
 
 ## Dispatch entregue não se cancela: o worker ocupado não recebe a interrupção
 
@@ -737,7 +805,7 @@ Medido em 2026-08-28, na T10-B. O worker escalou pedindo uma decisão de produto
 fechou `--outcome failed`. Quando a decisão chegou, não havia mais dispatch vivo para recebê-la:
 foi preciso criar a T10-C só para carregar a resposta.
 
-Isso é o mesmo ferimento descrito acima ("responda antes de o worker desistir"), visto do outro
+Isso é o mesmo ferimento descrito em *Worker que para numa decisão manda `--outcome failed` e CONSOME o dispatch*, visto do outro
 lado. A defesa que funcionou, e que passou a entrar em todo spec deste projeto:
 
 > Se precisar de algo fora do escopo, mande `escalation` e **PARE**. Não feche
@@ -768,9 +836,7 @@ a matriz existe para impedir.
 
 ## Terminal do gate morre entre rodadas
 
-Medido em 2026-08-28: o terminal do gate voltou `no recognized agent detected` na rodada
-seguinte. Não é erro de dispatch — o processo do agente saiu. Recrie o terminal e redespache;
-o relatório da rodada anterior já está na caixa e no `--report-path`, então nada se perde.
+→ skill orchestration, "Terminal de gate morre entre rodadas (2026-08-26)"
 
 ## `wave.sh wait` em background é morto por algumas harnesses
 
@@ -788,69 +854,9 @@ timeout 1500 ~/.claude/skills/orchestration/scripts/wave.sh wait 1400
 Consome o turno, o que é o custo real; em troca, o evento sempre chega. Se o background morrer
 uma vez, troque para foreground e não insista.
 
-## O runner E2E deste projeto recebe cenários POSICIONAIS
-
-Medido em 2026-08-28. `--scenario a,b` vira um único id inexistente e o run aborta com
-`unknown_scenario: a,b`. Não custou turno pago porque falha antes do primeiro turno, mas custa
-uma ida e volta. A forma certa é posicional:
-
-```bash
-node .claude/skills/ai-chat-e2e/scripts/run-e2e.mjs no_interest_exit closure_no_vehicle_match
-```
-
-Cenários da MESMA vertical rodam em série de propósito (disputam round-robin de atendente e fila
-de jobs). Verticais diferentes usam workspaces diferentes e podem rodar em paralelo — foi assim
-que três smokes couberam no tempo de um.
-
 ## Antigravity (`agy`) FUNCIONA na orquestração — só não aceita `--inject`
 
-Medido e testado ponta a ponta em 2026-08-28, depois de um ciclo inteiro em que o coordenador
-deixou o tier Antigravity sem uso alegando que "não é reconhecido". A alegação estava errada:
-o que não é reconhecido é o `--inject`, e o contorno está na própria mensagem de erro.
-
-```
-Cannot dispatch --inject to terminal term_...: no recognized agent detected.
-Start an agent CLI (e.g. claude, codex, gemini, droid, cursor) in the terminal first,
-or dispatch without --inject and send the prompt manually.
-```
-
-O `--inject` detecta `claude`, `codex`, `gemini`, `droid`, `cursor`. O `agy` não entra nessa
-lista, e é só isso. **Receita verificada, com worker respondendo:**
-
-```bash
-# 1. terminal com o modelo. O effort vai EMBUTIDO no id (agy models lista todos):
-#    gemini-3.7-flash-high | -medium | -low, gemini-3.1-pro-high, claude-opus-4-6-thinking...
-orca terminal create --command 'agy --dangerously-skip-permissions --model gemini-3.7-flash-high'
-
-# 2. espere o TUI subir. ATENCAO: `terminal wait` NAO aceita --timeout (invalid_argument)
-orca terminal wait --terminal <t> --for tui-idle
-
-# 3. dispatch SEM --inject, COM --return-preamble.
-#    Ele registra o dispatch (provenance intacta) e devolve o preambulo em vez de injeta-lo.
-orca orchestration dispatch --task <id> --to <t> --return-preamble --json
-
-# 4. entregue preambulo + spec pelo terminal. O preambulo ja traz o comando de
-#    `worker_done` com taskId e dispatchId preenchidos — sem ele o worker nao sabe reportar.
-orca terminal send --terminal <t> --text '<preambulo + spec>' --enter
-
-# 5. dali em diante e tudo igual: o worker manda `worker_done`, cai na caixa, `wave wait` ve.
-```
-
-Três detalhes que custam se descobertos na marra:
-
-- **Um dispatch ativo por terminal.** Dispatch novo no mesmo terminal responde
-  `already has an active dispatch (ctx_… for task …)`. Encerre a task anterior primeiro.
-- **`terminal read` devolve o conteúdo em `result.terminal.tail`** (lista de linhas), não em
-  `result.read.content`. Laço de polling que procura no lugar errado conclui "o worker não
-  respondeu" com a resposta na tela.
-- **`terminal create --title` não gruda** quando o comando é um TUI: o título no ar vira o prompt
-  do shell, e por isso `wave adopt` RECUSA o terminal depois. Se for fechar, use o handle do
-  recibo do `create` e `orca terminal close --terminal <t> --tab`.
-
-**A lição de método, e ela não é sobre o `agy`:** quando o usuário atribui um modelo por tier,
-esse tier é decisão dele, não sugestão. Bater num obstáculo de ferramenta e cair calado no outro
-modelo do tier troca a decisão do usuário por conveniência do coordenador. Se o contorno custar
-tempo demais, o certo é DIZER isso na hora e deixar ele escolher — não descobrir no fim do ciclo.
+→ skill orchestration, "Terminal Permission Mode"
 
 ## opencode: `--auto` não é conveniência, é o que impede o worker de travar (2026-08-29)
 
@@ -924,66 +930,23 @@ O flag `--worktree` não é opcional nesse caso, mesmo você já tendo dado `--t
 orca orchestration worker-start --task <t> --worktree "id:<repo>::<path>" --terminal <h> --json
 ```
 
-## `supabase db query` NUNCA faz DDL, e o motivo muda conforme o projeto (2026-08-29)
-
-Medido nos dois bancos do Hybrid Fit no mesmo dia:
-
-| caminho | app (`tssusoibeiupmvszvnhq`) | site (`kccdxykgfwylbxanmtne`) |
-|---|---|---|
-| `db query --linked --file` | **aplicou o ALTER TABLE** | `cannot execute ALTER TABLE in a read-only transaction` |
-| `db query --db-url --file` | — | `cannot insert multiple commands into a prepared statement` |
-| Management API `POST /database/query` | — | mesma recusa read-only |
-| `apply_migration` (MCP) | — | `You do not have permission to perform this action` |
-
-A diferença **não é o CLI: é o token**. O `SUPABASE_ACCESS_TOKEN` do `.env.local` de cada repo
-pode ser read-only, e aí todo caminho que passa pela Management API recusa DDL. Os dois projetos
-também estão em **organizações diferentes**, então o token do app não enxerga o projeto do site
-(`GET /v1/projects` prova isso em um comando).
-
-E há uma segunda camada: a conexão do **pooler** chega com `default_transaction_read_only = on`
-(`pg_is_in_recovery()` = false, ou seja, não é réplica). `db push` também não serve quando o
-ledger do projeto é um baseline único que declara N arquivos antigos — ele tentaria reaplicar
-todos os N.
-
-O caminho que funcionou, sem instalar nada (não há `psql`, `pg` nem `psycopg2` nesta máquina):
-**`Bun.sql` numa conexão reservada**, ligando a escrita só naquela sessão.
-
-```ts
-import { SQL } from "bun";
-const sql = new SQL({ url: process.env.DB_URL!, max: 1 });
-const c = await sql.reserve();                       // conexao dedicada: o SET tem de persistir
-await c.unsafe("set session characteristics as transaction read write").simple();
-await c.unsafe(await Bun.file(migrationFile).text()).simple();   // .simple() aceita multi-statement
-```
-
-Três detalhes medidos: `set default_transaction_read_only = off` **no mesmo lote** do DDL não
-funciona (o lote já abriu transação read-only) — tem de ser `set session characteristics`, em
-chamada separada, numa conexão `reserve()`; `.simple()` é obrigatório para arquivo com mais de
-um comando; e o `pooler-url` que o `supabase link` escreve em `supabase/.temp/` vem **sem
-senha** (`postgresql://user@host`), então a regex que injeta a senha precisa casar `://user@`,
-não `://user:pw@`.
-
-Bônus: se `supabase/.temp/` estiver `root:root`, o `link` morre com
-`PermissionDenied: FileSystem.writeFile`. Como o diretório pai é gravável, o conserto é
-`mv .temp .temp.rootbak && mkdir .temp && cp .temp.rootbak/* .temp/`.
-
 ## Duas IDs de repo para o MESMO caminho, e `--worktree current` escolhe a errada (2026-09-02)
 
 `worker-start --task <t> --worktree current --terminal <h>` respondeu
-`Terminal <h> does not belong to worktree <uuid-A>::/root/projects/hybrid fit` — apesar de o
+`Terminal <h> does not belong to worktree <uuid-A>::<checkout>` — apesar de o
 terminal ter sido criado com `terminal create --worktree current` no mesmo diretório.
 
 Causa: o runtime tinha **dois repos registrados apontando para o mesmo path**. A Run vivia em
-`771c2955-…::/root/projects/hybrid fit` e o terminal nasceu em
-`3c3cbeb1-…::/root/projects/hybrid fit`. `current` resolve pela Run, não pelo terminal.
+`<id-run>::<checkout>` e o terminal nasceu em
+`<id-terminal>::<checkout>`. `current` resolve pela Run, não pelo terminal.
 
 Conserto: descubra a worktree DO TERMINAL e passe-a explícita.
 
 ```bash
 orca terminal list --json | jq -r '.result.terminals[]
-  | select(.handle=="<h>") | .worktree'          # -> 3c3cbeb1-…::/root/projects/hybrid fit
+  | select(.handle=="<h>") | .worktree'          # -> <id-terminal>::<checkout>
 orca orchestration worker-start --task <t> \
-  --worktree "id:3c3cbeb1-…::/root/projects/hybrid fit" --terminal <h> --json
+  --worktree "id:<id-terminal>::<checkout>" --terminal <h> --json
 ```
 
 Dois detalhes: o campo `.worktree` **nem sempre aparece** no `terminal list` (a forma do JSON
@@ -1018,7 +981,7 @@ com a data. Foi o que resolveu aqui.
 
 ## O worker pode ter a ferramenta que você concluiu não existir (2026-09-21)
 
-O inverso da armadilha acima, e mais caro, porque falha calado.
+O inverso da armadilha *MCP autenticado na sessão do coordenador pode NÃO estar no terminal do worker*, e mais caro, porque falha calado.
 
 O coordenador concluiu que não havia canal para executar consulta naquele ambiente, escreveu no
 brief *"você NÃO tem acesso a isso, não existe CLI para isso aqui"*, e os workers obedeceram por
@@ -1052,7 +1015,7 @@ segunda, conserte o acesso dele. Na terceira, o problema já não é a tarefa.
 
 ## "NAO rode git" no brief nao impede o worker de commitar (2026-09-03)
 
-Medido no ciclo `contador-agua`. O brief da T4.1 dizia, em secao propria e em
+Medido no ciclo. O brief da T4.1 dizia, em secao propria e em
 negrito, **"NAO rode comando de git. Quem commita e o coordenador."** O worker
 (Claude Opus 5 high) terminou o trabalho e **commitou os proprios 7 arquivos**
 mesmo assim, com mensagem propria, enquanto o coordenador estava rodando as
@@ -1106,21 +1069,6 @@ for p,pv in d.items():
 orca terminal read --terminal <h>   # o rodape traz modelo E esforco
 ```
 
-## `bun run <script>` quebra igual ao `bunx` num caminho com espaco (2026-09-04)
-
-A entrada existente so cita `bunx`. Medido no mesmo repo: **`bun run lint` e `bun run dev`
-falham identicamente** com `error loading current directory` /
-`CouldntReadCurrentDirectory`. O contorno vale para os dois:
-
-```bash
-./node_modules/.bin/vitest run <caminho>
-./node_modules/.bin/eslint <arquivos>
-./node_modules/.bin/vite                 # o dev server
-```
-
-E **`eslint .` nao termina**: estourou 900s neste repo. Lint so os arquivos tocados, e diga
-isso no brief — worker que roda `eslint .` queima o dispatch esperando.
-
 ## `task-create` usa `--task-title`, nao `--title` (2026-09-04)
 
 `orca orchestration task-create --title X` responde
@@ -1140,22 +1088,10 @@ if isinstance(p, str): p = json.loads(p)
 taskId, outcome, files = p.get('taskId'), p.get('outcome'), p.get('filesModified')
 ```
 
-## Compilar Tailwind para provar que uma classe existe: o `-c` NAO e opcional (2026-09-04)
+## Classe de CSS sem regra no bundle passa no lint e no teste (2026-09-04)
+Uma classe pode aparecer no JSX, passar no lint e no teste, e não gerar regra nenhuma no build: a escala de opacidade do framework tem valores fixos, e um valor fora dela fica sem efeito e sem erro. Compilar sem a configuração do projeto também não serve: as cores semânticas nem existem, e toda classe vira falso positivo.
 
-A receita da skill de e2e ja manda `-c tailwind.config.ts`; um gate omitiu e ainda assim
-chegou na conclusao certa — por sorte. Sem o `-c`, a cor semantica do projeto nem existe,
-entao **toda** classe some e tudo vira falso positivo.
-
-```bash
-printf '@tailwind utilities;\n' > /tmp/probe.css
-./node_modules/.bin/tailwindcss -c tailwind.config.ts -i /tmp/probe.css \
-  --content <arquivo.tsx> --minify 2>/dev/null | grep -o '\.<classe>[^}]*}'
-```
-
-**Por que isso vale um item:** `bg-warning/12` **nao gera regra** no Tailwind 3.4 (a escala de
-opacidade tem 0,5,10,20,25,30,40,50,60,70,75,80,90,95,100). A classe fica no JSX, o lint passa,
-o teste passa, e o fundo simplesmente nao existe no bundle. Mesma familia do `className="card-nested"`
-apontando para uma classe que ninguem definiu. **Num brief de gate, peça a medicao, nao a leitura.**
+**Por que vale um item:** o fundo some sem aviso, e nenhum teste de tipo ou de lint acusa. Para provar que a classe existe, meça a regra gerada pelo build com a configuração do projeto. Num brief de gate, peça a medição, não a leitura.
 
 ## O gate reprovando pela MESMA familia e sinal de brief, nao de codigo (2026-09-04)
 
@@ -1189,9 +1125,9 @@ geometria em repouso dos 10 consumidores nao muda.)
 ## O worker "corrige" o caminho do relatório e cria uma árvore paralela (2026-09-06)
 
 O brief mandava escrever o relatório em
-`…/-home-orcaide-orca-workspaces-auto-pilot-crm-arquitheture-refactor-aichat/…`. Três workers
+`…/<caminho-do-relatorio>/…`. Três workers
 diferentes acharam que o caminho estava errado — porque o diretório real do projeto usa `_`, não
-`-` — e "consertaram" para `…auto_pilot_crm-arquitheture_refactor_aichat…`, criando uma árvore
+`-` — e "consertaram" para `…<caminho-alternativo>…`, criando uma árvore
 nova. O `worker_done` chegou com `reportPath` apontando para um arquivo que o coordenador não
 encontrava, e cada um inventou uma variação diferente.
 
@@ -1295,7 +1231,7 @@ autorização prévia caso o gate mostrasse que valiam. Quem tem a evidência é
 
 ## Comparação por nome usa MULTICONJUNTO, não conjunto (2026-09-06)
 
-A skill e o `CLAUDE.md` deste projeto mandam comparar teste "por NOME, não por contagem", e o
+A skill e as instruções do repositório mandam comparar teste "por NOME, não por contagem", e o
 reflexo natural é `set()` de `(classname, name)`. **Está errado:** dois testes com o mesmo nome na
 mesma classe são dois testes, e se um sumir o conjunto não vê diferença nenhuma.
 
@@ -1341,40 +1277,18 @@ ocioso.
 **A lição barata:** confira o rodapé do TUI **antes** do `dispatch`, não depois. A skill já manda
 conferir o modelo; confira o modo de permissão na mesma olhada — os dois estão na mesma linha.
 
-## Sessão paralela executa o SEU passo irreversível — duas vezes no mesmo ciclo (2026-09-08/09)
+## Outra sessão pode executar o SEU passo irreversível (2026-09-08/09)
+No ciclo, o checkout compartilhado tinha pelo menos duas outras sessões ativas, e os dois passos irreversíveis do plano foram executados por elas, antes de o gate correspondente aprovar:
 
-O ciclo `desafio-feed-paginado` rodou num checkout compartilhado (`/root/projects/hybrid fit`)
-com pelo menos duas outras sessões ativas. **Os dois passos irreversíveis do plano foram
-executados por elas, não pelo coordenador**, e nos dois casos o gate correspondente ainda não
-tinha aprovado:
+1. **Uma migração de banco.** O coordenador ia aplicar pelo caminho conservador (só o próprio arquivo). A simulação respondeu "já está atualizado", porque outra sessão já tinha rodado o comando que empurra todos os arquivos pendentes da pasta, e varreu o do coordenador junto.
+2. **Um push.** Enquanto o gate final rodava, outra sessão fez `pull --rebase` + `push`, e a publicação automática colocou o ambiente no ar antes do veredito.
 
-1. **A migration.** O coordenador ia aplicar pelo caminho conservador (só o próprio arquivo).
-   Ao rodar `supabase db push --dry-run` para conferir, a resposta foi *"Remote database is up
-   to date"* — porque outra sessão já tinha rodado `db push`, que **empurra todas as
-   migrations pendentes do diretório**, e varreu a do coordenador junto. Deu certo por sorte:
-   o gate aprovou depois exatamente os bytes que já estavam em produção. Se tivesse reprovado,
-   produção estaria com código reprovado.
-2. **O push.** Enquanto o gate final rodava, outra sessão fez `pull --rebase` + `push`. Os
-   commits do coordenador foram para o remoto (com hashes novos pelo rebase, conteúdo idêntico
-   — verificado por `md5sum` arquivo a arquivo contra `git show origin/main:<path>`), e o
-   deploy automático da Vercel publicou o ambiente web antes do veredito.
+O que fazer:
 
-**O que fazer com isso:**
-
-- **Não confie no `--dry-run` como prova de que nada foi aplicado.** "Up to date" pode
-  significar "outra sessão já aplicou o seu arquivo". Antes de aplicar, confira o **ledger**
-  (`select version from supabase_migrations.schema_migrations where version = '<o seu>'`), não
-  só a saída do CLI.
-- **Depois de qualquer surpresa dessas, prove o conteúdo, não o hash.** Rebase muda hash e
-  preserva bytes; `git branch -r --contains <sha>` responde "não está" para um commit cujo
-  conteúdo está inteiro no remoto. O teste certo é
-  `git show origin/main:<path> | md5sum` contra `md5sum <path>`, arquivo por arquivo.
-- **Diga ao usuário na hora, com as duas metades:** o que escapou do portão, e o que
-  **continua** protegido. Aqui: código no remoto e no staging web, mas nenhum OTA publicado,
-  então nenhum usuário real afetado.
-- O que NÃO adianta: pedir para as outras sessões pararem, ou tentar reverter. Reverter um
-  push que outra sessão já construiu em cima é pior que seguir. O portão que sobra é o
-  **último** (o OTA/publicação), e é nele que a disciplina tem de ser absoluta.
+- Não confie na simulação como prova de que nada foi aplicado. "Já está atualizado" pode significar que outra sessão aplicou o seu arquivo. Confira o registro de versões aplicadas, não só a saída do comando.
+- Depois de qualquer surpresa desse tipo, prove o conteúdo, não o hash. Rebase muda hash e preserva bytes: `git show origin/main:<caminho> | md5sum` contra `md5sum <caminho>`, arquivo por arquivo.
+- Diga ao usuário na hora, com as duas metades: o que escapou do portão e o que continua protegido.
+- O que NÃO adianta: pedir para as outras sessões pararem, ou tentar reverter um push que outra sessão já construiu em cima. O portão que sobra é o último (a publicação), e é nele que a disciplina tem de ser absoluta.
 
 ## Restart da sessão mata worker de gate e o terminal — mas os ARTEFATOS sobrevivem (2026-09-08)
 
@@ -1411,7 +1325,7 @@ E a suíte inteira (721 arquivos) também morre por memória nesse estado: rode 
 
 ## `agy` trava em "Signing in..." e NUNCA vira erro — o tier inteiro cai calado (2026-09-13)
 
-Medido no ciclo `vinculo-asaas-admin`. Na onda 1, dois terminais `agy
+Medido no ciclo. Na onda 1, dois terminais `agy
 --dangerously-skip-permissions --model gemini-3.8-flash-high` subiram normalmente, pediram o
 "trust this folder", trabalharam e entregaram. **Na onda 2, no mesmo dia e na mesma máquina, três
 terminais seguidos pararam em:**
@@ -1420,7 +1334,7 @@ terminais seguidos pararam em:**
  Welcome to the Antigravity CLI. You are currently not signed in.
  ⣾  Signing in...
       ▄▀▀▄        Antigravity CLI 1.2.2
-▀▀▀▀▀▀       joaovitorsantanamkt@gmail.com      (Google AI Pro)
+▀▀▀▀▀▀       <conta>      (Google AI Pro)
 ```
 
 E ficaram ali. O modo de falha é o pior possível para uma sentinela:
@@ -1476,7 +1390,7 @@ arquivo desde o começo e o ciclo fica indiferente a qual CLI o Orca reconhece h
 
 ## Os flags do Orca não são consistentes entre subcomandos — confira, não deduza
 
-`[MEDIDO: 13/09/2026, ciclo vinculo-asaas-admin, três round-trips perdidos numa onda só]`
+`[MEDIDO: 13/09/2026, ciclo, três round-trips perdidos numa onda só]`
 
 Três subcomandos da mesma família, três grafias para a mesma ideia:
 
@@ -1529,100 +1443,43 @@ você já escreveu está CERTO e não deve ser revertido". Feche quem foi aceito
 ninguém precise pedir.
 
 ## Editou um tipo compartilhado? Rode o typecheck ANTES de despachar, não depois
+`[MEDIDO: 13/09/2026, num ciclo: o MESMO erro, três vezes, pelo mesmo coordenador]`
 
-`[MEDIDO: 13/09/2026, ciclo vinculo-asaas-admin — o MESMO erro, três vezes, pelo mesmo coordenador]`
+O coordenador é dono dos contratos congelados, então é ele quem acrescenta campo a um tipo compartilhado. Um campo **obrigatório** novo quebra toda fixture que constrói aquele tipo, e as fixtures pertencem a **outros** donos. Nas três vezes: a primeira quebrou 1 fixture de outro dono e o worker escalou, bloqueado; a segunda não quebrou nada; a terceira quebrou 4 fixtures, que só apareceram no typecheck do fim da onda.
 
-O coordenador é dono dos contratos congelados, então é ele quem acrescenta campo a um tipo
-compartilhado. Um campo **obrigatório** novo quebra toda fixture que constrói aquele tipo, e as
-fixtures pertencem a **outros** donos.
+O custo não é o conserto (dois campos, dois minutos). É o worker que **para e escala** por um bloqueio que não é dele, e a paralelização daquela onda vai embora.
 
-As três ocorrências, todas no mesmo ciclo:
+**A regra, e ela custa segundos:** editou um tipo que outros arquivos constroem? Rode o typecheck das DUAS pontas (quem produz e quem consome) **antes** de despachar qualquer worker, e conserte as fixtures no mesmo movimento.
 
-| o que acrescentei | o que quebrou | como descobri |
-|---|---|---|
-| `acknowledgedAt`/`acknowledgedNote` em `BillingDivergenceAssessment` | 1 fixture de outra dona | **o worker escalou, bloqueado** |
-| o mesmo, de novo | — | conferi na hora, 0 quebras |
-| `acknowledgedAt`/`acknowledgedNote` em `BillingOperationResult` | **4** fixtures de outras donas | só no `tsc` do fim da onda |
+O sinal de que você está prestes a errar: o campo novo é **obrigatório** (sem `?`) e o tipo é exportado. Campo opcional não quebra fixture, mas apodrece calado. Prefira obrigatório e pague os dois minutos, antes da onda.
 
-O custo não é o conserto (dois campos, dois minutos). É o worker que **para e escala** por um
-bloqueio que não é dele, esperando resposta — e é você que fica sabendo depois que gastou a
-paralelização daquela onda.
+E quando o worker escalar por isto, a resposta certa começa com "o bloqueio era meu, não seu": ele fez o certo em escalar em vez de editar arquivo alheio.
 
-**A regra, e ela custa segundos:**
+## Publicar a partir de branch que não integrou a `main` é um ROLLBACK silencioso
+Medido em 14/09/2026, num ciclo de deploy de funções: o script de publicação empacota `git archive HEAD`, e isso é deliberado (o working tree é compartilhado por sessões paralelas). O efeito colateral não é deliberado: o que a `main` avançou depois da divergência NÃO está no HEAD da branch, então cada função publicada volta à versão da branch.
 
-> Editou um tipo que outros arquivos constroem? Rode o typecheck das DUAS pontas **antes** de
-> despachar qualquer worker, e conserte as fixtures você mesmo no mesmo movimento.
+Medido cruzando a data de atualização de cada função com `git diff $(git merge-base branch main) origin/main`: 8 funções voltaram à versão antiga, inclusive funções que a branch nem mudou, porque dependiam de um módulo compartilhado que voltou. Duas consequências que nenhum teste pegou: um guard de segurança saiu do ar nos pontos de ingestão, e um evento deixou de ser emitido enquanto o processador que o consome continuava publicado. O merge de dois lados verdes produziu uma ponta quebrada em produção.
+
+Por que o gate não pega: ele roda a suíte do archive, e a branch estava verde nela mesma. Verde não prova que você não apagou trabalho alheio; prova só que o seu trabalho é coerente consigo.
+
+**A regra:** antes de publicar, integre a `main` (rebase ou merge) e publique do HEAD integrado. Se não der para integrar agora, liste o que você vai sobrescrever ANTES de publicar:
 
 ```bash
-./node_modules/.bin/tsc --noEmit -p tsconfig.app.json 2>&1 | grep -E "<recorte do ciclo>"
-deno check --no-lock --node-modules-dir=auto <um consumidor de cada lado>
+MB=$(git merge-base HEAD origin/main)
+git diff --name-only "$MB" origin/main -- <diretorio-das-funcoes> \
+  | grep -v '_test.ts$' | sed 's#^<diretorio-das-funcoes>/##' \
+  | awk -F/ '{print $1}' | sort -u
 ```
 
-O sinal de que você está prestes a errar: o campo novo é **obrigatório** (sem `?`) e o tipo é
-`export`. Campo opcional não quebra fixture, mas apodrece calado — prefira obrigatório e pague os
-dois minutos, **antes** da onda.
+Cruze com os importadores de qualquer módulo compartilhado (uma mudança nele reverte todo importador, não só a função de nome óbvio) e com a janela de atualização do seu próprio deploy. O que aparecer nos dois lados é o que você vai apagar.
 
-E quando o worker escalar por isto: a resposta certa começa com "o bloqueio era meu, não seu".
-Ele fez o certo em escalar em vez de editar arquivo alheio.
-
-## Deploy a partir de branch que não rebaseou a `main` é um ROLLBACK silencioso
-
-Medido em 14/09/2026, ciclo `cobrancas-asaas`, e é o defeito mais caro que este
-ciclo produziu — em produção, sem ninguém perceber por um dia.
-
-`scripts/deploy-fn-from-head.sh` empacota **`git archive HEAD`**, e isso é
-deliberado (o working tree é compartilhado por sessões paralelas). O efeito
-colateral não é deliberado: **o que a `main` avançou depois da divergência NÃO
-está no HEAD da branch**, então cada função publicada volta à versão da branch.
-
-O flagrante: publiquei 56 funções do fecho do ciclo às 20:36 UTC. A `main` tinha
-recebido três fixes de `ai-chat` às 15:46, 17:12 e 17:24 do mesmo dia, mais um
-guard de telefone de equipe em quatro pontos de ingestão. Resultado medido
-cruzando `updated_at` das edge functions com
-`git diff $(git merge-base branch main) origin/main`:
-
-**8 funções revertidas** — `ai-chat`, `admin-workspaces`, `push-dispatch`,
-`check-missed-messages`, `evolution-webhook`, `messenger-webhook`,
-`meta-webhook-receiver`, `sector-bot`.
-
-Duas consequências que nenhum teste podia pegar:
-
-- o guard de telefone de equipe saiu do ar nos quatro pontos de ingestão;
-- `push-dispatch` perdeu o evento `vendor.reminder` enquanto o
-  `vendor-reminder-processor` continuava publicado chamando por ele. Ou seja,
-  **o merge de dois lados verdes produziu uma ponta quebrada em produção**.
-
-**Por que o gate não pega:** ele roda a suíte do archive, e a branch estava
-verde nela mesma. Verde não é prova de que você não apagou o trabalho alheio;
-é prova de que o seu trabalho é coerente consigo.
-
-**A regra, e ela é barata:**
-
-> **Antes de `deploy-fn-from-head.sh`, rebase ou merge a `main` e redeploye a
-> partir do HEAD integrado.** Se não der para integrar agora, liste o que você
-> vai sobrescrever ANTES de publicar:
->
-> ```bash
-> MB=$(git merge-base HEAD origin/main)
-> git diff --name-only "$MB" origin/main -- supabase/functions/ \
->   | grep -v '_test.ts$' | sed 's#^supabase/functions/##' \
->   | awk -F/ '{print $1}' | sort -u
-> ```
->
-> Cruze com os importadores de qualquer `_shared/` dessa lista (uma mudança em
-> `_shared` reverte todo importador, não só a função de nome óbvio) e com a
-> janela de `updated_at` do seu próprio deploy. O que aparecer nos dois lados é
-> o que você vai apagar.
-
-E a lição geral, que vale além do Orca: **num repositório com sessões paralelas,
-"publiquei o meu" e "publiquei só o meu" são afirmações diferentes.** A segunda
-exige medição; a primeira é a que a gente assume sem perceber.
+A lição geral, que vale além deste ferramental: num repositório com sessões paralelas, "publiquei o meu" e "publiquei só o meu" são afirmações diferentes. A segunda exige medição.
 
 ## opencode TUI demora a mostrar que começou: não mate o worker pela tela (2026-09-24)
 
-Ciclo `filtros-metricas`: depois de `dispatch --inject` num opencode (Muse Spark), o `terminal
+Ciclo: depois de `dispatch --inject` num opencode (Muse Spark), o `terminal
 read` seguiu mostrando a **saudação vazia** por dezenas de segundos. O coordenador leu isso como
-"o dispatch não chegou" (a armadilha real de *Worker morto de pé*), marcou a task `failed`,
+"o dispatch não chegou" (a armadilha real de *`terminal send` só ENFILEIRA*, na skill orchestration), marcou a task `failed`,
 fechou o terminal e redespachou; duas vezes. Na terceira, a mesma tela vazia já estava
 trabalhando: era atraso de render do TUI, e o frame lido era velho. Custou duas tasks `failed`
 e dois terminais recriados.
@@ -1642,8 +1499,7 @@ criar o primeiro terminal*):
 
 - **Codex mais velho que o modelo.** O id novo aparecia em `~/.codex/models_cache.json`, e
   `codex --model <id> ... exec "responda: ok"` devolvia `400: The '<id>' model is not supported
-  when using Codex with a ChatGPT account`, a mesma mensagem do id inexistente (seção *Modelo
-  Codex* acima), o que engana. Com o CLI uma versão atrás, o catálogo já trazia o modelo e a conta
+  when using Codex with a ChatGPT account`, a mesma mensagem do id inexistente (seção *Modelo Codex: `gpt-5.6` puro NÃO existe*), o que engana. Com o CLI uma versão atrás, o catálogo já trazia o modelo e a conta
   recusava. `npm install -g @openai/codex@<versão nova>` e o mesmo `exec` respondeu `ok`. Antes de
   concluir "o modelo não existe", compare `codex --version` com `npm view @openai/codex version`.
 - **opencode: mesmo modelo, rota sobrecarregada.** `opencode run -m <provedor-agregador>/<modelo>`
