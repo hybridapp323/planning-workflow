@@ -12,6 +12,8 @@
 
 Protótipo, investigação e pergunta ("dá pra…?", "por que…?") não abrem spec nem plano: responda, ou construa o protótipo.
 
+Falta **uma ou duas decisões pequenas** num pedido delimitado? Isso não é escopo aberto: pergunte numa mensagem só, com a sua recomendação, e siga direto.
+
 **Na dúvida entre dois caminhos, comece pelo mais leve e suba quando aparecer o motivo:** um segundo dono, um contrato que outra tarefa consome, um dado que não volta atrás. Diga que subiu e por quê. Tamanho do diff, número de arquivos e "é em produção" não são motivo.
 
 - **Você está inflando se:** o documento que vai escrever é maior que a mudança; o usuário já descreveu o pedido por inteiro e você abre entrevista; o plano teria uma tarefa só.

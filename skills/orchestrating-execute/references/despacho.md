@@ -15,7 +15,7 @@ Sequência por worker, na ordem:
 5. `dispatch --inject` com o preâmbulo abaixo.
 6. Arme a espera pela skill `orchestration`: `wave.sh wait 3600` numa chamada só dela, em background, e trate o retorno (`0` evento, `2` triagem, `4` nenhum worker trabalhando: despache agora). Não use `check --wait` cru: ele não lê o corpo antes de armar nem volta quando o evento já estava na caixa (incidente de 26/10/2026, documentado na skill `orchestration`).
 
-Armadilhas medidas, que custam tempo quando descobertas na marra: `references/orca-traps.md`. Leia antes da primeira onda.
+Armadilhas medidas, que custam tempo quando descobertas na marra: `orca-traps.md`. Antes da primeira onda, leia o índice por sintoma e a lista *Leia sempre* (o começo do arquivo), não o arquivo inteiro; abra a seção quando o sintoma aparecer.
 
 **Sem Orca disponível**, o plano continua válido: é um grafo com níveis, donos e contratos. Execute com o mecanismo de subagente que houver, mantendo ownership, ordem e gates. O que não se pode perder é o grafo, não a ferramenta.
 

@@ -12,7 +12,14 @@ deles eram fato não conferido, consumidor esquecido, contradição ou ordem de 
 um grep, uma consulta ou uma leitura cruzada mostraria. Em dez casos a regra já estava escrita aqui
 e o defeito da mesma classe voltou. Regra em prosa depende de o autor lembrar; checagem roda sozinha.
 
-O pré-voo tem duas peças. Nenhuma delas julga o desenho: isso é do revisor externo e do usuário.
+O pré-voo tem duas peças, e elas pegam coisas diferentes. Medido em 11/2026, sobre a versão
+anterior à revisão de 6 planos (35 bloqueadores registrados): o lint achou 5 defeitos reais, e
+**nenhum deles estava entre os 35**. O lint pega o defeito de formato e de âncora que nem o
+revisor externo viu (em 10 planos já revisados ele ainda achou 7). Quem ataca a classe dos
+bloqueadores da revisão (fato que o código desmente, consumidor esquecido, ordem errada) é o
+verificador de contexto limpo. Não pule o segundo por o primeiro ter passado limpo.
+
+Nenhuma das duas peças julga o desenho: isso é do revisor externo e do usuário.
 
 ## 1. `plan-lint.py`: o que é mecânico
 

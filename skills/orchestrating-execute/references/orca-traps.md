@@ -85,17 +85,17 @@ Cada linha aponta para uma seção deste arquivo. `[global]` aponta para a skill
 | `codex exec` rejeita `-a never` ou recusa rodar fora de diretório confiável | `codex exec` não é o TUI |
 | Codex na partida bloqueia todo `send` com texto (aviso "Hooks need review") | Codex: aviso "Hooks need review" na partida bloqueia todo `send` com texto (2026-10-29) |
 | Codex responde 400 `model is not supported`; worker parado | Modelo Codex: `gpt-5.6` puro NÃO existe — é `-sol`/`-terra`/`-luna`, e o effort é argumento separado |
-| Headless diz `AuthRequired` para um MCP que está autenticado na interativa | Sessão headless não herda a autenticação da interativa |
-| `claude` sem `--model` sobe no default e nada avisa | Terminal `claude` sem `--model` sobe no default e NADA avisa (2026-09-02) |
-| Grok: o brief fica na caixa e o worker nunca começa | No Grok, Enter NÃO envia — Ctrl+Enter envia |
 | opencode para num painel de permissão e parece vivo | opencode: `--auto` não é conveniência, é o que impede o worker de travar (2026-08-29) |
 | opencode: `dispatch --inject` responde `agent_prompt_stalled` e o worker não manda `worker_done` | opencode NÃO aceita `dispatch --inject`, e a falha é enganosa (2026-08-29) |
 | Brief de ~4 KB no opencode fica no compositor e não envia | Texto longo no `terminal send` do opencode entra na caixa e NÃO envia (2026-08-29) |
 | `--variant` no TUI do opencode imprime o help e sai; terminal vazio | `opencode` TUI NAO aceita `--variant` — e o esforco talvez ja seja o que voce quer (2026-09-04) |
 | `--model` no TUI do opencode 2.x: Unrecognized flag, terminal volta ao shell | opencode 2.x: o TUI não aceita `--model`, e o terminal parece criado (2026-10-29) |
 | Tela do opencode vazia por dezenas de segundos; task marcada `failed` à toa | opencode TUI demora a mostrar que começou: não mate o worker pela tela (2026-09-24) |
+| Grok: o brief fica na caixa e o worker nunca começa | No Grok, Enter NÃO envia — Ctrl+Enter envia |
 | Antigravity não aceita `--inject` e o dispatch falha com `no recognized agent` | Antigravity (`agy`) FUNCIONA na orquestração — só não aceita `--inject` |
 | `agy` parado em "Signing in..."; `terminal wait` diz idle | `agy` trava em "Signing in..." e NUNCA vira erro — o tier inteiro cai calado (2026-09-13) |
+| `claude` sem `--model` sobe no default e nada avisa | Terminal `claude` sem `--model` sobe no default e NADA avisa (2026-09-02) |
+| Headless diz `AuthRequired` para um MCP que está autenticado na interativa | Sessão headless não herda a autenticação da interativa |
 
 ### Git e árvore compartilhada
 
@@ -133,7 +133,7 @@ Cada linha aponta para uma seção deste arquivo. `[global]` aponta para a skill
 | Sintoma que você vê | Armadilha (título da seção) |
 | --- | --- |
 | Conflito: opencode aceita `dispatch --inject`? | opencode NÃO aceita `dispatch --inject`, e a falha é enganosa (2026-08-29) · [global] Terminal Permission Mode |
-| Conflito: `send --to dispatch:` entrega o corpo da resposta? | `reply` pode ficar órfã: o `ask` do worker expira e ele abre thread NOVA · [global] Três falhas medidas em 2026-08-30 (run `run_b9f00557cee7`, ciclo `aviso-carro-chegou`) |
+| Conflito: `send --to dispatch:` entrega o corpo da resposta? | `reply` pode ficar órfã: o `ask` do worker expira e ele abre thread NOVA · [global] 1. `send --to dispatch:<ctx>` entrega só o ASSUNTO — e isso quebra a receita de "resposta durável" |
 | Conflito: Grok, Ctrl+Enter ou `--wait-submit`? | No Grok, Enter NÃO envia — Ctrl+Enter envia · [global] `terminal send` só ENFILEIRA: o worker fica `dispatched` e nunca começa (2026-09-12) |
 | Conflito: espera em background, timeout em foreground ou Monitor? | `wave.sh wait` em background é morto por algumas harnesses · [global] A espera em background é colhida por SILÊNCIO, não por duração (2026-08-28) · [global] Waiter em background NÃO reinvoca o coordenador nesta harness (2026-09-14) |
 | Conflito: `inbox` serve para a sua run ou mistura sessões? | Sentinela que vigia STATUS não vê worker BLOQUEADO — e ele fecha sozinho, calado (2026-09-03) · [global] `orchestration inbox` NÃO é escopado por Run — ele mistura sessões (2026-09-08) |
@@ -399,8 +399,8 @@ A causa está no nome do arquivo de lock. `wave.sh` escopa o lock por Run
 essa resolução devolve vazio e ele cai no fallback `norun-<uid>`:
 
 ```
--rw-r--r-- 76 Sep  3 03:30 ~/.claude/orca-wave-armed.norun-997.lock      <- onde foi escrito
--rw-r--r-- 76 Sep  3 03:34 ~/.claude/orca-wave-armed.run_8a3ea4f46f62.lock <- onde o hook procura
+-rw-r--r-- 76 Sep  3 03:30 ~/.claude/orca-wave-armed.norun-<uid>.lock      <- onde foi escrito
+-rw-r--r-- 76 Sep  3 03:34 ~/.claude/orca-wave-armed.run_<id>.lock <- onde o hook procura
 ```
 
 O `gate` rodado na MESMA shell sem bind lê o mesmo `norun-*` e concorda que está armado — por
@@ -408,7 +408,7 @@ isso a confirmação mente. O hook `Stop` roda noutro processo, resolve a Run co
 o lock certo, não acha, e bloqueia.
 
 Sinal de que é isto, e não outra coisa: a linha do `gate` termina com `(run )`, com o nome vazio
-entre parênteses. Quando está certo ela traz `(run run_8a3ea4f46f62)`.
+entre parênteses. Quando está certo ela traz `(run run_<id>)`.
 
 **Conserto: `run-use` e `arm-external` na MESMA linha de shell**, e confira o `(run …)` da saída.
 
@@ -523,7 +523,7 @@ real: `dispatch-show` devolve só metadados do dispatch (`status`,
 `reportPath`, sem `outcome`. Quem seguia a receita à risca terminava com ZERO
 material de revisão e reconstruía tudo por `git diff` e scrollback.
 
-O estrago medido no run `run_544ce7e1694d`: **36 `worker_done` + 5 `question` +
+O estrago medido no run `run_<id>`: **36 `worker_done` + 5 `question` +
 4 `escalation` chegaram e nenhum foi lido**; duas perguntas nunca receberam
 `reply` e uma delas fez um worker fechar `--outcome failed` por bloqueio que se
 destravava em trinta segundos.
@@ -628,7 +628,9 @@ Antes da onda 1, rode UMA VEZ o comando de teste do plano você mesmo. Se falhar
 
 ```bash
 node node_modules/vitest/vitest.mjs run <caminho>
+./node_modules/.bin/vitest run <caminho>
 ./node_modules/.bin/eslint <arquivos>
+./node_modules/.bin/vite                 # servidor de desenvolvimento
 ```
 
 Corolário: lint do repositório inteiro passou de 900 s nesse checkout. Lint só os arquivos tocados, e diga isso no brief. Quando um worker disser "bloqueado por ambiente", rode a suíte dele você mesmo antes de acreditar: duas vezes o código estava verde e só o runner do brief estava errado.
