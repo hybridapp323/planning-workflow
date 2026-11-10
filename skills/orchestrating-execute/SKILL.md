@@ -3,918 +3,199 @@ name: orchestrating-execute
 description: >-
   Executa um plano de implementação multi-agente já escrito: pergunta ao usuário
   qual modelo vai em cada nível de complexidade, roda os passos que só o
-  coordenador pode rodar, sobe os workers onda por onda respeitando o grafo de
-  dependências, e para nos gates antes de qualquer passo irreversível. USE
-  SEMPRE que existir um plano pronto e o usuário disser "vamos executar",
-  "executa o plano", "sobe os workers", "dispara os agentes", "começa a onda 1",
-  "roda isso em paralelo", "manda pros agentes", "toca o plano X". Usa a skill
-  `orchestration` do Orca para a mecânica de task, dispatch e espera, e
-  acrescenta o que é específico de executar um plano: o portão de atribuição de
-  modelo, o laço de ondas, o advisor de rumo com orçamento, o que nunca se delega, e
-  as armadilhas já pagas. Se o plano ainda não existe, a skill é `power-plans`, não esta.
-  Nunca é continuação automática de `power-plans`: só roda com pedido explícito do usuário.
+  coordenador pode rodar, sobe os workers onda por onda respeitando o grafo,
+  aceita cada entrega com casos próprios e para no gate antes de qualquer passo
+  irreversível. Use quando existir um plano pronto e o usuário disser "vamos
+  executar", "executa o plano", "sobe os workers", "dispara os agentes",
+  "começa a onda 1", "roda isso em paralelo", "toca o plano X". Usa a skill
+  `orchestration` do Orca para a mecânica. Se o plano ainda não existe, a skill
+  é `power-plans`. Mudança delimitada que um agente faz sozinho não passa por
+  aqui. Nunca é continuação automática de `power-plans`: só roda com pedido
+  explícito do usuário.
 ---
 
 # Executar um plano multi-agente
 
-**Só com pedido explícito.** Plano escrito, revisado ou commitado não é pedido de implementação. Esta skill nunca roda como continuação de `power-plans`; espere o usuário pedir.
-
-## Preflight
-
-Leia o plano inteiro antes de qualquer comando. Ele precisa ter, no mínimo:
-
-- nível de complexidade em cada tarefa;
-- matriz de ownership de arquivo;
-- contratos congelados escritos literal;
-- grafo com dependências e passos do coordenador;
-- **um `Pronto quando` por tarefa, copiado de um cenário de aceitação da spec.**
-- para tarefa com risco de interação/ordem, camada de prova, peças reais/simuladas e
-  primeira prova integrada com dependências e dono explícitos.
-
-Faltando qualquer um, **pare e volte para `power-plans`**. Executar um plano sem ownership é combinar colisão; sem contrato congelado é combinar divergência; **sem critério de pronto é combinar que o coordenador invente um — e ele vai inventar relendo a spec, que é exatamente onde o sentido se perde.** Custa menos consertar o documento agora.
-
-O quinto item tem uma verificação mecânica, e ela custa segundos:
-
-```bash
-for n in $(grep -o 'FR-[0-9]\+' <spec> | sort -u -V); do
-  printf '%-6s plano=%s\n' "$n" "$(grep -cw "$n" <plano>)"
-done
-```
-
-**`-w` não é enfeite:** sem ele `FR-1` casa dentro de `FR-10`, e o requisito que ninguém
-citou aparece como coberto. Medido no próprio ciclo que originou este item.
-
-Medido em 2026-09-03: a spec tinha 13 FRs com cenário executável; o plano citava **6 deles zero vezes** e não tinha nenhum `Pronto quando`. O coordenador escreveu o critério de cada briefing de cabeça, e um campo que a spec mandava tratar como *"desconhecido, nunca zero"* virou "zero" no briefing — um valor inventado entrou na conta como se fosse medido, e o defeito só apareceu na revisão adversarial do fim. `plano=0` num FR é um requisito que nenhum worker vai ver.
-
-Confirme também que a árvore está limpa do que interessa, e que você sabe quais arquivos modificados **não** são deste trabalho. Sessões paralelas deixam lixo, e ele acaba num commit errado.
-
-**Revisão da spec ou do plano dentro do grafo não é passo de execução.** Se o plano traz uma
-tarefa que revisa o próprio plano (um `S0 — revisão externa do plano`, "bloqueia a onda 1"), ela
-só roda se o usuário pediu a revisão nesta sessão, com o modelo que ele nomeou. Sem pedido: pule,
-diga em uma linha que pulou, e comece em C0 / onda 1. Medido em 2026-09-22: um executor abriu o
-ciclo despachando o revisor do plano, uma task no run e nenhum worker, sem que o usuário tivesse
-pedido revisão. Gate (`S<n>` sobre código escrito, antes de passo irreversível) é outra coisa e
-segue a seção *Dois mecanismos de qualidade*.
-
-## Controle de avanço e custo
-
-Registre no plano o comportamento observável de aceitação, limites técnicos de candidatas e
-tentativas, estimativas de tokens totais/saída/caminho crítico e saldo pago já autorizado.
-Estimativa não concede quota. Mantenha um estado corrente único: fonte, último aceite,
-falha/família, tentativas acumuladas, consumo, evidência e próximo passo; ligue logs por
-referência. Contagem de testes verdes não aprova jornada vermelha ou prova modelo simulado.
-
-Faça diagnóstico focal e contraprovas durante o reparo; estabilize a candidata antes da
-campanha completa obrigatória. Repetir exige mudança relevante, falha ou dúvida concreta.
-A segunda reprovação da mesma família ou o freio técnico do plano/runner (inclusive três a
-cinco candidatas) chama automaticamente o advisor. Trocar SHA, worker ou sessão não zera
-tentativas. Para texto aberto, avalie estado estruturado e composição antes de mais exceções.
-
-**Lote com modelo estocástico não fecha em 100% por amostra.** Se cada cenário passa 96% das vezes, 25 juntos passam
-cerca de metade das vezes; corrigir a redação de cada vermelho novo abre uma candidata por rodada e não converge.
-Antes de abrir candidata, classifique o vermelho: defeito (repete no mesmo SHA, ou nasce do seu código) vai para
-correção; variação (abaixo de 1 em 3 no histórico do dia) vai como resíduo medido ao usuário, que decide. A
-correção de defeito de redação se prova contra o corpus de TODAS as respostas reais do dia, nunca contra a última
-frase. E verde não é aceite: leia as respostas dos verdes. Medido em 01/11/2026 (vertical nova, 5 candidatas):
-a leitura achou três defeitos que as asserções passavam, um deles por oráculo de substring curta ("IA" dentro de
-"informações").
-
-## Portão de atribuição de modelo
-
-**Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível:
-
-| Nível | Modelo | Esforço |
-| --- | --- | --- |
-| Complexa | ? | ? (vazio: você decide por tarefa) |
-| Média | ? | ? (vazio: você decide por tarefa) |
-| Baixa | ? | ? (vazio: você decide por tarefa) |
-| Gate / Advisor | ? | ? (sempre do usuário) |
-| Coordenador de onda | ? (só com ondas em worktrees separadas) | |
-
-O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` / `<MODELO_GATE>` justamente para essa decisão ser tomada aqui, com o custo e a disponibilidade do dia na mesa. Nunca assuma, nunca herde do plano anterior, e não comece a onda 1 com um nível ainda em aberto.
-
-**A linha `Gate / Advisor` é uma só, de propósito.** O advisor (seção *O advisor*, abaixo) roda
-no mesmo modelo que o usuário escolheu para o gate, e não existe sem essa linha preenchida.
-Peça-a quando o plano tem gate, ou quando o usuário pediu revisão; se ele já nomeou o modelo no
-pedido ("use tal modelo para a revisão adversarial"), use esse e não pergunte de novo. Plano sem
-gate e sem revisão pedida: deixe a linha vazia e pergunte só se um gatilho do advisor disparar.
-Nunca herde o modelo de Complexa para esse papel.
-
-Se o usuário atribuir um modelo por tarefa em vez de por nível, aceite: a granularidade é dele.
-
-### Esforço: do usuário quando ele nomeia, seu por tarefa quando não
-
-Esforço alto paga exploração e decisão. Quando o worker começa, a spec já decidiu, o plano já
-explorou e os contratos estão congelados; o que sobra é escopo fechado, e o seu aceite confere o
-resultado de graça. Esforço máximo num worker paga de novo um raciocínio já feito. Decidido pelo
-usuário em 07/10/2026, depois de ver coordenadores pondo toda tarefa complexa em `xhigh` e
-workers em `max`.
-
-1. **Esforço nomeado pelo usuário vale para o ciclo inteiro**, reparos inclusive, como o modelo.
-   "Tudo em `xhigh`" é `xhigh` em tudo, sem você rebaixar.
-   **Esforço fixado por modelo também é esforço nomeado, mesmo que o pedido do ciclo não o repita.**
-   Se o usuário já fixou o esforço de um modelo (na memória, na configuração do CLI ou no catálogo
-   da skill `orchestration`, ex.: "esse modelo só em `xhigh`"), ele vale para toda tarefa daquele
-   modelo, de qualquer nível; a tabela abaixo nunca o rebaixa. Medido em 04/11/2026: com o pedido
-   nomeando só o modelo das médias, o coordenador aplicou "Média: `medium`" a um modelo que o
-   usuário só aceitava em `xhigh`, aceitou o worker pelo rodapé e teve de refazer a tarefa.
-2. **Sem esforço nomeado, você escolhe por tarefa, entre `medium` e `xhigh`.** Nunca `low`, nunca
-   `max` ou acima num worker.
-   - **Baixa:** `medium`.
-   - **Média:** `medium`; `high` se a tarefa produz um contrato que outras tarefas consomem.
-   - **Complexa:** `high`. `xhigh` só quando ela carrega o que o plano não pôde resolver de
-     antemão: precedência ou invariante que vale em vários pontos, concorrência, dado de produção
-     ou passo irreversível, ou muitos arquivos e contratos segurados ao mesmo tempo. Ser grande
-     ou difícil não basta; o plano já a desmontou.
-   - **Reparo:** volta no esforço da tarefa original. Sobe um degrau uma vez, com o motivo
-     escrito na task, se a tarefa já voltou duas vezes no aceite.
-3. **Gate e advisor ficam fora disso:** o esforço deles é do usuário, e pode ser `max` ou acima.
-   Rodam uma ou duas vezes por ciclo, e o trabalho deles é achar o que ninguém decidiu; é aí que
-   o esforço máximo se paga (`references/correcao-pos-gate.md`). Linha vazia: pergunte.
-
-O esforço sobe pelo argumento que o CLI do worker aceita (alguns embutem no id do modelo; ver
-`references/orca-traps.md`) e se confere no rodapé do TUI junto com o modelo, na mesma leitura.
-
-### A atribuição vale para a execução INTEIRA, não só para a onda 1
-
-O time que o usuário definiu governa **toda tarefa que você despachar até o fim do ciclo**: as
-ondas seguintes, os gates, e principalmente os **reparos** — worker que morreu, tarefa refeita,
-correção de achado, continuação de trabalho parcial. Uma tarefa complexa refeita continua
-complexa: ela volta no modelo de complexa, não no que estiver à mão.
-
-Nunca introduza um modelo que o usuário não listou. Se o time não cobre um caso (um revisor
-read-only, por exemplo, quando só foram nomeados implementadores), **pergunte** em vez de
-escolher: acrescentar um modelo por conta própria é decisão do usuário sendo tomada por você,
-e ele descobre depois, pela fatura ou pela qualidade.
-
-### Antes de criar o primeiro terminal, faça um smoke de cada modelo atribuído
-
-Um modelo listado no catálogo do CLI não é um modelo que responde. Antes da onda 1, rode **uma
-chamada headless de uma linha** para cada modelo do portão, no mesmo CLI que o worker vai usar,
-e só crie terminal depois de ler a resposta. As duas falhas medidas aqui eram invisíveis até o
-primeiro request:
-
-- **O CLI instalado é mais velho que o modelo.** O id aparece no catálogo local, o TUI sobe e
-  mostra o modelo no rodapé, e o primeiro request volta recusado. O conserto é atualizar o CLI,
-  não trocar de modelo.
-- **A rota do provedor está sobrecarregada, e o mesmo modelo responde por outra.** Um CLI que
-  agrega provedores pode servir o mesmo modelo por duas rotas; uma devolve sobrecarga e timeout
-  enquanto a outra responde. Trocar de rota mantém a atribuição do usuário (mesmo modelo), mas
-  diga a ele em uma linha e registre no documento do ciclo. Trocar de MODELO continua proibido
-  sem perguntar.
-
-Medido em 29/09/2026: dois dos quatro modelos atribuídos falharam no smoke, um por versão do CLI
-e outro por rota. Os dois foram resolvidos antes de qualquer despacho, em minutos. Descobertos
-depois do despacho, teriam custado um worker parado parecendo vivo cada. Os comandos e as
-mensagens exatas estão em `references/orca-traps.md`.
-
-### `--model` é OBRIGATÓRIO no `--command`, e você tem que CONFERIR
-
-Esta é a forma mais fácil de violar a regra acima sem perceber, e ela já aconteceu
-(2026-09-02):
-
-```bash
-# ERRADO — sobe no default do CLI, seja ele qual for
-orca terminal create --command "claude --permission-mode bypassPermissions"
-
-# CERTO — modelo explícito
-orca terminal create --command "claude --model claude-opus-5 --permission-mode bypassPermissions"
-```
-
-Sem `--model`, o TUI sobe no **default da instalação** e nada avisa. No caso medido, três
-workers de tarefa complexa (T7, T7b, T8) rodaram em Fable enquanto o coordenador **relatava ao
-usuário que estavam em Opus 5** — porque ele confundiu a própria intenção com o que tinha
-digitado. Quem descobriu foi o usuário, olhando os terminais.
-
-Por isso o `--model` não basta: **confira o modelo no TUI depois de `terminal wait`, antes de
-despachar.** É o mesmo cuidado que a armadilha do Codex já exigia (`gpt-5.6` puro sobe e só
-falha no primeiro request), e ele vale para todo provedor:
-
-```bash
-orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 120000
-orca terminal read --terminal <handle>    # o rodapé/cabeçalho tem que mostrar o modelo pedido
-```
-
-Se o que aparecer não for o que o usuário pediu, **feche o terminal e recrie**. Não despache
-"só para não perder o boot": um worker no modelo errado produz trabalho que você vai ter de
-descartar, e descartar custa mais que recriar.
-
-**Quando descobrir tarde**, com o worker já trabalhando: pare o worker, **salve o diff** no
-scratchpad antes de reverter (ele pode conter achados reais que valem para o brief novo),
-restaure os arquivos, e refaça a tarefa no modelo certo com um brief que já incorpore o que
-foi aprendido. Feche a task antiga com o motivo escrito — `task-list` é a fonte de verdade da
-invariante de fim de turno, e uma task fechada sem motivo vira confusão na próxima sessão.
-
-## Mecânica: use a skill `orchestration`
-
-Não redocumente o Orca. Para criar run, criar task com dependência, despachar com preâmbulo injetado e esperar `worker_done` / `escalation` / `decision_gate`, siga a skill `orchestration`. Esta aqui só acrescenta o que é específico de executar um plano.
-
-Sequência por worker, na ordem:
-
-1. `run-create` uma vez, no começo. Sem run vinculada, `task-list` falha.
-2. `task-create` para cada tarefa, com `--deps` refletindo o grafo do plano. O grafo vira estado, não fica só no documento.
-3. `terminal create`, com o flag de bypass de permissão **e o `--model` e o esforço da tarefa** dentro da string de `--command`. Confira modelo e esforço no TUI antes do dispatch (ver *Portão de atribuição de modelo*).
-4. `terminal wait --for tui-idle` antes de despachar. Terminal que ainda está subindo engole o dispatch.
-5. `dispatch --inject` com o preâmbulo abaixo.
-6. Arme a espera pela skill `orchestration`: `wave.sh wait 3600` numa chamada só dela, em background, e trate o retorno (`0` evento, `2` triagem, `4` nenhum worker trabalhando: despache agora). Não use `check --wait` cru: ele não lê o corpo antes de armar nem volta quando o evento já estava na caixa (incidente de 26/10/2026, documentado na skill `orchestration`).
-
-Armadilhas medidas, que custam tempo quando descobertas na marra: `references/orca-traps.md`. Leia antes da primeira onda.
-
-**Sem Orca disponível**, o plano continua válido: é um grafo com níveis, donos e contratos. Execute com o mecanismo de subagente que houver, mantendo ownership, ordem e gates. O que não se pode perder é o grafo, não a ferramenta.
-
-## Portão de capacidade: meça o que o worker ALCANÇA antes de escrever o brief
-
-Um brief diz o que fazer e, quase sempre, o que **não** dá para fazer. A segunda metade costuma
-ser escrita de cabeça, e é onde mora o erro que não tem conserto barato: a proibição inventada.
-
-> **Nunca escreva no brief que o worker não pode fazer algo sem ter provado que ele não pode.**
-
-O worker obedece. Ele não testa, não contradiz e não escala, porque uma proibição no brief se
-parece com um fato do projeto. Se a capacidade proibida era necessária à tarefa, **você vira o
-terminal dele**: ele escreve, manda para você, você executa, você cola a saída de volta, ele
-corrige. Medido em 2026-09-21: 13 idas e voltas assim, ~3 h de uma onda, por uma capacidade que
-existia desde o começo dos dois lados. O coordenador parou de coordenar.
-
-Antes da primeira onda, para cada capacidade que a tarefa vai exigir — executar consulta, chamar
-API, subir serviço, rodar a suíte — faça três coisas, nesta ordem:
-
-1. **Rode o comando.** Um smoke de uma linha, contra o mesmo recurso que a tarefa usa. Alcance é
-   a única prova de alcance; ler documentação não é medir.
-2. **Leia a configuração do agente DO WORKER, não só a sua.** Cada CLI de agente tem o arquivo
-   dele. O worker pode ter servidor de ferramenta que você não tem, e você pode ter o que ele não
-   tem — as duas direções já custaram ciclo. A barra de status do TUI costuma mostrar quantos
-   carregaram: contador diferente de zero é convite a descobrir qual.
-3. **Escreva a capacidade e o comando exato no brief.** Nomear a ferramenta custa uma linha e
-   poupa o turno que o worker gastaria procurando. Procurar às vezes termina em "não existe".
-
-Duas regras de leitura, as duas pagas no mesmo ciclo:
-
-- **`--help` truncado não é ausência.** Saída cortada por `head`, paginada, ou recortada por um
-  cabeçalho que mudou de nome entre versões devolve "não achei" — e "não achei" não é "não tem".
-  Rode o `--help` inteiro, ou procure o subcomando pelo nome, antes de concluir.
-- **Medição que contradiz a documentação do projeto: desconfie da medição primeiro.** O documento
-  pode estar velho, mas alguém o escreveu com aquilo funcionando. Enquanto o seu comando diz não
-  e o documento diz sim, o ônus é seu: meça de outra forma antes de declarar o documento
-  desatualizado. Inverter essa ordem é como uma medição errada vira proibição no brief.
-
-**Ferramenta que você entrega ao worker lê só o segredo de que precisa.** Um script de prova ou
-wrapper que carrega o arquivo de segredos inteiro com o `source` do shell interpreta cada valor:
-um `$` dentro de uma chave vira expansão de variável e, com `set -u`, o erro imprime o trecho da
-chave no terminal. Esse terminal é o contexto do worker, e o contexto vai para o provedor do modelo
-dele. Medido em 2026-09-30: o primeiro uso do wrapper expôs parte de uma chave de sandbox ao worker,
-que escalou (corretamente) em vez de rodar de novo. Extraia a chave pelo nome com um parser (`sed`
-na linha exata) e exporte só ela; teste o wrapper você mesmo antes do primeiro despacho.
-
-Sintoma para reconhecer em uma linha: **você executou, em nome do worker, o mesmo tipo de comando
-duas vezes.** Na segunda, pare e conserte o acesso dele em vez de repetir o serviço. Na terceira,
-o problema já não é a tarefa.
-
-## O preâmbulo de todo dispatch
-
-Todo worker recebe, sem exceção:
-
-- **Onde está a verdade:** caminho da spec e do plano, e a instrução de ler os dois.
-- **Sua tarefa, pelo identificador:** "você é a T5, e só a T5".
-- **Seus arquivos, listados.** Mais a frase: nenhum arquivo fora desta lista, nem para "corrigir de passagem".
-- **Os contratos que ele consome**, colados literal no dispatch, não por referência. Worker não deve depender de achar a seção certa.
-- **O que este projeto proíbe delegar.** Tipicamente git. Diga com essas palavras: não rode comando de git, quem commita é o coordenador.
-- **Quem roda a verificação pesada, quando o Orca roda num servidor remoto.** Typecheck do projeto inteiro e suíte completa são do coordenador, uma por vez, no aceite (passo 2 de *O que fazer a cada `worker_done`*); o brief diz que o worker não as roda. Não é limite de workers: ver `references/orca-traps.md`, *Verificação pesada em N workers satura o host do Orca*.
-- **Escalar em vez de improvisar.** Se a tarefa exigir sair do escopo, mudar contrato, ou tocar arquivo de outro, ele manda `escalation` e para. Um worker que improvisa custa mais que um worker que espera.
-- **Pronto quando:** o critério da tarefa, **copiado do plano — que por sua vez copiou o cenário da spec**. Se o plano não tem esse critério, você não o escreve de cabeça: volte ao plano (ver *Preflight*). Coordenador improvisando critério de pronto é o defeito, não o conserto.
-
-Worker que recebe contrato por referência e não por valor inventa o contrato. Cole.
-
-**Dado que um teste vai ler entra versionado, junto do código de teste, antes do despacho.**
-Casos rotulados, amostras, fixtures que você gerou: numa pasta ignorada ou temporária, servem para
-o worker ler, nunca para um teste carregar. Se um teste vai lê-los, versione-os como fixture antes
-e passe o caminho versionado no brief. Nem pasta de documentos de planejamento: ela muda de lugar
-quando o trabalho muda de estado, e pode ficar fora da cópia isolada em que a suíte se mede.
-
-E a contraparte do portão acima: **proibição só se escreve depois de medida.** O que você não mediu entra como incerteza com um comando junto (*"não sei se há <capacidade> aqui; teste com `<comando>` e me diga o que voltou"*), nunca como um "você não tem isso".
-
-### A prova de neutralização só pode tocar arquivo que o worker POSSUI
-
-Peça sempre a prova de neutralização (neutralize o fix, confirme que o teste falha, restaure).
-Ela é o que separa teste que trava o defeito de teste decorativo. Mas ela **muta o código de
-produção por alguns minutos**, e é aí que mora a armadilha:
-
-> **Se o alvo da neutralização não é um arquivo do worker, a prova é do COORDENADOR, numa cópia
-> isolada — nunca do worker, nunca na árvore compartilhada.**
-
-Medido em 2026-09-01. Um brief mandava "remova o `EdgeRuntime.waitUntil` e confirme que a
-asserção falha" e, na mesma página, "não edite `handoff-side-effects.ts`". As duas instruções
-eram incompatíveis: uma extração anterior tinha **mudado o `waitUntil` de arquivo**, e o brief
-foi escrito contra o mapa antigo. O worker fez o razoável, editou o arquivo alheio — e **morreu
-no meio** (print mode, `timeout waiting for response`).
-
-O que ficou na árvore: produção sem o `waitUntil`, ou seja, o isolate podendo morrer com a
-resposta HTTP e engolir a notificação ao atendente. **E a suíte inteira passava verde**, porque
-o único teste que observava aquilo era o que o próprio worker estava escrevendo. Só a medição
-isolada do coordenador denunciou.
-
-Três consequências para quem escreve o brief:
-
-1. **Antes de mandar neutralizar, confira em qual arquivo o alvo mora HOJE.** Depois de uma
-   extração ou refatoração, o mapa da sua cabeça está velho. Um `grep` resolve.
-2. **Neutralização e ownership têm de bater.** Se não batem, o brief está errado — não é o
-   worker que tem de escolher qual das duas instruções obedecer.
-3. **Trate a árvore como suja até provar o contrário** quando um worker morre. Não confie no
-   verde: rode a suíte numa cópia do HEAD limpo mais só os arquivos daquele worker, e compare
-   por nome. Verde numa árvore que contém uma neutralização esquecida é verde pelo motivo
-   errado.
-
-A regra maior, e ela vale além disto: **restauração que depende de alguém lembrar não é
-restauração, é intenção.** A contraparte disso na mecânica de terminais está em
-[`references/orca-traps.md`](references/orca-traps.md) (terminal que sobrevive ao
-`worker-release`), e a contraparte em dado é `deactivate_stages` nos cenários de E2E, que
-restaura sempre, inclusive quando o cenário falha.
-
-## O laço de ondas
-
-Para cada onda:
-
-1. Suba **no mesmo momento** todos os workers da onda cujas dependências já foram aceitas, pelo
-   caminho que dá posse do terminal (`wave.sh spawn`, que é `worker-start`). Onda serializada é
-   onda desperdiçada, e terminal sem dono registrado é terminal que ninguém consegue fechar com prova.
-2. Espere as conclusões. Trate `escalation` na hora: worker escalando está parado.
-3. **A cada `worker_done`, feche o ciclo daquele worker sem esperar que o usuário peça:** leia o
-   relatório, aceite com casos seus, confira a task, feche o terminal. A sequência exata está na
-   seção seguinte. Logo depois do aceite, suba as tarefas que ele destravou; elas não esperam o
-   resto da onda.
-4. Rode os passos do coordenador daquela onda, você mesmo.
-5. Verifique antes de abrir a próxima. Onda seguinte que começa em cima de passo do coordenador
-   não confirmado propaga o erro para todos os workers de uma vez. E abra a próxima com a árvore
-   limpa: todos os `worker_done` da onda aceitos, terminais fechados, e `wave.sh sweep`
-   respondendo que não há terminal de task encerrada aberto.
-
-Um `check --wait` que volta só com keepalive e sai não é falha: é ponto de checagem. Confirme que o worker está vivo e rearme a espera.
-
-### O que fazer a cada `worker_done`: aceitar, conferir a task, fechar
-
-O `worker_done` é o worker dizendo que terminou. O runtime marca a task `completed` (ou `failed`)
-sozinho e preenche o `result` com o relatório dele; o que ele NÃO faz é o seu trabalho: aceitar
-com casos seus e fechar o terminal. Isso é parte da coordenação, não favor que o usuário pede.
-Relatado pelo usuário em 22/09/2026, nos três sistemas em que o plano roda: o coordenador só
-fechava terminal quando mandavam, e a árvore do Orca acumulava os TUIs já entregues, cada um
-segurando a RAM inteira do agente. Medido em 13/09/2026: dois workers entregues a ~900 MB cada,
-e o aperto de memória matou uma tarefa de background do coordenador; em outra execução, 20+
-terminais mortos na interface.
-
-Para cada `worker_done`, nesta ordem, e nenhum passo pula o anterior:
-
-1. **Leia o relatório e o diff.** `wave.sh report <task>` traz o corpo do `worker_done`, os
-   arquivos e o diff; `dispatch-show` não traz o corpo.
-   **Antes de ler o conteúdo, confira o ESCOPO, que é mecânico:** a lista de arquivos alterados
-   pelo worker contra a lista de arquivos do brief. Numa árvore compartilhada por vários workers,
-   o `git status` mistura as entregas: tire um retrato dos arquivos modificados (caminho e hash)
-   ao despachar, e na entrega compare. Arquivo fora da lista é devolução, ou restauração sua a
-   partir do HEAD, mesmo que o conteúdo pareça certo. Isso inclui arquivo gerado (lockfile,
-   cache, saída de build) que o worker regravou ao rodar ferramentas: restaure, e não commite.
-   Medido em 25/09/2026: um worker de nível médio sobrescreveu um arquivo de outra área com a
-   cópia de um arquivo irmão, e outro deixou um lockfile regravado; os dois apareceram por acaso,
-   lendo diff. A comparação de listas os pega na entrega, em segundos.
-   No diff dos testes, confira também os caminhos de arquivo que eles leem: caminho ignorado
-   (`git check-ignore` responde) ou fora do repositório é devolução, porque só existe nesta árvore.
-2. **Aceite com casos seus.** Rode o `Pronto quando` com casos que não são os do worker e confira
-   a prova de neutralização (seção *Dois mecanismos de qualidade*). Tarefa que mexe em detector
-   de texto: seus casos saem de frases reais do histórico e da lista de variações do plano
-   (negação, erro de digitação, outra flexão, acento colado no termo), não da frase do relatório.
-   Foi assim que o aceite pegou dois dos defeitos dessa família em 25/09/2026.
-   - **Não passou:** a correção é uma **task nova** (`T<n>b`), despachada **para o mesmo
-     terminal** (`dispatch --task <nova> --to terminal:<handle>`): o contexto do worker vale mais
-     que refazer do zero. A task original já está `completed` e o terminal continua vivo de
-     propósito. **Não feche nem varra esse terminal enquanto a continuação estiver viva:** o
-     `sweep` lista a task antiga como encerrada, e o `close` dela mataria a nova. Feche no aceite
-     da ÚLTIMA task daquele terminal. Medido em 20/09/2026: uma tarefa complexa levou três tasks
-     no mesmo terminal até o aceite, e o terminal só fechou depois da terceira.
-   - **Passou:** siga.
-3. **Confira a task no `task-list`:** ela já está `completed`, com o `result` do próprio worker
-   (`provenance: worker_report`). Não a reescreva com `task-update`: isso apaga a proveniência.
-   `task-update` é para o worker que morreu sem `worker_done` (`--status failed --result
-   '{"reason":…}'`); cancelar também é `--status failed`, com o motivo no `result`, porque não
-   existe status `cancelled`. O seu aceite fica registrado no documento do ciclo, com o comando
-   que o provou.
-4. **Feche o terminal, a aba e a entrada na árvore:** `wave.sh close <task>`. Ele escolhe o
-   caminho pela posse (`worker-release` para terminal que o `worker-start` criou; `terminal close
-   --tab` para terminal que você criou pelo `wave create`), mata o processo do agente e confere
-   que o handle sumiu. Ele recusa task fora de status terminal, o terminal do coordenador e
-   qualquer terminal sem prova de posse: a sessão do usuário nunca é fechada por engano. Sem
-   `wave.sh` na máquina, o comando cru é o mesmo nos três sistemas e vale só para terminal que
-   VOCÊ criou: `orca terminal close --terminal <handle> --tab --json` (`--tab` fecha a aba
-   inteira; sem ele o pane fica vivo consumindo memória; o primeiro `ok:false` é retry, não
-   falha).
-5. **Confira na lista, não no recibo:** o handle não aparece mais em `orca terminal list --json`.
-   Se o `close` disse que fechou e o handle ainda aparece, a aba ficou na árvore: `orca terminal
-   close --terminal <handle> --tab --json`, e registre o caso em `references/orca-traps.md`. Se
-   ele disse que o release ficou pendente e o terminal continua vivo, siga o recibo; não force.
-
-Quando TODOS os `worker_done` da onda estiverem aceitos e nenhuma continuação estiver viva, rode
-`wave.sh sweep`: ele fecha o que sobrou e tem de responder que não há terminal de task encerrada
-aberto. Não o rode no meio de uma correção.
-
-Duas exceções, e só estas:
-
-- **Continuação viva no mesmo terminal** (passo 2, "não passou"): fecha no aceite da última.
-- **Terminal de gate que vai receber o fix mais complexo da própria lista:** reaproveitar o
-  contexto do revisor já pagou; vale a mesma regra da continuação.
-
-Fora disso, terminal de task aceita que continua aberto é erro seu, não pendência do usuário.
-
-### Entrega de front com protótipo aprovado: comparação lado a lado, sempre
-
-Se a spec ou o plano cita um protótipo aprovado pelo usuário (artefato, Figma, HTML, pranchas),
-**toda** tarefa que entrega tela só é aceita com a comparação lado a lado contra ele. Não é
-opcional, não depende de o plano repetir a exigência e não se troca por "revisei os screenshots".
-
-1. **Uma linha por estado de cada prancha que a tarefa toca:** a captura da implementação ao lado
-   da prancha aprovada, no mesmo estado (carregando, vazio, erro, resultado; computador e
-   celular). Interação e animação também entram: clique, seleção, progresso, transição e o que
-   aparece depois do clique. Para o que se mexe, grave (vídeo ou GIF) ou capture a sequência de
-   quadros, nos dois lados.
-2. **Confira composição, não só defeito:** layout e onde a tela vive (dentro do app ou fora),
-   navegação e destaque do item atual, imagens e exemplos que a prancha mostra, ordem e textos.
-   Revisar captura procurando bug (plural, transbordo) não é comparar com o protótipo: os dois
-   passam juntos e a tela sai diferente.
-3. **Diferença é devolução.** Cada divergência vira correção (`T<n>b`) ou adaptação aceita pelo
-   usuário por escrito, registrada no documento do ciclo com o motivo. Divergência que só você
-   aceitou é desvio do protótipo, não adaptação.
-4. **Guarde as comparações** no documento do ciclo (caminho das capturas, prancha e versão do
-   protótipo) e mande ao usuário na entrega. Sem elas, a tarefa de front não está aceita.
-
-O brief do worker de front leva o caminho das pranchas e esta exigência no `Pronto quando`; quem
-roda e julga a comparação final é você, no aceite.
-
-Medido em 09/11/2026: o plano mandava comparar com o protótipo, o aceite só revisou capturas
-procurando defeito, e a área foi para produção fora do layout do app, com abas sem destaque,
-itens de uma lista sem as imagens da prancha, opções de escolha sem o exemplo visual e um
-progresso diferente do aprovado. O usuário reprovou a UI inteira, e o redesign custou um ciclo
-novo.
-
-### Ondas paralelas em worktrees: coordenador de onda e integração
-
-Quando o plano põe ondas paralelas em worktrees separadas (`power-plans`, Fase 2), você é o
-coordenador **principal**: cria as worktrees em C0, toca a sua onda na árvore atual e integra as
-outras. Cada outra onda tem um coordenador de onda, uma sessão de agente aberta na worktree dela,
-com o modelo da linha `Coordenador de onda`.
-
-Plano que chega com ondas em camadas por profundidade, sem a linha "Ondas paralelas" no §2.1, e
-com trilhas que o grafo mostra sem dependência entre si: antes de C0, mostre as trilhas ao usuário
-e proponha um coordenador secundário por trilha (`power-plans`, *Ondas são trilhas, não camadas*).
-Não execute as camadas em silêncio.
-
-**O brief do coordenador de onda** leva o plano, a onda dele, a tabela de papéis copiada do plano,
-a atribuição de modelos já decidida (ele não roda o portão de atribuição de novo) e esta skill: ele roda o laço de ondas para a própria onda, com o mesmo aceite e o mesmo fechamento
-de terminais. Commita só no branch dele; não publica nada (homologação inclusive), não aplica
-migração, não escreve em dado e não integra na branch principal.
-
-**A entrega, pelo coordenador de onda:**
-
-1. Rebase sobre a branch principal **commitada**, no SHA que você indicar (trabalho seu não
-   commitado não existe para a onda), resolvendo os conflitos ele mesmo: quem conhece o código da
-   onda resolve. Entre indicar o SHA e integrar, você não commita na branch principal.
-2. Suíte por nome de novo, contra a base desse SHA.
-3. A você: branch, SHA **pós-rebase** (o rebase reescreve os SHAs), tarefas aceitas com a prova de
-   neutralização, diferença da suíte por nome e o que ficou de fora. Canal: o `worker_done` dele,
-   se foi você quem o despachou pelo orquestrador; um arquivo de entrega na pasta do plano, se o
-   usuário o abriu à mão.
-
-**A integração, por você, uma onda por vez na ordem do plano:** `git merge --ff-only <branch>`.
-Recusou, a branch principal andou depois do rebase: devolva à onda para refazer, não concilie
-você. Depois de cada integração, suíte por nome e verificação de tipos no integrado. O gate não é
-por integração nem por onda, e o coordenador de onda nunca roda gate: ele roda sobre o candidato
-integrado, antes de cada ida à produção. Padrão: integrar todas as ondas paralelas e ir uma vez.
-Produção em etapas (uma onda corrige algo ao vivo e não pode esperar as outras) é decisão do plano,
-com um gate por produção. No fecho, `git worktree remove` e `git branch -d`, que recusa branch não
-integrado.
-
-**Sem PR por padrão.** As worktrees compartilham o repositório, e o branch da onda é visível para
-você sem push. PR só quando o coordenador de onda roda em outra máquina, quando a onda toca
-frontend e o preview por branch serve à validação do usuário, ou quando o usuário quer revisar no
-forge; mesmo aí quem junta é você, depois da suíte. Medido em 26/09/2026, num plano que mandava
-cada onda abrir PR: os dois branches de onda tinham 2 e 3 commits, nenhum push, e já apareciam
-para o principal num `git log`; o repositório não tinha CI, e nos 8 PRs anteriores o único check era
-o preview do host (7) ou nenhum (1); o host publicava a branch principal sozinho, então o botão de merge seria deploy
-de produção sem a suíte integrada, e o squash apagaria o commit por tarefa.
-
-## Dois mecanismos de qualidade, e só um deles é o gate
-
-**Aceite do coordenador** é contínuo, barato e sem orçamento. Todo `worker_done` passa por
-você antes de contar como entregue: leia o diff, rode o `Pronto quando` com casos SEUS (nunca só
-os do worker), confira a prova de neutralização. Não passou no rigor: devolva ao mesmo worker, no
-mesmo terminal, com o que falta, quantas vezes precisar. Aceitou: confira a task e feche o
-terminal na hora (*O que fazer a cada `worker_done`*, acima). Isso é coordenar, não é gate.
-Medido em 20/09/2026: uma tarefa complexa aceita na terceira devolução custou duas devoluções ao
-mesmo worker e nenhuma rodada de revisor.
-
-**Aceite não herda o alcance declarado pelo teste.** Confira quais peças ele simula e
-se alguma delas é justamente a fronteira sob risco. Etapas assíncronas executadas juntas
-podem esconder uma corrida; iniciar do zero pode esconder defeito ao retornar com estado
-preservado. Execute a primeira prova integrada prevista no plano com essas peças reais.
-Registre candidato, cenário, resultado e limite: teste lógico aprovado e validação visual
-pendente são estados diferentes. Sem a prova exigida para aquela etapa, a entrega é
-parcial, não aceita; prova atribuída a uma etapa posterior permanece pendente nela.
-
-**Gate** é uma cartada: um revisor read-only, em outro modelo, **uma vez**, sobre o candidato
-integrado, imediatamente antes do passo irreversível que ele guarda (migration em produção,
-deploy, publicação). Devolve PASSA ou BLOQUEIA, com a lista de achados provados. Decidido pelo
-usuário em 12/09/2026 e reafirmado em 22/09/2026.
-
-    ondas -> aceite por tarefa -> gate (uma vez) -> PASSA:    passo do coordenador
-                                                 -> BLOQUEIA: triagem -> correções com teste -> aceite -> suíte + E2E -> verdes: passo do coordenador
-                                                                                                                 -> falhou: correção -> suíte + E2E
-
-- **PASSA:** rode o passo do coordenador.
-- **BLOQUEIA:** primeiro a triagem (abaixo). Cada achado que ela confirma como bloqueio vira
-  correção com dono e com o teste que fica vermelho ao neutralizar; você aceita cada correção com
-  casos seus; suíte por nome e E2E (a prova ponta a ponta do plano, se o projeto tem) verdes: rode
-  o passo do coordenador. **O gate não roda de novo, e você não precisa de um PASSA dele para
-  seguir.** Corrigir o que o gate listou nunca reabre o gate, e o revisor não é chamado para
-  conferir a própria lista.
-- **Teste falhou é correção, não revisão.** Suíte ou E2E reprovando depois das correções volta
-  para correção, em `systematic-debugging` (causa raiz, um conserto), e de novo para suíte e E2E;
-  nunca para o gate. Três consertos falhados no mesmo teste viram questão de arquitetura, como
-  aquela skill já manda.
-
-**Triagem: você confirma cada achado no código antes de despachar.** O revisor leu o candidato
-isolado; você tem o plano, as decisões do usuário e os riscos já aceitos. Uma linha por achado no
-documento do ciclo:
-
-| achado | reproduzido como (`arquivo:linha`, teste ou consulta) | veredito | dono |
-| --- | --- | --- | --- |
-
-O veredito é um de três. **Bloqueio real:** vira correção antes do passo irreversível. **Real,
-não bloqueia:** residual com dono na watchlist, e o usuário vê. **Refutado:** com a evidência que o
-derruba. Refutar exige a mesma prova que o gate teve de dar; descartar sem ela é como um aviso da
-rodada 1 voltou como defeito duas rodadas depois (seção *O advisor*). Achado que contradiz decisão
-do usuário registrada no plano não é bloqueio, é a decisão; vai ao usuário só se trouxer fato novo.
-
-**Segunda rodada, só com autorização explícita do usuário.** Você só a propõe quando entrou
-mudança grande que o plano não previa e que não nasceu de achado do gate (tarefa nova, escopo
-novo, mudança de arquitetura), com o delta em uma linha; autorizada, a rodada é só sobre o delta.
-**Correção de achado nunca é superfície nova**, mesmo quando cria módulo, muda contrato ou passa
-por arquivo que o gate não leu: foi o gate que a pediu, e quem a prova é o teste e o E2E. Esse era
-o furo da regra anterior, que aceitava "módulo novo" ou "contrato alterado" como motivo: a
-correção estrutural que esta skill exige (um ponto de estrangulamento) quase sempre cria um ou
-outro. Relatado pelo usuário em 27/09/2026: 8 rodadas extras de gate, e o tempo delas, pelo laço
-gate → correção → gate.
-
-Quantos gates: **um por plano**, antes do primeiro passo irreversível, sobre tudo que foi
-integrado até ali. Um segundo só quando existe um segundo passo irreversível com superfície
-própria (uma publicação de frontend separada do deploy de backend, por exemplo), ou numa produção
-em etapas que o plano decidiu, um por produção. Nunca um por onda: quem guarda a onda é o aceite do coordenador. Plano de escala parcial ou mínima não tem
-gate; aceite mais suíte.
-
-Medido em 20 e 21/09/2026, três planos no mesmo repositório: quatro ondas com um gate por onda
-rodaram **cinco** gates (um deles repetido "sobre o delta") e nove tarefas de correção; doze
-tarefas com três gates planejados rodaram dois deles, uma vez cada, e o terceiro nem rodou
-porque a tarefa que ele guardava foi cancelada; seis tarefas com **um gate, uma rodada** acharam
-quatro críticos, corrigiram com teste, e publicaram na mesma noite. Nos dois últimos, ninguém
-chamou o revisor de novo depois da correção, e nada disso voltou como defeito. Antes disso,
-12/09 (três gates, nove rodadas) e 14/09 (sete rodadas, quem parou foi o usuário). O gate acha
-muito na primeira rodada e cada vez menos nas seguintes; o que não converge é o laço, não a
-revisão.
-
-Nunca rode o passo irreversível "enquanto o gate roda". O ganho é minutos; a perda é migration
-aplicada em produção sem `git revert`, ou deploy que republica módulo compartilhado de uma branch
-atrasada. Revisão que volta com achados **não autoriza você a corrigir por conta própria**:
-sintetize, decida quem é o dono da correção, e despache. Decisão de negócio vai ao usuário, com
-resumo e recomendação.
-
-O que protege o passo irreversível nesse desenho é a forma da correção: estrutural, num ponto de
-estrangulamento, com o teste que trava o defeito. Remendo por call site sem teste era o que fazia
-o gate ser chamado de novo. Como despachar essa correção: seção seguinte.
-
-## Como despachar a correção pós-gate
-
-Uma linha por lição. O caso que pagou cada uma, com a medição, está em
-`references/correcao-pos-gate.md`; leia antes de escrever o primeiro brief de correção.
-
-- **Mesma família de achado em arquivos diferentes:** proíba o remendo por call site e exija um
-  ponto de estrangulamento. Sintoma: você escreve "e este caminho também precisa propagar X" pela
-  terceira vez.
-- **Contraexemplos no brief são piso, não teto:** o worker entrega a vizinhança adversarial dele
-  e os testes dela, e a sua verificação usa casos que não são os dele.
-- **O revisor acusou o INSTRUMENTO** (o teste não consegue observar a classe do defeito): a onda
-  seguinte é arreio, do coordenador, não correção. Arreio executa o artefato de produção e é
-  provado por neutralização antes de ser usado.
-- **Teste negativo sem controle positivo não prova nada.**
-- **Contrato "exatamente um de A ou B" com todo teste passando A e B:** a cardinalidade não está
-  testada.
-- **Mudou enum, campo de contrato ou estado:** o entregável inclui o inventário dos consumidores
-  por `grep`, com decisão por consumidor; rótulo novo não muda comportamento.
-- **Requisito de FORMA marcado bloqueante** (avaliar uma vez, persistir antes de enviar) vem com
-  o teste que fica vermelho quando ele é desfeito.
-- **Toda afirmação sua no documento do ciclo sobre entrega alheia** carrega o comando que a
-  provou; sem ele é `[SUPOSTO:]`.
-- **Freio técnico ou reprovação repetida:** consulte o advisor no mesmo modelo/esforço do gate
-  e prove a recuperação offline antes de outro candidato. Contagem sozinha não vira pergunta
-  ao usuário para insistir nem decisão de aceitar residuais.
-
-## O advisor: segunda opinião de RUMO, com orçamento e rastro
-
-Medido em dois ciclos seguidos. Num ciclo de cobrança (12-13/09/2026) o advisor apontou uma falha
-de idempotência **na rodada 1**; o coordenador descartou o aviso, e o gate redescobriu o mesmo
-defeito duas rodadas depois. Num ciclo de auditoria (14/09) o coordenador decidiu sozinho, a
-cada uma das sete rodadas, se a correção ia para o call site ou para o mecanismo, e o mesmo
-arquivo voltou nas sete (`references/correcao-pos-gate.md`, *O brief que lista contraexemplos*). Os dois têm o mesmo
-formato: **a decisão de rumo depois de uma reprovação é a mais
-cara do ciclo, e é tomada pelo agente com menos distância dela.** No primeiro caso não faltou
-segunda opinião; faltou rastro. Por isso a regra de carga desta seção é o registro, não o teto.
-
-**O que o advisor é.** Um agente read-only, no modelo da linha `Gate / Advisor` do portão, que
-recebe a reprovação (ou a escalação), **a direção que você pretende tomar** e as alternativas que
-você descartou, e devolve o critério que discrimina entre elas. Ele não revisa código: isso é o
-gate. Não escreve brief, não corrige, não decide.
-
-> **Gate diz o que está errado. Advisor diz por onde consertar. O coordenador decide.**
-
-Sem a direção pretendida no brief, o advisor refaz o gate, e você paga duas revisões pelo preço
-de nenhuma decisão.
-
-### Quando chamar: lista fechada
-
-Só nestes três pontos, e em nenhum outro:
-
-1. **A lista do gate chegou e a correção que você pretende muda o MECANISMO**, não remenda os
-   call sites citados: a lista traz a mesma família em arquivos diferentes e você precisa
-   escolher entre dois pontos de estrangulamento, ou entre estrangular e enumerar; ou o gate
-   acusou o instrumento do teste e você vai desenhar o arreio.
-2. **Um achado ou uma escalação contradiz um contrato congelado ou uma afirmação de carga do
-   plano.** Isso é redesenho, e redesenho no meio da execução é onde a pressa erra. Chame antes
-   de reescrever o contrato.
-3. **Um freio técnico disparou:** segunda reprovação da mesma família ou limite de candidatas,
-   tentativas ou esforço do plano/runner. Suspenda novos candidatos e gastos do lote; consulte
-   automaticamente o advisor do gate sobre causa, mecanismo e instrumento. O coordenador
-   retoma dentro da spec/autorização depois de contraprova offline, sem perguntar ao usuário
-   só pela contagem. Se a saída exigir requisito novo, aceite de residual, ação não autorizada
-   ou saldo pago adicional, essa decisão continua com o usuário.
-
-O que NÃO é advisor, mesmo quando parece decisão importante:
-
-- redigir brief, escolher worker, responder `question` de worker;
-- o que uma regra desta skill já decide (ownership, gate antes do irreversível, modelo por nível);
-- decisão de negócio: vai ao usuário, com resumo e recomendação, sem passar pelo advisor;
-- **confirmar o que você já decidiu.** Consulta cuja resposta você já sabe qual quer é
-  deferência ao contrário, e gasta o orçamento de quem precisaria dele.
-
-### Orçamento: uma consulta por veredito ou episódio de freio
-
-- **Uma consulta por veredito de gate**, no máximo: a que decide por onde vai a correção. Com um
-  gate por plano (seção *Dois mecanismos de qualidade*), isso costuma ser uma consulta no ciclo
-  inteiro.
-- **Uma por escalação que contradiz contrato** e uma por episódio de freio técnico. Consuma
-  o parecer existente antes de abrir consulta idêntica; outra exige evidência ou decisão nova.
-- Retomar exige causa confirmada, decisão de mecanismo, caso vermelho antes/verde depois,
-  controles preservados e próximo lote delimitado. Mais uma frase reconhecida ou justificativa
-  em prosa não satisfaz isso. O advisor não zera contadores, não concede quota nem substitui o gate.
-- **Cada consulta é uma task do Orca chamada `ADV-1`, `ADV-2`, …**, read-only, no run do ciclo. O
-  `task-list` é o contador; ninguém conta de cabeça. Gate posterior do plano, se houver, recebe
-  os blocos `ADV-n` no brief.
-- Orçamento não é meta. Ciclo que fecha com zero consulta não fez nada errado.
-
-Teto em prosa já falhou nesta skill mais de uma vez; o `task-list` é o que torna este auditável
-sem depender de memória. **Sem Orca**, o contador são os blocos `ADV-n` do documento do ciclo
-(seção seguinte): a consulta só existe depois de o bloco existir, numerado.
-
-### O registro é a regra de carga
-
-Toda consulta produz, no documento do ciclo (o congelamento, ou o §7 do plano), este bloco, no
-mesmo turno em que a resposta chega:
-
-```
-ADV-n · onda <k> · gatilho <1|2|3>
-Recomendou: <a direção e o critério, em duas linhas>
-Decidi: <a direção tomada>
-Divergência: <por que diferem> | seguiu a recomendação
-```
-
-E o descarte tem de ser **visível para o usuário**: toda divergência entra no relatório da onda
-com estas palavras ("divergi do advisor em X porque Y"), não em nota de rodapé. Se o plano tem um
-gate posterior (um gate de deploy depois do gate de contratos, por exemplo), o brief dele recebe
-os blocos `ADV-n` e o pedido de julgar a divergência: se a evidência confirmar o advisor, é
-bloqueante.
-
-A palavra final é do coordenador, e é dele porque ele tem o contexto inteiro. Palavra final sem
-rastro é a falha de idempotência que o gate teve de achar de novo.
-
-### Modelo e forma
-
-- O advisor roda **no modelo da linha `Gate / Advisor`**, o mesmo do gate, escolhido pelo usuário
-  no portão. Linha vazia: pergunte antes da primeira consulta; nunca herde o de Complexa nem
-  introduza modelo não listado.
-- Brief, mandato read-only, formato da resposta, mecânica da task e o registro:
-  `references/advisor.md`.
-- Advisor interno do harness só serve a esse papel com identidade de modelo e esforço
-  comprovadamente igual à linha `Gate / Advisor`. Não suponha identidade ou gratuidade e não
-  substitua a task `ADV-n` por consulta opaca. Reutilize atribuição conhecida sem nova pergunta.
-
-## Passos que são sempre seus
-
-Descubra no `CLAUDE.md` / `AGENTS.md` do projeto o que não se delega. Quase sempre inclui:
-
-- git: `add` com caminhos explícitos, `commit`, `push`;
-- aplicar mudança de schema;
-- deploy de função ou serviço;
-- publicação para usuário.
-
-Estes são os passos que definem onde as ondas quebram. Se você se pegar delegando um deles, o grafo do plano estava errado, não o projeto.
-
-Com ondas em worktrees separadas, "seus" quer dizer do coordenador principal. O coordenador de onda
-commita no próprio branch e concilia o rebase; push, integração na branch principal, schema, deploy
-e publicação continuam do principal. Worker não roda git em nenhum dos dois casos.
-
-**Identificador de ordem escolhido no plano envelhece durante a execução.** Versão de migração,
-número de sequência, nome com data: o plano o escolheu contra o destino daquele dia, e a branch
-principal pode ter recebido outros enquanto as ondas rodavam. No passo irreversível, leia o último
-identificador aplicado no destino (o registro de migrações de produção, não o repositório) e, se o
-seu ficou atrás, renomeie antes de aplicar e reescreva as referências; o conteúdo provado não muda.
-Medido em 2026-09-30: o plano fixou uma versão, a branch principal recebeu quatro migrações de
-outro ciclo durante a execução, e a do plano entraria fora de ordem.
-
-Ao commitar, estage caminho por caminho e confira o que está estagiado. Em checkout compartilhado por sessões paralelas, `add -A` varre trabalho alheio para dentro do seu commit, e ninguém acha depois pelo histórico.
-
-## Cron de verificação: nunca pendente
-
-Regra do usuário (02/11/2026): **terminou a tarefa, o cron entra agendado no mesmo commit.**
-Cron "a agendar", "falta o cron" ou tarefa no quadro para agendá-lo depois é cron pendente, e
-cron pendente não roda. Medido em 02/11/2026: um fecho entregou plano em "em validação" com o
-cron virado tarefa de backlog; o usuário teve de pedir de novo.
-
-1. **Diga que é cron do Orca e carregue a skill certa antes de escrever o script:** no ambiente
-   com Orca, a skill `cron-orca` (invoque-a; ela traz o script, o portão por data e as
-   armadilhas medidas). Sem Orca, o agendador que o projeto usa.
-2. **Modelo intermediário, fixo nas duas camadas:** no ambiente do usuário, **Claude Sonnet 5.5**
-   (`claude-sonnet-5-5`), nunca o default da conta nem o modelo do gate. Na automation:
-   `--provider claude --extra-agent-args="--model claude-sonnet-5-5 --effort medium"` (não
-   combina com `--reuse-session`); no script: `claude -p --model claude-sonnet-5-5 --effort
-   medium --strict-mcp-config`. Confira com `orca automations show <id> --json` que o argumento
-   ficou gravado.
-3. **Agende antes do commit do fecho**, gateado pela data (`--precheck`), mesmo que o deploy
-   em produção venha depois ou seja de outra sessão: o portão por data e por `deploy_sha` cuida
-   disso. O script entra no mesmo commit; o nome da automation vai para a linha de estado do
-   plano e para a tarefa do quadro.
-4. **Prova antes de entregar:** `run.sh --check-window` responde fechado hoje e aberto na data;
-   uma execução real em pasta descartável, sem anunciar, gera o relatório.
-5. **Mudança que envia algo a pessoas reais (push, WhatsApp, e-mail, qualquer mensagem) leva uma
-   SEGUNDA leitura, curta: 7 dias depois de ficar ligada para elas.** O cron do prazo (14 ou 30
-   dias) só veria um aviso duplicado ou errado semanas depois de gente de verdade já ter recebido.
-   Se o plano não trouxe essa leitura, **acrescente-a você mesmo** e diga no relato que acrescentou:
-   não espere o usuário pedir (medido em 03/11/2026: um plano de notificações entregou só o cron do
-   prazo, de 30 dias, e a leitura de 7 dias só existiu porque o usuário a pediu depois do fecho).
-   Ela mede dano, não sucesso: envio duplicado (mesma pessoa, mesmo tipo e dia), fora da janela de horário, no idioma errado, a quem já tinha feito a
-   ação que o aviso cobra; limite zero em cada. Mesmo script do cron do prazo, com a janela por
-   parâmetro e **pasta de controle própria** (o ponteiro da leitura curta não pode marcar o ciclo
-   longo como entregue). Se a chave de ligar ainda está desligada, o portão lê o estado e o instante
-   em que a chave foi ligada (e esse instante tem de ser regravado a cada ligada), não uma data fixa.
-
-## Fecho
-
-1. Rode lint e testes do projeto, você mesmo.
-2. **Mova plano e spec pelo tipo de entrega que o plano declarou** (`power-plans`, seção
-   *Saída de "em validação"*), no mesmo commit do fecho. Se o projeto guarda planos em pastas
-   por estado (a fazer / em validação / feito, ou o nome que o `CLAUDE.md` / `AGENTS.md` der):
-   - **Com backend:** de "a fazer" para "em validação", com `sai até AAAA-MM-DD` na linha de
-     estado, e o(s) cron(s) de verificação **já agendado(s)** (o do prazo e, se a mudança envia
-     algo a pessoas reais, a leitura curta de 7 dias), com o nome de cada um na linha de estado, no
-     MESMO commit do fecho (ver *Cron de verificação: nunca pendente*, abaixo). **Nunca vá para
-     "feito" no fecho:** quem move é quem lê o veredito.
-   - **Só interface:** o usuário valida antes de produção; publicada em produção, vai direto para
-     "feito", sem prazo nem cron. Se a publicação ainda não aconteceu, siga para "em validação"
-     com a nota "só interface: vai para feito ao publicar em produção".
-   Reescreva toda referência ao caminho antigo: índices, outros planos, skills, scripts e
-   comentário de código. Link relativo de dentro da pasta movida muda de profundidade junto.
-   Se o projeto não tem pastas de estado, pergunte uma vez se quer adotá-las; sem resposta,
-   siga a convenção que existe.
-3. Commite com caminhos explícitos.
-   **Com protótipo aprovado e entrega de front:** antes do commit, confira que cada tela entregue
-   tem a comparação lado a lado com a prancha (seção *Entrega de front com protótipo aprovado*).
-   Faltou uma, o ciclo não fecha.
-4. Responda os portões de entrega do projeto, sem esperar o usuário perguntar. Se o projeto entrega por bundle ou build nativo, diga sim ou não para cada um.
-5. Atualize a documentação que este projeto exige atualizar no mesmo commit.
-6. Feche as tasks no Orca com o resultado real, e os terminais: `wave.sh sweep` tem de responder que não há terminal de task encerrada aberto, e o único terminal seu na árvore é o do coordenador. Task que fica aberta some do radar e reaparece como confusão na próxima sessão.
-7. Confira que toda task `ADV-n` tem o bloco de registro (recomendou / decidi / divergência) no documento do ciclo, e que cada divergência está no relatório ao usuário com essas palavras.
-8. Relate ao usuário o que ficou de fora, se ficou, e por quê.
-   Registre no documento do ciclo **uma linha de esforço**: modelos e esforço por tarefa, número de workers,
-   rodadas de gate, duração, e tokens ou custo quando o runtime informar ("não disponível" quando
-   não informar). Tire do que o orquestrador já registra; não crie coleta manual nem documento
-   novo. Ponha ao lado a estimativa do plano (tokens e relógio) e diga quantas vezes errou e em
-   qual parcela: é o que calibra a próxima estimativa. Sem essa linha, ninguém sabe se um processo mais curto ficou mais barato ou só empurrou
-   trabalho para o ciclo seguinte.
-9. Uma linha por skill do ciclo (`spec-interview`, `power-plans`, esta): o que entra, em qual
-   arquivo, ou *"nada entra, porque X"*. Lição que fica só no relatório de revisão é lição que a
-   próxima spec paga de novo. O que entrar segue a seção *Documentação viva*, no fim desta skill.
-
-Se alguma armadilha nova aparecer durante a execução, acrescente-a a `references/orca-traps.md` no mesmo trabalho, pelas regras da seção *Documentação viva*. É a única forma de a próxima execução não pagar de novo.
-
-### Prova ponta a ponta: o vermelho é na versão ANTIGA integrada
-
-Neutralizar o fix no teste unitário prova a peça; não prova o fluxo. Quando o projeto tem
-ambiente de homologação e cenário ponta a ponta, rode cada cenário do ciclo **duas vezes**: com a
-versão anterior publicada lá (tem de falhar pela asserção do defeito, com a causa conferida) e
-com o candidato (tem de passar). Só então publique em produção.
-
-- O fluxo integrado acha o que a suíte não acha: um **segundo componente** que desfaz o fix
-  depois dele, um teste unitário que **semeou** o estado que o fluxo real nunca produz, um
-  caminho de dado que o teste isolado não percorre. Medido em 25/09/2026: quatro defeitos assim,
-  todos com a suíte verde e o gate aprovado.
-- Cenário que **não falha na versão antiga** não prova o fix. Refaça-o para exercitar o caminho
-  do defeito; se o defeito depende de uma escolha do modelo que não se reproduz sob demanda,
-  registre o cenário como regressão e diga que a prova é o teste unitário. Nunca o conte como
-  vermelho/verde. No mesmo ciclo, 6 cenários não separavam as duas versões e foram refeitos, e
-  outros 7 ficaram como regressão, com isso escrito no relatório.
-- Cenário antigo que falha com o candidato por **exigir o comportamento que o ciclo removeu** é
-  contrato velho: reescreva e renomeie (e registre por quê), nunca o apague nem o ignore.
-
-### Medir com flag diferente da do gate é medir outra coisa
-
-Mesmo ciclo. Rodei a suíte completa com `--allow-net` (herdado de um probe que eu mesmo tinha
-escrito) e colhi **11 falhas em vez de 4**. As 8 extras eram todas de um teste que exige
-**AUSÊNCIA** de permissão de rede, para provar que nenhum fetch cru escapa por um catch. Passei
-alguns minutos tratando um run inválido como regressão.
-
-**A regra:** antes da medição que decide alguma coisa, **leia o comando exato que o gate roda**
-e use ele. Não o comando que você lembra, não o do documento: o do script.
-
-```bash
-grep -n "deno test\|npm test\|pytest" scripts/<script-de-deploy>.sh
-```
-
-E confira também **qual suíte** o gate roda. Nesse mesmo ciclo, o gate do deploy rodava só
-o diretório de uma função, não a árvore inteira — e as 4 falhas pré-existentes viviam
-**fora** dela. Eu tinha pedido ao usuário autorização para liberar a suíte vermelha com quatro nomes que,
-medido, **não era necessário**. Saber o recorte do gate antes teria poupado a pergunta.
-
-### Medir nas dependências do checkout compartilhado é medir outra coisa
-
-Medido em 24/09/2026, no frontend. A suíte completa no checkout deu
-**49 falhas** contra 6 da base, 42 delas "Test timed out in 5000ms" em arquivos que o ciclo não
-tocou; isolados, os mesmos arquivos continuavam falhando. Parecia regressão. Não era: o
-`node_modules` do checkout compartilhado estava **fora do lock** (Radix e vitest mais novos, com
-`package.json` e lock intactos: alguma sessão rodou `install` sem respeitar o lock), e a base
-tinha sido medida num `git archive` com `npm ci`. Duas medições em ambientes diferentes, uma
-falsa regressão.
-
-**A regra:** a medição que decide (a do aceite da onda e a do fecho) roda onde o deploy
-instala, não onde você edita. No frontend, isso é uma cópia `git archive` com a instalação
-pelo lock (`npm ci`), recebendo os arquivos do candidato por `rsync --files-from`; a base e o
-candidato no MESMO ambiente. Antes de chamar de regressão uma falha em arquivo que o ciclo não
-tocou, rode esse arquivo na base e no candidato lado a lado. E não "conserte" o `node_modules`
-compartilhado sem pedir: outras sessões estão usando.
-
-**Arquivo ignorado é o mesmo verde emprestado, por outra porta.** O checkout de trabalho carrega
-o que não vai para o commit: pastas ignoradas, saídas geradas, arquivos de outras sessões. Por isso
-a medição que decide roda numa cópia montada só do versionado mais os arquivos do candidato, **no
-aceite final, antes de subir o gate e antes do commit**, comparando por nome. A lista do candidato
-sai do que vai ser commitado (o diff rastreado mais os arquivos novos não ignorados), nunca de uma
-cópia da árvore: copiar a árvore leva a pasta ignorada junto, e a medição volta a provar nada.
-Medido em 02/10/2026: dados de calibração entregues aos workers numa pasta ignorada, testes que os
-liam, suíte verde no checkout em todas as rodadas de aceite; na cópia limpa, quatro arquivos de
-teste não carregavam. Quem achou foi o gate. Sintoma: falha de carregamento por arquivo
-inexistente que só aparece na cópia limpa.
-
-### Teste congelado tem de sobreviver à tarefa que vem depois
-
-Mesmo ciclo do `node_modules` fora do lock. O plano congelava um teste de caracterização (o hook
-de hoje, antes da extração):
-depois do aceite, ninguém edita. O teste esperava a carga com **30 microtarefas fixas**, e a
-tarefa seguinte ia acrescentar buscas encadeadas ao hook, ou seja, ia quebrá-lo sem mudar
-nenhum número. O coordenador percebeu na leitura do aceite e aumentou a margem ANTES de
-congelar (e registrou a edição); depois de congelado, a única saída seria a tarefa seguinte
-editar o teste que existia para vigiá-la.
-
-**A regra:** no aceite de um teste que vai ser congelado, leia-o contra o que a PRÓXIMA tarefa
-vai mudar: mock que responde por tabela e aplica os filtros (não por ordem de chamada), tabela
-desconhecida devolvendo vazio, espera por condição ou com folga larga (não por contagem justa
-de ticks), e asserção de rota só no que tem de sobreviver. O que precisar mudar muda antes do
-congelamento, com o hash registrado.
-
-### Lista de deploy calculada por UM método é hipótese
-
-Mesmo ciclo. Escrevi um script para gerar o fecho transitivo dos importadores de um arquivo
-`_shared/` alterado (o `grep` que o plano sugeria devolvia 70 de 70 funções, inútil). Ele deu
-**12**. O gate adversarial, calculando por conta própria, deu **13**.
-
-Quem estava errado era o meu script: ele reconhecia `from "./x.ts"` e `import "../y.ts"`, mas
-**não** `import("../z.ts")` dinâmico. A função que sumia alcançava o arquivo alterado por uma
-cadeia de sete saltos terminando num import dinâmico. Deployar sem ela deixaria uma cópia velha
-do `_shared/` embutida em produção, silenciosamente.
-
-**A regra:** quando o brief do gate pede uma lista fechada (funções a deployar, arquivos a
-tocar, chamadores a atualizar), peça-a **recalculada de forma independente** e escreva no brief
-que **as duas têm de bater**. Divergência não é discordância de opinião: é um dos dois métodos
-com ponto cego, e vale mais que a revisão de código que veio junto.
+**Só com pedido explícito.** Plano escrito, revisado ou commitado não é pedido de implementação.
+
+**Este arquivo é o roteiro; o detalhe de cada fase mora em `references/`.** Ao entrar numa fase,
+leia a referência dela. Depois de uma compactação de contexto só o começo deste arquivo volta
+sozinho: releia a referência da fase em que você está antes de continuar.
+
+| Fase | Leia |
+| --- | --- |
+| 1. Preflight | `references/preflight-e-controle.md` |
+| 2. Atribuição de modelo | `references/atribuicao-de-modelo.md` |
+| 3. Despacho | `references/despacho.md`, índice de `references/orca-traps.md` |
+| 4. Ondas e aceite | `references/aceite.md`, `references/ondas-em-worktrees.md` |
+| 5. Gate, correção e advisor | `references/gate.md`, `references/correcao-pos-gate.md`, `references/advisor-regra.md`, `references/advisor.md` |
+| 6. Medição que decide | `references/medicao.md` |
+| 7. Fecho | `references/fecho.md` |
+
+## Regras que valem a execução inteira
+
+1. **O time é do usuário.** Modelo e esforço atribuídos por nível valem até o fim, reparos
+   inclusive. Nunca introduza modelo que ele não listou: faltou cobrir um caso, pergunte.
+2. **O irreversível é seu.** Git, mudança de schema, deploy e publicação são passos do
+   coordenador. Worker não roda git.
+3. **Toda entrega passa pelo seu aceite, com casos seus.** Teste verde do worker não é aceite, e o
+   aceite não herda o alcance que o teste declara.
+4. **Tela se aceita por comparação, não por ausência de defeito.** Tarefa que entrega interface
+   com referência visual aprovada só é aceita com o arquivo de comparação lado a lado, e o front
+   só é integrado ou publicado com esse arquivo presente para cada tarefa de tela. Aprovação do
+   usuário sobre outra coisa (as artes, o backend) não é aceite de tela.
+5. **Um gate, uma rodada.** BLOQUEIA vira triagem e correção com teste; o gate não roda de novo
+   sem autorização explícita do usuário.
+6. **Rumo:** decisão de negócio vai ao usuário, com resumo e recomendação. Freio técnico (segunda
+   reprovação da mesma família, limite de candidatas ou de tentativas) vai ao advisor, no modelo
+   do gate, com registro `ADV-n`. Contagem sozinha não vira pergunta ao usuário.
+7. **Espera longa é visível.** Ao armar uma espera que pode passar de 15 minutos, diga ao usuário
+   em uma linha o que espera, de quem, e quando olha de novo; e adiante o que não depende dela (a
+   próxima etapa paralela, um aceite pendente, o registro). Coordenador em silêncio parece
+   coordenador parado.
+8. **Sonda de fato externo não se adia em silêncio.** Se o plano manda medir uma API ou um modelo
+   de terceiro antes do código e o usuário adia, registre no documento do ciclo o que fica sem
+   prova e marque `[SUPOSTO:]` nas tarefas que dependiam; a primeira chamada real vira o primeiro
+   passo delas.
+9. **Reparo é do modelo da tarefa.** Você conserta no aceite só o trivial, sem decisão de
+   comportamento (um texto, uma linha), e registra. O resto volta ao worker, no mesmo terminal.
+10. **Worker escala, não improvisa.** E você trata escalação na hora: worker escalando está parado.
+
+## 1. Preflight
+
+- Leia o plano inteiro. Ele precisa ter nível por tarefa, matriz de ownership, contratos escritos
+  literal, grafo com os passos do coordenador e um `Pronto quando` por tarefa, copiado da spec.
+  Faltou um deles: pare e volte para `power-plans`. Você não escreve critério de pronto de cabeça.
+- **Rode de novo o `plan-lint.py` da skill `power-plans`.** O código andou desde que o plano foi
+  escrito; erro novo é âncora deslocada, e se conserta no plano antes do primeiro despacho.
+- Saiba quais arquivos modificados na árvore não são deste trabalho.
+- Tarefa do grafo que revisa o próprio plano não é passo de execução: pule e diga que pulou.
+- **Controle de avanço:** registre o comportamento observável de aceitação, os limites de
+  candidatas e tentativas, a estimativa de tokens e o saldo pago já autorizado, num estado
+  corrente único. Trocar SHA, worker ou sessão não zera tentativas.
+- Lote com modelo estocástico não fecha em 100% por amostra: classifique cada vermelho (defeito
+  que repete, ou variação) antes de abrir candidata. E verde não é aceite: leia as respostas.
+
+## 2. Atribuição de modelo
+
+- **Antes de criar qualquer terminal**, pergunte modelo e esforço para Complexa, Média, Baixa,
+  Gate / Advisor e, com ondas em worktrees, Coordenador de onda. Nunca assuma nem herde de outro
+  plano. Atribuição por tarefa em vez de por nível: aceite.
+- Esforço nomeado pelo usuário vale para o ciclo inteiro, e esforço que ele fixou para um modelo
+  (configuração, memória) também é nomeado. Sem isso, você escolhe por tarefa entre `medium` e
+  `xhigh`: baixa e média em `medium` (`high` se a média produz contrato); complexa em `high`,
+  `xhigh` só quando ela carrega o que o plano não pôde resolver. Gate e advisor: esforço do usuário.
+- **Smoke de cada modelo antes do primeiro terminal:** uma chamada de uma linha, no mesmo CLI do
+  worker. Confira também a cota, quando o CLI a informa: cota no fim vira aviso ao usuário antes
+  da onda, não troca de modelo no meio dela.
+- **`--model` vai dentro do `--command`, e você confere** modelo e esforço no rodapé do TUI antes
+  de despachar. Subiu errado: feche e recrie. Descobriu tarde: pare o worker, salve o diff,
+  restaure os arquivos e refaça no modelo certo.
+
+## 3. Despacho
+
+- A mecânica (run, task com dependências, terminal, espera) é da skill `orchestration`: não a
+  redocumente. Antes da primeira onda, leia o índice e a lista "leia sempre" de
+  `references/orca-traps.md`; abra a armadilha quando o sintoma aparecer. Sem Orca, execute com o
+  mecanismo de subagente que houver, mantendo ownership, ordem e gates.
+- **Portão de capacidade:** nunca escreva no brief que o worker não pode algo sem ter provado.
+  Rode o comando, leia a configuração do agente **do worker**, e escreva no brief a capacidade e o
+  comando exato. Executou pelo worker o mesmo tipo de comando duas vezes: conserte o acesso dele.
+- Ferramenta que você entrega ao worker lê só o segredo de que precisa.
+- **Todo dispatch leva:** os caminhos da spec e do plano; a tarefa, pelo identificador; os
+  arquivos dela, listados, e "nenhum fora desta lista"; os contratos que ela consome, colados
+  literal; o que o projeto proíbe delegar; quem roda a verificação pesada; "escale em vez de
+  improvisar"; e o `Pronto quando`, copiado do plano.
+- Dado que um teste vai ler entra versionado antes do despacho.
+- **A prova de neutralização só toca arquivo que o worker possui.** Se o alvo é de outro dono, a
+  prova é sua, numa cópia isolada. Worker que morreu deixa a árvore suja até prova em contrário.
+
+## 4. Ondas e aceite
+
+- Suba no mesmo momento todos os workers cuja dependência já foi aceita. Uma tarefa sobe assim que
+  o que ela espera foi aceito, sem aguardar as vizinhas.
+- **A cada `worker_done`, sem esperar que peçam:** (1) leia o relatório e o diff, conferindo antes
+  o **escopo**: arquivos alterados contra a lista do brief, e arquivo fora da lista é devolução;
+  (2) aceite com casos seus e confira a prova de neutralização; (3) confira a task; (4) feche o
+  terminal e a aba; (5) confirme na lista que o terminal sumiu. Não passou: task nova (`T<n>b`)
+  no mesmo terminal, que só fecha no aceite da última.
+- **Tela, em cada tarefa de interface com referência aprovada:** uma linha por estado que a
+  tarefa toca (carregando, vazio, erro, resultado; computador e celular; o que se mexe, gravado),
+  com a captura da implementação ao lado da prancha. Confira composição, não só defeito: onde a
+  tela vive, navegação e item atual, imagens e exemplos, ordem e textos. Cada divergência vira
+  correção ou adaptação aceita **pelo usuário**, por escrito. Grave tudo num arquivo de comparação
+  por tarefa, na pasta do plano; o passo de integração do front começa conferindo que esses
+  arquivos existem, e para se faltar um.
+- Rode você mesmo os passos do coordenador de cada onda, e verifique antes de abrir a próxima.
+- Com ondas em worktrees: você é o principal; só você integra, publica, roda ponta a ponta, migra
+  e escreve em dado. O coordenador de onda entrega o branch local já em rebase, sem PR.
+
+## 5. Gate, correção e advisor
+
+- **Aceite** é contínuo e sem orçamento. **Gate** é uma cartada: um revisor só de leitura, em
+  outro modelo, uma vez, sobre o candidato integrado, imediatamente antes do passo irreversível.
+- **PASSA:** rode o passo. **BLOQUEIA:** triagem primeiro. Confirme cada achado no código e dê um
+  de três vereditos: bloqueio real, real que não bloqueia (residual com dono, o usuário vê), ou
+  refutado com a mesma prova que o gate teve de dar. Cada bloqueio vira correção com dono e com o
+  teste que fica vermelho ao neutralizar; suíte e ponta a ponta verdes, rode o passo.
+- O gate não roda de novo, e você não precisa de um PASSA dele para seguir. Teste que reprova
+  depois da correção volta para correção, por `systematic-debugging`, nunca para o gate.
+- Nunca rode o passo irreversível "enquanto o gate roda".
+- **Correção pós-gate** (`references/correcao-pos-gate.md`): mesma família em arquivos diferentes
+  pede um ponto de estrangulamento, não remendo por call site; contraexemplos do brief são piso,
+  não teto; revisor que acusa o instrumento do teste pede arreio, não correção; teste negativo
+  precisa de controle positivo; mudou enum, campo ou estado, o entregável inclui o inventário dos
+  consumidores; toda afirmação sua sobre entrega alheia leva o comando que a provou.
+- **Advisor**, só em três pontos: a correção pretendida muda o mecanismo; um achado ou uma
+  escalação contradiz contrato congelado ou afirmação de carga; ou um freio técnico disparou. Uma
+  consulta por veredito ou episódio, como task `ADV-n`, com o brief dizendo a direção que você
+  pretende. Registre no documento do ciclo o que ele recomendou, o que você decidiu e a
+  divergência, e mostre toda divergência ao usuário. A palavra final é sua; sem rastro, não.
+
+## 6. Medição que decide
+
+- **Vermelho na versão antiga integrada, verde no candidato.** Cenário que não falha na versão
+  antiga não prova o fix; registre-o como regressão, nunca como vermelho e verde.
+- Use o comando exato e o recorte de suíte que o gate ou o script de publicação roda: leia o
+  script, não a memória.
+- Meça onde o deploy instala: cópia limpa só do versionado mais os arquivos do candidato, com as
+  dependências pelo lock, base e candidato no mesmo ambiente. Arquivo ignorado dá verde emprestado.
+- Teste que vai ser congelado se lê contra o que a próxima tarefa vai mudar, antes de congelar.
+- Lista fechada (o que publicar, quem chama) se recalcula por um segundo método independente, e
+  as duas têm de bater.
+
+## 7. Fecho
+
+- Identificador de ordem escolhido no plano (versão de migração, número de sequência) envelhece:
+  leia o último aplicado no destino antes do passo irreversível e renomeie se ficou atrás.
+- Estage caminho por caminho e confira o que está estagiado. Nunca "adicione tudo".
+- **Cron de verificação: nunca pendente.** Ele entra agendado no mesmo commit do fecho, com a
+  prova de que a janela abre na data. Mudança que envia algo a pessoas reais leva também a leitura
+  curta de 7 dias; se o plano não trouxe, acrescente e diga.
+- **No fecho:** lint e testes você mesmo; mover plano e spec pelo tipo de entrega declarado;
+  commit; responder os portões de entrega do projeto; documentação exigida no mesmo commit; fechar
+  tasks e terminais; conferir que toda `ADV-n` tem registro; dizer o que ficou de fora.
+- **Preencha a parte de execução do `## Registro do ciclo` do plano** (o bloco e as regras estão
+  nas referências da skill `power-plans`, arquivo `registro-do-ciclo.md`): emendas de contrato, escalações, veredito e achados do gate,
+  comparação de tela, sonda externa, tokens. Desconhecido é `nd`. Sem ele ninguém consegue medir
+  se o processo melhorou.
+- Depois de entregue, quem atender uma rodada de correção pedida pelo usuário soma em
+  `depois_de_entregue` no mesmo bloco.
+- Uma linha por skill do ciclo: o que entra em qual arquivo, ou "nada entra, porque X".
 
 ## Documentação viva
 
-Esta skill melhora com o uso, e melhorá-la faz parte da implementação quando o ciclo mostrou um
-furo **dela**: a armadilha que a execução pagou na marra, o passo que o laço de ondas não
-previa, a regra que um worker ou o gate desrespeitou porque ela estava ambígua aqui. É opcional, e só vale quando o furo custou e vai custar de novo.
+Esta skill melhora com o uso, quando a execução pagou na marra um furo **dela**.
 
-- **Melhore antes de acrescentar.** Procure a seção que já cobre o assunto e aperte-a; linha nova
-  só se nada cobre. Esta skill não cresce indefinidamente.
-- **Conceito, não caso.** Antes de escrever, leia o `AGENTS.md` da raiz do plugin: nada de nome de
-  tabela, cliente, ciclo ou caminho do projeto onde a lição foi paga.
-- **Escreva no clone git de onde a skill foi carregada** (a pasta deste arquivo). Se ela não é
-  repositório git (cópia de cache de instalação), não edite: deixe o texto proposto no relatório.
-- **Não commite nem dê push.** Avise o usuário no relatório final, como follow-up: arquivo, seção
-  e uma linha do porquê. Quem confere e commita é ele.
+- **Este arquivo tem teto.** `scripts/check-skills.sh`, na raiz do plugin, recusa `SKILL.md` acima
+  de 19 mil caracteres, porque o que passa disso some depois de uma compactação. Regra nova entra
+  em uma linha aqui e o caso medido vai para `references/`. Melhore antes de acrescentar.
+- Armadilha nova do orquestrador ou de um CLI vai para `references/orca-traps.md`, com a linha
+  dela no índice por sintoma. Armadilha de um projeto vai para o `AGENTS.md` do projeto.
+- **Conceito, não caso:** leia o `AGENTS.md` da raiz do plugin antes de escrever.
+- **Escreva no clone git do plugin:** a pasta desta skill, se ela for um repositório git; senão o
+  caminho gravado em `~/.config/planning-workflow/clone`. Sem nenhum dos dois, deixe o texto
+  proposto no relatório.
+- **Commit e push no mesmo trabalho:** rode `scripts/check-skills.sh`, commite só os caminhos que
+  mudou, dê push na branch principal e rode `scripts/sync-harnesses.sh` se existir. Diga ao
+  usuário o commit em uma linha. O histórico do git é o backup: desfazer é um `git revert`.

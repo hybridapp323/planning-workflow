@@ -1,926 +1,236 @@
 ---
 name: power-plans
 description: >-
-  Escreve o plano de implementação de uma feature já especificada, desenhado
-  para execução multi-agente em paralelo: nível de complexidade por tarefa
-  (complexa / média / baixa), matriz de ownership de arquivo, contratos
-  congelados antes da primeira onda, grafo de ondas com dependências explícitas
-  e gates que bloqueiam passos irreversíveis. USE SEMPRE que a spec ou o design
-  estiver pronto e o próximo passo for planejar a implementação, e sempre que
-  ouvir "escreve o plano", "plano de implementação", "como a gente paraleliza
-  isso", "divide entre os agentes", "quantos workers", "monta o plano dessa
-  feature", "prepara isso pra multi-agente". É o estado terminal da skill
-  `spec-interview`: decisões fechadas e spec escrita, invoque esta direto. Serve qualquer projeto — as
-  regras específicas saem do CLAUDE.md/AGENTS.md do repositório. Ela escreve o
-  plano, para e pergunta: revisão externa ou commit e push. Quem sobe worker é
-  `orchestrating-execute`, e só a pedido explícito do usuário.
+  Escreve o plano de implementação de uma feature já especificada quando o
+  trabalho tem vários donos, contrato entre tarefas ou passo irreversível:
+  níveis de complexidade, um dono por arquivo, contratos congelados, grafo de
+  ondas e um gate antes do irreversível, na medida do risco (mínimo, parcial ou
+  completo). Use quando a spec ou o design estiver fechado e o próximo passo for
+  planejar, e ao ouvir "escreve o plano", "plano de implementação", "como a
+  gente paraleliza isso", "divide entre os agentes", "prepara isso pra
+  multi-agente". NÃO use para mudança delimitada que um agente faz sozinho, nem
+  para protótipo, investigação ou pergunta: isso se faz direto, sem arquivo de
+  plano. É o estado terminal de `spec-interview`. Escreve o plano, roda o
+  pré-voo, para e pergunta: revisão externa ou commit e push. Quem sobe worker é
+  `orchestrating-execute`, só a pedido explícito do usuário.
 ---
 
-# Plano de implementação para execução multi-agente
+# Plano de implementação
 
 ## O que sai daqui
 
-Um arquivo de plano, e nada mais. Nenhuma linha de código, nenhuma migration, nenhum worker no ar.
+Um plano na medida do risco, e nada mais: nenhuma linha de código, nenhuma migração, nenhum worker
+no ar. O plano não cita orquestrador e não nomeia modelo. Escreva no idioma do usuário.
 
-O plano não cita orquestrador. Um grafo com níveis, donos e contratos congelados vale igual executado pelo Orca, por subagente nativo, ou por uma pessoa por tarefa. Amarrar a ferramenta aqui só encurta a validade do documento.
+**Este arquivo é o roteiro; o detalhe de cada fase mora em `references/`.** Ao entrar numa fase,
+leia a referência dela. Depois de uma compactação de contexto só o começo deste arquivo volta
+sozinho: releia a referência da fase em que você está antes de continuar.
 
-Escreva no idioma em que o usuário está falando com você.
+| Fase | Leia |
+| --- | --- |
+| 1. Escala | `references/escala.md` |
+| 2. Evidência | `references/evidencia.md`, `references/classes-de-erro.md` |
+| 3. Decompor | `references/decompor.md`, `references/complexity-rubric.md` |
+| 4. Grafo | `references/grafo.md` |
+| 5. Gate e advisor | `references/gate-e-revisao.md` |
+| 6. Fecho e registro | `references/fecho.md`, `references/registro-do-ciclo.md` |
+| 7. Pré-voo | `references/pre-voo.md`, `references/auto-revisao.md` |
+| 8. Revisão externa ou commit | `references/gate-e-revisao.md`, `references/external-review.md` |
+| Esqueleto do plano | `references/plan-template.md` |
 
-## Primeira decisão: o portão de escala
+## 1. Escala: o menor aparato que ainda prova
 
-Antes de qualquer coisa, decida quanto aparato essa feature merece. Um plano de 15 tarefas para uma mudança de duas telas é imposto, não rigor.
-
-**O critério é o RISCO da mudança, não a superfície que ela toca.** Publicar uma função ou um
-serviço se desfaz republicando a versão anterior; isso sozinho não sobe o nível. O que sobe é o que
-não se desfaz, o que atravessa donos e o que protege dado de terceiros.
+Decida antes de escrever, e diga ao usuário qual escolheu e por quê.
 
 | Escala | Quando | O que fazer |
 | --- | --- | --- |
-| **Mínima** | Um defeito ou uma família, um dono da decisão, nenhum contrato novo entre tarefas, **sem** migração de schema e sem escrita em dado de produção, reversível por revert + republicação | Plano mínimo (abaixo) e implemente. Sem ondas, sem gate. |
-| **Parcial** | Duas ou mais tarefas com donos diferentes, **ou** um contrato que uma tarefa produz e outra consome | Níveis, ownership de arquivo e `Pronto quando` por tarefa. Sem ondas nem gate. |
-| **Completa** | Migração, escrita em dado de produção ou outro passo irreversível, **ou** invariante de segurança, permissão ou isolamento entre clientes, **ou** trabalho genuinamente paralelo em arquivos disjuntos | Fases 0 a 4, com um gate antes do passo irreversível. |
-
-Diga ao usuário qual dos três você escolheu, e por quê, antes de escrever o plano. Se ele discordar, ele corrige agora e não depois de vinte minutos de documento.
-
-Medido em 60 dias de um projeto que publica a mesma função várias vezes por dia: o critério antigo
-("toca edge function ou deploy → aparato completo") mandou ondas e gate para consertos de um
-arquivo, e a documentação de ciclo somou 227 mil linhas contra 92 mil de código de produção;
-um único ciclo produziu 13,8 mil linhas em 127 arquivos para 45 requisitos, e outro já tinha 10,6
-mil linhas de documento contra 2,4 mil de código antes de executar.
-
-### O plano mínimo: sai a cerimônia, fica a prova
-
-Escala mínima não é "sem prova". O plano cabe numa tela e tem, cada um com `arquivo:linha` ou
-consulta:
-
-1. **Causa**, com a evidência que a mostra (não o sintoma do relatório).
-2. **Arquivos** que mudam.
-3. **Quem mais lê ou emite isto:** uma linha com os outros consumidores e emissores do que muda.
-   Uma mudança de um arquivo num módulo compartilhado alcança todos os chamadores dele.
-4. **Teste que falha com o fix neutralizado.**
-5. **Camada de prova** (ver *Critério de pronto*): a mais barata que exercita o consumidor real.
-6. **Publicação e rollback:** o comando e a versão para onde se volta.
-
-Se para escrever o item 3 você precisar de mais de um dono ou de um contrato novo, a escala não era
-mínima: suba.
-
-### Um pedido, uma família
-
-Quando a entrada é um relatório com vários achados (auditoria, triagem, lista de bugs), agrupe por
-**família**: achados que têm a mesma causa e o mesmo dono da decisão. **Um plano por família**, com
-a família no título. Plano que mistura famílias sem relação é recortado antes de escrever: cada
-família a mais multiplica leituras, contratos, fixtures e rodadas de gate, e nenhuma delas fica
-mais bem consertada por estar junto. O urgente sai já; o resto segue a cadência que o projeto
-definir. Vale para a spec que chega: spec que junta famílias sem relação é recortada no mesmo
-passo (Fase 0, *Validar a spec*), e cada família segue com o seu plano.
-
-Número de requisitos é **alerta, não bloqueio**: passou de uns dez, confira se não são duas famílias.
-Mudanças que precisam ser atômicas ficam juntas mesmo assim, e o plano diz por quê. Medido no mesmo
-projeto: requisitos por ciclo subiram de 5 para 45 em um mês, sempre juntando o relatório inteiro.
-
-## Fase 0 — evidência antes de plano
-
-O erro caro não é planejar errado. É planejar em cima de suposição que ninguém checou, porque o plano fica coerente, convincente e falso ao mesmo tempo.
-
-1. Leia a spec inteira.
-2. Abra os arquivos que ela promete tocar. Anote `arquivo:linha` de tudo que confirma ou contradiz o que a spec assume.
-3. Consulte o estado real do dado sempre que a spec depender dele: schema, trigger, policy, e **contagem**. Contagem muda prioridade. "Vamos suportar X" é outra conversa quando X tem zero usuário hoje.
-4. Escreva o snapshot de evidência.
-
-**O snapshot** é um arquivo com o que foi lido, os `arquivo:linha` das descobertas, as queries rodadas e o resultado cru delas. Guarde fora do repositório (scratchpad da sessão) a menos que o projeto tenha lugar próprio. Ele paga duas vezes: fecha as lacunas agora, e é o que se entrega ao revisor externo depois, se houver revisão.
-
-**Sonda não é evidência; o resultado reproduzível é.** Script exploratório (uma consulta de uma
-vez, um teste de hipótese, a versão 2 e 3 da mesma sonda) fica no scratchpad e não entra no
-repositório. Entra como evidência só o que outra pessoa consegue refazer: a consulta ou a receita,
-os parâmetros, o SHA e o resultado cru; ou o caso mínimo promovido a teste. O plano cita o
-resultado, não o script. Medido: um ciclo arquivou dezenas de sondas descartáveis como "evidência",
-e foi a maior parte dos 127 arquivos dele.
-
-**Regra dura:** um bloqueador que você não conseguiu reproduzir no código ou no dado não é bloqueador, é hipótese. Escreva-o como hipótese, com o que faltou para confirmar.
-
-**Esta fase cobre o DIAGNÓSTICO e para aí.** Os fatos que a sua solução vai inventar ainda não
-existem agora. Eles têm fase própria, logo abaixo, e ignorá-la foi o que produziu três
-afirmações falsas num plano cujo snapshot de evidência tinha 17 KB.
-
-### Validar a spec, e consertá-la se precisar
-
-A spec saiu de uma entrevista com as decisões fechadas, mas quem a escreveu não estava tentando paralelizar. Três lacunas só aparecem agora, e as três quebram execução paralela:
-
-- **Contratos ausentes.** A spec descreve comportamento mas não fixa formato. Dois workers vão inventar dois formatos.
-- **Matriz de consumidores ausente, e ela é BIDIRECIONAL.** Quem mais **lê** o dado, o campo ou o arquivo que essa feature muda? Um resolver, um job agendado, uma exportação, uma tela secundária. E, na direção que quase sempre falta: quem mais **escreve ou emite** o comportamento que a feature altera? Feature nova morre num consumidor esquecido; feature que REMOVE comportamento morre num emissor esquecido.
-- **Decisões sem o que foi descartado.** Sem isso, o primeiro worker que achar a alternativa "melhor" vai implementá-la.
-
-Se faltar, conserte a spec, e diga ao usuário exatamente o que você mudou nela. Planejar em cima de spec furada só adia o furo.
-
-## Fase 0.5 — a evidência da SOLUÇÃO, não só a do problema
-
-A Fase 0 valida **a spec**: o que o problema é, onde ele mora, quanto dado ele afeta. Isso é
-metade. A outra metade nasce depois, quando você desenha a correção, e **não passa por
-evidência nenhuma** se você não voltar de propósito.
-
-Medido num ciclo de auditoria de turno de atendimento: o snapshot de evidência tinha 17 KB, media o
-problema ao segundo, citava `arquivo:linha` e contava frequência em produção. Ainda assim o
-plano saiu com **três afirmações falsas**, e as três eram do lado da *prescrição*:
-
-| afirmação do plano | realidade | custo |
-|---|---|---|
-| "corte no `created_at` da tabela de auditoria" | é quando o turno **fechou**, ~13 s DEPOIS do inbound a recuperar. O corte cru excluiria exatamente a mensagem alvo | **o fix seria um no-op, e passaria verde** |
-| "o registro auditado aparece na flag de teto impossível" | `max=20000` é plausível e não bate em nenhum dos 3 critérios congelados | um worker gastou um ciclo de dispatch para escalar |
-| `node scripts/run-e2e.mjs` | o script mora noutro diretório, dentro da pasta de uma skill do projeto | comando quebrado no passo do coordenador |
-
-Nenhuma das três estava no snapshot — porque nenhuma existia quando a Fase 0 rodou. A regra
-que faltava é esta:
-
-> **Evidência que para no diagnóstico não protege a prescrição.** Todo fato NOVO que a
-> solução inventa entra na mesma disciplina do fato que descreveu o problema.
-
-### Etiqueta de procedência: obrigatória em todo fato do plano
-
-Toda afirmação factual do plano carrega uma das três, literal:
-
-```
-[MEDIDO: <comando ou query> → <resultado cru>]      verificado agora, com o resultado à vista
-[LIDO: caminho/arquivo.ts:120-134]                  confirmado no código, com a linha
-[SUPOSTO: <o que provaria que é falso>]             NÃO verificado, e traz o próprio falsificador
-```
-
-**Regra dura:** um fato de que a implementação de uma tarefa **depende** não pode ficar
-`[SUPOSTO]`. Ou você mede antes de congelar o plano, ou o primeiro passo daquela tarefa é
-medir, escrito assim: *"se der diferente, PARE e escale — não improvise"*. Fato decorativo
-pode ser suposto; fato que sustenta um fix, não.
-
-Isso é barato. As três falhas acima custavam um `ls` e duas queries.
-
-**Fato que sustenta uma DECISÃO que você leva ao usuário não pode ser adiado para o primeiro
-passo da tarefa: meça antes de perguntar.** O "PARE e escale" protege a implementação, não a
-decisão. Se a premissa cai na execução, o usuário decidiu em cima de um fato falso, a tarefa trava
-esperando uma decisão nova e a rodada de perguntas se repete. O sintoma: você escreve a
-recomendação ao usuário e, no plano, a mesma premissa aparece como "primeiro passo: medir".
-Medido em 26/09/2026: uma recomendação ("o estado pendente deriva de uma flag que o registro já
-tem") foi aprovada com a premissa "o registro do caso real tem essa flag" deixada como primeiro
-passo da tarefa. A revisão externa rodou a consulta por turno: a flag era falsa em todos os turnos
-do caso real. A decisão caiu, o usuário decidiu de novo e a tarefa ficou bloqueada até lá.
-Custo da medição que faltou: um `select`.
-
-**Norma citada não é fato verificado.** Quando o plano invoca uma regra da documentação do
-projeto ("o checklist manda X", "a convenção aqui é Y"), `[LIDO: checklist.md:44]` prova que o
-**documento** diz — não que o **código** faz. Documentação envelhece; o código é a verdade. Norma
-que decide uma tarefa vira `[MEDIDO:]` contra o repositório antes de entrar no plano.
-
-Medido em 2026-09-03: um plano citou a regra "não use chave estrangeira para a tabela de usuários
-do auth", vinda do checklist de segurança do próprio projeto. A medição no schema devolveu **7 de
-7 tabelas comparáveis fazendo exatamente isso, e nenhuma fazendo o contrário**. Obedecer o
-documento teria feito da tabela nova a única exceção do banco. Quem estava errado era o documento,
-e ele foi corrigido no mesmo trabalho. Custo da verificação: uma query.
-
-### A carga do plano: liste o que ele SUSTENTA, e tente derrubar
-
-A etiqueta acima prova que você **olhou**. Ela não prova que você olhou o caminho inteiro, e
-é aí que mora o furo caro: a afirmação que o desenho inteiro apoia em cima.
-
-Antes de congelar, escreva a lista das **afirmações de carga**: as que, se falsas, derrubam
-uma decisão estrutural do plano. Elas quase sempre têm forma negativa ou de invariante:
-
-- "isso continua garantido mesmo com a mudança";
-- "não existe caminho que faça X";
-- "esse comportamento só nasce em Y";
-- "desativar Z é seguro porque Z é a única porta".
-
-> **Para uma afirmação de carga, a evidência é uma REFUTAÇÃO TENTADA, não uma citação.**
-> Citar a linha que te dá razão é confirmação; procurar a linha que te derruba é verificação.
-
-O método, três passos e nenhum é caro:
-
-1. **Escreva o falsificador em uma frase.** "Isto seria falso se existisse um caminho que
-   satisfaça a checagem sem o dado real."
-2. **Busque o falsificador, não a confirmação.** Leia a função auxiliar de que a checagem
-   depende, não só a linha que a enuncia. Faça `grep` pelo caminho de exceção, pelo
-   relaxamento, pelo bypass, pelo `||`. Leia os **testes existentes** daquele arquivo: um
-   teste que trava o comportamento permissivo é a prova pronta de que sua invariante não vale.
-3. **Puxe a linha real da entidade afetada**, não o agregado. Contagem responde "quantos"; a
-   sua afirmação normalmente é sobre "este". Se o plano toca N registros, olhe os N quando N é
-   pequeno, e uma amostra nomeada quando não é.
-
-Medido em 2026-08-26, num ciclo de configuração de cliente: o plano afirmava *"o envio
-continua exigindo o dado de identidade em qualquer etapa"*, com etiqueta `[LIDO:]` apontando
-para o trecho certo da função de política, e a citação estava correta.
-A afirmação, não: uma função auxiliar noventa linhas acima aceitava o nome como presente
-quando um marcador persistido dizia "esse campo foi pulado", e **um teste do próprio
-repositório travava esse comportamento**. Pior, o único registro afetado **já tinha o marcador
-gravado**, de um teste feito dias antes. Três verificações de segundos derrubariam a
-afirmação: ler o auxiliar, ler o teste vizinho, e dar um `select` na linha. Nenhuma foi feita
-porque a afirmação parecia confirmada. Quem achou foi a revisão externa.
-
-> **A linha só fecha com a CONTAGEM do falsificador, sobre o universo inteiro da afirmação.**
-> Escreva a consulta ou o `grep` que conta o caso que derruba a afirmação, e o número que ela
-> devolveu, mesmo que seja zero. Contagem que confirma a afirmação mede outra coisa e não fecha
-> a linha. E amostra escolhida **porque mostrava o defeito** (os registros que a regra antiga
-> gravou errado) não refuta um "nunca": o contraexemplo costuma estar nos casos da mesma forma
-> em que a regra antiga acertou por outro caminho, e que por isso ficaram fora da amostra.
-> Conte também nesse resto.
-
-Medido em 2026-09-12: uma afirmação de carga dizia *"os vínculos persistidos cobrem a
-duplicação entre dois provedores"*, o falsificador estava escrito na frase certa (*"vínculo
-não existe"*), e a coluna de resultado trazia `[MEDIDO: 149 linhas vinculadas]`. A consulta
-que contava o falsificador tinha a mesma forma, com um `not exists` a mais, e devolvia 32
-pares sem vínculo em 90 dias. Ninguém a rodou porque a tabela aceitava qualquer `[MEDIDO:]`.
-Quem a rodou foi a revisão externa, e virou bloqueador.
-
-Medido em 2026-10-09: a afirmação *"essa forma de fala, sob aquela pergunta, nunca é
-orçamento"* foi contada nos 24 registros em que o defeito tinha gravado um teto: zero
-contraexemplos. A revisão externa procurou entre as respostas da mesma forma que **não**
-gravaram teto e achou um; a regra que o usuário tinha aprovado erraria exatamente esse caso, e
-ele teve de decidir de novo antes de qualquer código.
-
-### As classes que morderam de verdade: confira estas por nome
-
-Cada uma custou um ciclo, uma rodada de gate ou um run pago. O mecanismo e a medição de cada uma
-estão em `references/classes-de-erro.md`: **leia a classe inteira quando ela se aplicar** ao plano.
-
-1. **Semântica de coluna, flag ou campo:** nunca infira pelo nome; abra a linha real e compare com
-   um caso conhecido.
-2. **O fix é no-op?** Com o código de hoje, a mudança altera alguma coisa? No-op passa verde.
-3. **O caso prometido dispara o critério novo?** Rode o critério contra o caso agora.
-4. **Caminho, comando e nome existem?** Arquivo novo cita o irmão existente; `--help` inteiro,
-   nunca recortado.
-5. **Invariante que você promete preservar:** caminho de exceção procurado e testes existentes lidos;
-   se é isolamento, as escritas que mudam o pertencimento também.
-6. **Emissores do comportamento que você REMOVE:** chamadores, literal no código e literal nos
-   dados; gate novo sobre saída existente é remoção.
-7. **Receita copiada de outro contexto:** a pré-condição dela vale aqui?
-8. **Passo novo em pipeline existente:** leia do ponto de inserção até o fim do fluxo.
-9. **Tarefa que adia, segura ou bloqueia uma ação:** o ponto único antes dos efeitos; ação com
-   vários executores lê a mesma trava com a mesma entrada.
-10. **Tarefa que substitui um módulo:** os gatilhos do módulo antigo entram na matriz.
-11. **Peça nova dentro de um hospedeiro existente:** ela herda o estado (e os defeitos) dele.
-12. **"Importar a mesma função" não é paridade** quando a entrada é preparada no chamador.
-13. **Teste do consumidor com campo que o produtor real não emite:** a fixture vem do produtor.
-    Vale também quando o produtor é a rodada anterior do próprio sistema: cenário de várias
-    rodadas prova-se pela camada que grava e relê o estado entre elas.
-14. **Remover evento ou linha de log:** procure leitores por tempo (`desc`, `limit 1`, `max`).
-15. **Escritor único prometido:** inventário dos sites de escrita de hoje, incluindo gatilhos e jobs.
-16. **Linha nova em template, seed ou catálogo global:** o provisionamento de tenant a copia;
-    unicidade pode morar num índice.
-17. **Detector de texto:** falso positivo medido em amostra real, falso negativo com as frases
-    vizinhas, lista de variações no `Pronto quando`.
-18. **"N itens acham par" não é "N vínculos" quando o alvo é único:** conte alvos distintos, do lado
-    da restrição (índice único, reserva no chamador).
-19. **Grant explícito não tira privilégio padrão herdado:** meça o privilégio efetivo depois de criar
-    o objeto, não o texto do `grant`.
-
-### O que NÃO dá para decidir no plano — diga isso em vez de fingir
-
-Rigor não é prometer que o plano prevê tudo; é separar o decidível do emergente e escrever a
-fronteira. Não são planejáveis, e o plano deve dizê-lo:
-
-- **defeito que depende de uma escolha do modelo** (a LLM decide transferir, ou responde em
-  prosa em vez de lista). Não é reproduzível sob demanda: a prova é teste determinístico, e a
-  verificação é telemetria de produção;
-- **interação entre peças que ainda não existem** — um guard novo cruzando com outro guard só
-  se avalia depois de escritos. É para isso que serve o gate adversarial, não o plano;
-- **corrida de tempo real** que o harness de teste não reproduz.
-
-Escreva estes como **watchlist do plano**, com o método de verificação que os cobre. Um plano
-que promete cobrir o emergente vira álibi; um que declara a fronteira vira mapa.
-
-### Prova ponta a ponta: não executado é hipótese, e só conta com a causa inspecionada
-
-Cenário escrito e não executado não é cobertura: roda antes do gate, ou entra `[SUPOSTO:]` com o
-passo "rodar ANTES de considerar coberto". Vermelho e verde só contam com a causa inspecionada
-(a asserção do defeito, não setup, fraseado ou reparo pelo modelo). Mecanismo e medições:
-`references/classes-de-erro.md`, seções finais.
-
-## Fase 1 — decompor
-
-### Níveis de complexidade
-
-Três níveis. O critério é **custo do erro somado à profundidade de raciocínio**, nunca tamanho. Uma tarefa de dez linhas que decide precedência entre regras é complexa. Uma de trezentas linhas de tradução é baixa.
-
-- **Complexa** — o erro é caro ou difícil de detectar: invariante, concorrência, segurança, dado de produção, irreversível. Ou exige segurar muito contexto ao mesmo tempo.
-- **Média** — solução conhecida, escopo claro, o erro aparece em teste ou na tela.
-- **Baixa** — mecânica, verificável por inspeção, sem decisão de design.
-
-Rubrica completa com exemplos e casos de fronteira: `references/complexity-rubric.md`.
-
-Na dúvida entre dois níveis, suba. O modelo mais forte numa tarefa média custa menos que o retrabalho de uma complexa mal feita.
-
-**O plano nunca nomeia modelo.** Escreve `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` e `<MODELO_GATE>` como placeholder. Quem atribui é o usuário, na hora de executar, porque a escolha depende de custo, disponibilidade e humor do dia, não do plano.
-
-### Ownership de arquivo
-
-Um arquivo, um dono. É isto que impede dois workers paralelos colidirem, e é o item mais barato de esquecer e mais caro de descobrir tarde.
-
-Se duas tarefas precisam do mesmo arquivo, você tem três saídas legítimas e nenhuma quarta:
-
-1. Junte as duas numa tarefa só.
-2. Parta o arquivo, e o corte vira parte do plano.
-3. Serialize com dependência explícita no grafo.
-
-"As duas mexem e depois a gente concilia" não é saída. Escreva a matriz como tabela, caminho por caminho, e marque-a como normativa.
-
-A única exceção existe entre ondas paralelas em worktrees separadas (Fase 2): ali o arquivo que as
-duas tocam entra na tabela do que não roda junto, com o trecho de cada onda nomeado, e quem
-concilia é a onda que integra depois. Dentro de uma onda, nenhuma exceção.
-
-Arquivos que várias tarefas **leem** mas ninguém escreve não entram no conflito. Diga isso explicitamente, senão alguém serializa à toa.
-
-**A matriz não sai da memória, sai de um traçado.** Listar os arquivos que você leu enquanto
-desenhava produz uma matriz que parece completa e não é: ela contém a origem e o destino, e
-perde o meio. Para cada dado ou comportamento novo, siga o caminho inteiro e anote **cada
-salto**, porque cada salto é um arquivo com dono:
-
-```
-onde nasce  ->  quem transporta  ->  quem decide  ->  quem emite  ->  quem consome
-```
-
-O salto mais esquecido é o transporte: um objeto de contexto reconstruído no meio do caminho
-**descarta silenciosamente** todo campo que ninguém encaminhou de propósito, e aí a sua flag
-nova chega `undefined` no destino com todos os testes verdes. Medido em 2026-08-26: uma
-matriz de 22 arquivos saiu com 5 faltando, e o que mais doía era exatamente um desses
-transportes.
-
-**O traçado é uma TABELA do plano, não um exercício de cabeça:** uma linha por requisito que
-move dado ou comportamento, uma coluna por salto, `arquivo:linha` em cada célula (esqueleto, §3.1).
-Conselho em prosa é aplicado quando o autor lembra; célula vazia fica visível para quem revisa, e
-a matriz de ownership passa a ser derivada das células, não da memória. Medido em 25/09/2026:
-3 dos 11 bloqueadores da revisão externa eram saltos sem dono (decisão no chamador errado,
-comportamento sem ponto de emissão, dado que não chegava a um dos canais de saída), num plano cuja
-skill já mandava traçar. A regra existia; a coluna, não.
-
-**A última coluna também é salto, e é a que mais sai em prosa.** Quando o efeito observável de um
-requisito é uma superfície (uma tela, um painel, um relatório, uma linha de log que alguém vai
-ler), a célula leva o arquivo que a renderiza e o dono dele, não uma frase como "aparece para o
-administrador". Frase na última coluna passa pela auto-revisão, porque a célula não está vazia, e
-chega à execução sem dono: o coordenador descobre no meio da onda que ninguém desenha aquilo, e
-fecha o buraco com contrato novo e responsabilidade dividida entre tarefas já despachadas.
-Medido em 29/09/2026: um requisito cujo critério era "depois de N falhas, aparece como pendente
-no painel do admin" tinha na última coluna só "pendência visível"; nenhuma tarefa possuía o
-painel, e o contrato do dado, a visão e a tela foram repartidos entre três tarefas na segunda
-onda.
-
-**Teste existente que trava o comportamento antigo é arquivo da matriz.** Quando o plano muda ou
-remove um comportamento, os testes que o afirmam hoje (unitários **e** cenários ponta a ponta)
-entram na matriz com dono único e a decisão escrita: reescrever e renomear, nunca apagar. Procure
-pelo literal do comportamento nos diretórios de teste, e não só pelo nome do arquivo que muda.
-Sem isso, duas tarefas paralelas reescrevem o mesmo teste, ou o teste que exige o comportamento
-removido aparece só na bateria antes do deploy. Medido em 25/09/2026: as duas coisas no mesmo
-ciclo, uma achada pela revisão externa e a outra só na véspera da publicação.
-
-**Arquivo GERADO não tem dono sozinho: o dono é a fonte.** Quando um arquivo do plano é saída de
-um gerador (uma tabela derivada de um inventário, tipos derivados de um schema, um mapa derivado de
-um documento), a linha da matriz é a **fonte**, mais o comando que regenera e o teste que compara
-saída com fonte. Editar só a saída faz o teste de frescor reprovar, e regenerar depois desfaz a
-edição. Procure o gerador antes de atribuir: um teste que compara byte a byte é a pista. Os testes
-que consomem a saída (navegação, links) entram na matriz junto. Medido em 2026-10-10: um plano
-atribuiu a mudança de um mapa de rotas e não o inventário que o gera; a revisão externa achou o
-teste de frescor e mais três testes consumidores que quebrariam no aceite.
-
-**Linha NOVO cita o irmão.** Arquivo que ainda não existe entra na matriz com o irmão existente
-do mesmo tipo e a configuração que o descobre, os dois com `[LIDO:]`. Sem isso o caminho é
-`[SUPOSTO]`, e o `ls` da auto-revisão não tem o que conferir (classe 4, `references/classes-de-erro.md`).
-
-**Depois de escrever a matriz, releia as descrições das tarefas e procure responsabilidade
-repetida.** Duas tarefas podem não colidir em arquivo e ainda assim receberem a mesma frase
-("resolve a config no bootstrap"). Colisão de responsabilidade é colisão, e aparece mais tarde
-e mais cara que a de arquivo.
-
-### Contratos congelados
-
-Este é o item que faz o paralelismo existir. Workers não divergem na ordem das coisas, divergem no formato delas.
-
-Congele, antes da primeira onda: tipos e interfaces compartilhadas, shape de request e response, nomes de chave de i18n, props na fronteira entre dois componentes, e a fixture de casos que serve de fonte da verdade de uma regra de negócio.
-
-**Ordem de eventos também é contrato.** Quando duas tarefas dividem uma transição ou
-operação assíncrona, congele estados, identidade da execução, quem inicia/confirma/cancela
-e a condição que libera a próxima etapa. Inclua interrupção e retorno com estado vivo.
-Flag alterada não prova efeito observado: indique qual confirmação a fronteira requer.
-Para interface com referência aprovada, vincule esse contrato ao §8.3 da spec.
-
-Quem escreve é o coordenador, num passo próprio antes de despachar qualquer worker, e commita. Não delegue a um worker o contrato de que os outros dependem.
-
-Escreva literal, em bloco de código completo. Contrato descrito em prosa é contrato não congelado.
-
-**Campo derivado tem tabela de derivação por origem.** Todo campo do contrato que não é cópia
-1:1 de uma coluna vem com a regra por origem, e cada origem com a sua medição na linha real.
-Medido em 2026-09-12: o contrato tinha `mode: outdoor | treadmill | unknown` sem dizer de onde
-vinha; a spec tinha medido esteira num provedor e não olhado o sinal de esteira do outro, onde
-149 corridas em esteira chegavam com ganho de elevação zero e virariam "rua plana" pela regra
-literal, formando par com corridas de rua.
-
-**Contrato não é mais restrito que o FR que implementa.** Se o plano aperta uma regra que a
-spec enuncia mais solta, isso é decisão com autoria na spec, não detalhe técnico do plano.
-
-**Contrato tem de ser executável inteiro: leia cada regra contra as outras antes de congelar.**
-Worker obediente não resolve contradição, escala, e cada escalação é um worker parado esperando o
-coordenador. Quatro formas que pararam workers, cada uma pegável em segundos na releitura:
-
-- **Ação exigida sob uma condição que, por definição, já não vale.** "Toda escrita exige ser o dono
-  do lease" mais "ao perder o lease, grave o motivo na linha": a segunda regra é inexecutável pela
-  primeira. Decida onde o efeito vai (log, outra tabela) no contrato.
-- **Duas exigências literais sobre o mesmo campo.** Formato fixo do texto e, em outra seção, "inclua
-  o valor original nesse texto quando X". Escreva o formato com a variação dentro.
-- **Comportamento de API externa citado como documentado sem a documentação dizer.** "Trate o erro
-  documentado de recurso já cancelado como sucesso", sem código nem corpo na doc. Ou meça, ou
-  congele a verificação que dispensa saber (ler o recurso de volta e conferir o estado).
-- **Linha de risco ou watchlist com ação de código.** "A tarefa X registra erro quando Y" numa tabela
-  de riscos, contradizendo o contrato que trata Y como válido. Ação de código em risco é requisito
-  escondido: vira contrato, ou sai do risco.
-
-Medido em 2026-10-29: plano de 7 tarefas com contratos literais e uma revisão externa já aplicada;
-na execução, **5 escalações**, todas uma destas quatro formas, nenhuma defeito de worker. Cada uma
-custou um worker parado e uma ida e volta; duas vieram em dobro (escalação e pergunta bloqueante
-com o mesmo texto).
-
-### Critério de pronto: é contrato também, e cola literal
-
-O `Pronto quando` de cada tarefa **é o cenário de aceitação do FR**, copiado da spec, não uma
-paráfrase escrita agora. Vale aqui a frase da seção acima, sem mudar uma palavra: descrito em
-prosa, ele é reinventado por quem despacha.
-
-**"Verificável" não basta.** *"Quando `vitest run x.test.ts` passar"* é verificável e não diz
-**o que** o teste tem de afirmar — quem escreve o teste decide, pelo que entendeu. *"Dado o aviso
-visível, quando tocar Desfazer, então **aquela linha** é apagada"* é o mesmo critério com a
-semântica dentro, e é a diferença entre apagar por identidade e apagar por predicado.
-
-Medido em 2026-09-03: a spec tinha 13 FRs, cada um com cenário
-executável, e cobria corretamente virada de meia-noite, duplicação de fórmula e semântica de
-campo nulo. O plano citava **6 dos 13 FRs zero vezes** e não tinha **nenhum** `Pronto quando` —
-porque as tarefas foram compactadas numa tabela (`| id | tarefa | nível | dono | arquivos |`), e
-coluna que não existe não é preenchida. O coordenador então escreveu o critério de cada briefing
-de cabeça, relendo a spec. Foi nessa releitura que nasceu o defeito mais caro do ciclo: um campo
-que a spec mandava tratar como *"desconhecido, nunca zero"* virou "zero" no briefing, e dias de
-descanso ganharam 300 ml que não existiam.
-
-> **Coordenador improvisando critério de pronto É o defeito.** E ele só improvisa quando não há
-> o que copiar. O lugar de consertar isso é aqui, não lá.
-
-Compactar tarefas em tabela é legítimo, densidade ajuda. Mas então **a tabela carrega as colunas
-`FR` e `Pronto quando`**. O formato é escolha sua; as duas colunas não são.
-
-**O `Pronto quando` diz também a CAMADA de prova, da mais barata para a mais cara.** Primeiro a
-que exercita o consumidor real sem custo por execução: teste de unidade ou replay do fluxo sobre o
-caso real, e comparação da decisão velha com a nova sobre o histórico persistido (mede o alcance:
-quantos casos reais mudariam). Prova que chama modelo pago ou envia algo para fora só para o que as
-baratas não alcançam: trajetória de vários passos, comportamento do modelo, envio, persistência. E
-só o cenário afetado, não a bateria. Paridade de predicado não prova correção de contexto: a
-comparação sobre o histórico mostra o alcance, e quem prova é o caso que passa pelo consumidor.
-Medido: no mesmo projeto, testes ponta a ponta pagos foram de 29% a 43% dos tokens gastos com o modelo no fluxo principal
-num mês.
-
-**A camada precisa preservar o mecanismo sob risco.** Liste as peças reais e as simuladas;
-simular a peça que causa o risco deixa aquele cenário pendente, mesmo com teste verde.
-Se o risco depende de interação ou ordem de eventos, planeje uma primeira prova do percurso
-crítico assim que suas dependências existirem, antes de ampliar variantes. Use a integração
-real e separe os eventos como acontecem nela; registre candidato, resultado e limitações.
-Esta é prova no aceite do coordenador, não outro gate adversarial, e respeita as autorizações
-do projeto. Medido em 2026-10-09: testes com etapas agrupadas passaram com falhas de transição
-e reabertura na aplicação real; a prova tardia exigiu novas rodadas de correção.
-
-## Fase 2 — o grafo
-
-**Ondas são trilhas, não camadas.** Uma onda é uma sequência de tarefas ligadas por dependência, e termina exatamente onde o coordenador precisa agir. Descubra o que este projeto proíbe delegar (ver *Regras do projeto*, abaixo): tipicamente git, migration, deploy e publicação. Esses passos viram passos do coordenador, e são eles que definem onde a onda quebra. Não é escolha estética. Aceitar e commitar a entrega de uma tarefa não quebra onda: isso acontece por tarefa, dentro dela.
-
-Corte nesta ordem:
-
-1. **Separe as trilhas.** Trilha é um grupo de tarefas que dependem umas das outras (irmãs do mesmo
-   pai ficam juntas) e que se liga aos outros grupos por poucas arestas, cada uma resolvível por
-   contrato ou ponto de integração (abaixo). Não use "componente conexo do grafo": uma única aresta
-   cruzada junta tudo num grupo só, e o paralelo some de novo. Conte as arestas cruzadas e escreva o
-   número no §2.1.
-2. **Cada trilha vira uma onda paralela com coordenador secundário** (seção abaixo), sempre que for
-   seguro. É o padrão, não a exceção. Trilha de uma tarefa só não justifica coordenador: entra na
-   onda de quem a consome ou na do principal.
-3. **Dentro da onda, despache por dependência.** Uma tarefa sobe assim que as dependências dela
-   foram aceitas, sem esperar as vizinhas da mesma profundidade.
-
-O erro que isto evita: cortar o grafo por profundidade (o que só depende de C0 é a onda 1, o que
-depende da onda 1 é a onda 2). Assim toda onda depende da anterior por construção, a regra de ondas
-paralelas nunca dispara, e cada camada espera a tarefa mais lenta dela. Medido em 2026-10-23: um
-plano de 18 tarefas saiu em três camadas por profundidade; por dentro havia três grupos (servidor,
-compartilhar, telas) ligados por quatro arestas cruzadas, o do servidor sem depender de nenhum
-outro, e nenhum ganhou coordenador próprio. Quem notou foi o usuário. O exemplo do template também
-desenhava camadas, e o plano copiou o formato.
-
-Escreva três coisas, sempre:
-
-1. **O grafo**, em ASCII, com as dependências visíveis.
-2. **O que roda junto**, por onda.
-3. **O que NÃO roda junto, com a razão de cada par.** Sem a razão escrita, alguém vai "otimizar" isso depois e reintroduzir a colisão.
-
-Marque o **caminho crítico**. É o que diz se vale acrescentar worker ou se você só vai acrescentar espera.
-
-**Estimativa: em tokens, nunca em dias.** "Dois dias", "uma semana" medem trabalho humano em
-série; aqui quem implementa é modelo em paralelo, e o que levaria dias costuma sair no mesmo dia.
-O plano dá três números, como ordem de grandeza: **tokens totais** (o custo), **tokens de saída**
-(o que os workers escrevem) e **tempo de relógio** ≈ tokens de saída do **caminho crítico** ÷ vazão
-do modelo (referência: ~60 tok/s), somado às esperas fixas (suíte, deploy, teste pago, aceite do
-usuário). Tarefas fora do caminho crítico entram no custo e não no relógio. Nunca divida o total
-pela vazão: quase todo o total é releitura de contexto, que não custa esse tempo, e a conta sai
-dezenas de vezes maior. Diga qual parcela domina; quando são as esperas, mais worker não adianta.
-Vale também na conversa: quando o usuário pergunta o prazo, a resposta sai desta conta, não de
-horas por onda somadas. Medido em 2026-10-23: a resposta em conversa somou horas por camada e deu
-2 a 3 dias para um plano cuja própria conta dava menos de um dia.
-
-**Sem número fixo de workers.** Tarefas que tocam arquivos diferentes e não dependem uma da
-outra rodam todas ao mesmo tempo, na mesma trilha ou em trilhas paralelas; um teto como "3 por vez"
-só acrescenta espera. O único
-freio legítimo é a cota do dia nos modelos, e aí distribua entre provedores e comece pelo caminho
-crítico. Durante a onda, cada worker roda só os próprios testes; a suíte inteira roda no aceite.
-Medido em 24/09/2026: o plano saiu com teto de 3 workers que ninguém pediu, e o usuário mandou tirar.
-
-**Ordene por dependência de COMPORTAMENTO, não por custo.** A tentação é pôr primeiro o que é
-barato e reversível, tipicamente configuração, e deixar o código para depois. Isso inverte a
-ordem real: configuração que liga um comportamento cujo código ainda não existe deixa o
-sistema num estado que ninguém desenhou, meio novo e meio velho, **em produção**. A regra
-geral: primeiro o que é aditivo e inerte (schema, código com default igual ao de hoje), depois
-o que entrega, e por último a chave que LIGA. Esse último passo é o cutover, e ele deve ser
-reversível numa linha.
-
-**Corolário que economiza uma rodada inteira:** se, ao escrever um passo de validação, você
-já sabe apontar um item dele que vai falhar por causa de outra tarefa ainda não feita, a
-ordem está errada. Não escreva "este item vai falhar aqui, é esperado" — isso é um gate que
-não guarda nada. Reordene.
-
-### Ondas paralelas em worktrees separadas: um coordenador por onda
-
-Dentro de uma onda os workers dividem a árvore, e a ownership resolve. Duas ondas independentes na
-mesma árvore, não: cada uma tem aceite, suíte e commit próprios, a suíte de uma roda com o código
-pela metade da outra (a mesma classe de *Medir nas dependências do checkout compartilhado*, em
-`orchestrating-execute`), e o commit de uma estagia trabalho da outra. Sempre que o grafo tem duas
-ou mais trilhas e é seguro, cada trilha ganha worktree, branch e coordenador secundário próprios; o
-coordenador principal toca uma delas na árvore atual. **Seguro** quer dizer: contratos congelados
-em C0, arquivos disjuntos ou com o trecho de cada onda nomeado, e todo recurso único (ambiente,
-migração, dado) com o principal pela tabela de papéis. Quando não é seguro, o §2.1 diz em uma linha
-"Ondas paralelas: não, porque …"; sem essa linha o plano não está pronto. Escala parcial não usa
-isto. Projeto que só aceita branch ou worktree a pedido: o plano traz as ondas paralelas mesmo
-assim, e a pergunta vai junto com a entrega do plano; nunca corte em silêncio.
-
-**Dependência cruzada não junta trilhas.** Quando uma tarefa de uma trilha consome a entrega de
-outra, tente nesta ordem: (a) congele em C0 o que a consumidora precisa (tipo, assinatura,
-fixture) e ela segue sem esperar o código; (b) marque um ponto de integração: o principal integra a
-tarefa produtora e a trilha consumidora faz rebase antes de despachar a consumidora; (c) só se
-nenhuma serve, mova a consumidora para a trilha produtora. Fundir duas trilhas inteiras por causa
-de uma aresta devolve o plano às camadas.
-
-O plano escreve quatro coisas:
-
-1. **A tabela de papéis.** Só o principal integra na branch principal, publica (homologação
-   inclusive), roda teste ponta a ponta, aplica migração e escreve em dado: com dois coordenadores
-   publicando no mesmo recurso único (um ambiente de homologação, um ambiente de teste por tipo), o
-   teste de um roda com o código do outro. O coordenador de onda despacha e aceita os workers
-   dela, roda a suíte, commita no próprio branch e resolve os conflitos com a branch principal.
-2. **Os arquivos que duas ondas tocam**, com o trecho de cada uma. Mesmo trecho nas duas é colisão:
-   junte, serialize ou parta, como dentro de uma onda.
-3. **A ordem de integração**, que é também a ordem dos rebases.
-4. **O que a worktree nova precisa**, no passo que a cria. Ela nasce sem o que o git ignora
-   (arquivo de segredos, dependências instaladas), e ferramenta que reescreve a pasta de
-   dependências pede instalação isolada por worktree.
-
-A entrega da onda é o branch local, não um PR. Procedimento e porquê: `orchestrating-execute`,
-*Ondas paralelas em worktrees*.
-
-## Fase 3 — gates
-
-Um gate não é uma revisão. Revisão acontece depois e informa; gate acontece antes e bloqueia.
-
-**Um gate por plano**, sobre o candidato integrado, imediatamente **antes** do primeiro passo
-irreversível: aplicar migration em produção, deployar, publicar. Migration aplicada não tem `git
-revert`, e uma revisão que chega depois disso só documenta o estrago. Um segundo gate só quando há
-um segundo passo irreversível com superfície própria (uma publicação de frontend separada do
-deploy de backend), ou quando o plano decide ir à produção em etapas porque uma onda corrige algo
-ao vivo e não pode esperar as outras: aí é um gate por produção, com a razão escrita. Nunca um
-gate por onda: o que guarda a onda é o aceite do coordenador
-(`orchestrating-execute`, seção *Dois mecanismos de qualidade*). Escala parcial ou mínima: sem
-gate. Medido em 20 e 21/09/2026: quatro ondas com um gate por onda rodaram cinco gates e nove
-tarefas de correção; seis tarefas com um gate rodaram um, corrigiram com teste e publicaram na
-mesma noite.
-
-Um gate é uma tarefa como as outras, com nível, dono e dependência. O passo do coordenador que
-ele guarda só acontece depois de o gate ter rodado e de as correções aceitas passarem na suíte e
-no E2E. **BLOQUEIA não pede segunda rodada; pede correção com teste**, e teste que reprova volta
-para correção, nunca para o gate. Escreva isso no plano com essas
-palavras: "C<z> não acontece sem a aprovação do gate" é a frase que faz o executor chamar o
-revisor de novo até ouvir PASSA.
-
-**O plano declara o modelo e orçamento do advisor, sem agendar consulta.** Use o mesmo modelo
-e esforço da linha `Gate / Advisor`. Além de mecanismo/contrato, limite técnico de candidatas,
-tentativas ou esforço e segunda reprovação da mesma família acionam consulta automática,
-sem perguntar ao usuário se deve insistir.
-
-Em §7, declare aceitação observável, limites técnicos, tokens totais/saída/caminho crítico e
-saldo pago já autorizado. Mantenha fonte, último aceite, falha/família, tentativas, consumo,
-evidência e próximo passo em um estado corrente único. Trocar SHA/worker/sessão não zera
-contadores. O advisor define o rumo e a prova offline antes da campanha completa; não autoriza
-requisito novo, residual, ação irreversível ou quota adicional. Detalhe em
-`orchestrating-execute`, seção O advisor e `references/advisor.md`.
-
-### Revisão externa da spec e do plano: o agente para e pergunta, o usuário decide
-
-Uma revisão externa read-only da spec e do plano, por outro agente ou outro modelo, antes de
-executar, é **recomendada e opcional**. Quem decide se ela acontece, e com qual modelo, é o
-usuário: no pedido que abriu o ciclo ("use tal modelo para a revisão adversarial") ou na pergunta
-que encerra o plano. A skill recomenda; não agenda.
-
-Por que recomendar: quem escreveu o plano é o pior revisor dele. Medido em 2026-08-26, num plano
-com evidência medida, contratos congelados e auto-revisão feita, **a auto-revisão achou zero furos
-e a revisão externa achou sete**, cinco confirmados no código, um deles capaz de mandar dado a um
-contato sem identidade nenhuma. Medido em 2026-09-12: quatro bloqueadores, três documentais e uma
-decisão do usuário. Medido em 2026-09-21: oito bloqueadores, todos confirmados no código e no
-banco antes de qualquer linha escrita. Não foi falta de rigor na forma; confirmação e verificação
-parecem iguais por dentro.
-
-**Plano escrito: pare e pergunte, sem commitar antes.** Uma pergunta, duas opções (modal nativo
-do harness quando houver), a recomendada primeiro:
-
-1. **Revisão externa** — *"recomendo porque <o que este plano tem de caro: dado de produção, N
-   tarefas em paralelo, invariante que ele promete preservar>; diga o modelo"*. Feature pequena:
-   diga que não paga e recomende a opção 2.
-2. **Commit e push** — spec e plano entram na branch principal sem revisão.
-
-Se o usuário já pediu a revisão (e nomeou o modelo) no pedido que abriu o ciclo, essa é a resposta:
-não pergunte, rode. Nada além destas duas opções acontece sozinho: nenhum worker, nenhuma
-implementação. Implementar exige pedido explícito do usuário, e a skill então é
-`orchestrating-execute`.
-
-**Depois da resposta, sem nova parada:**
-
-- **Commit e push:** registre "não solicitada" no §0.1, commite spec e plano juntos com caminhos
-  explícitos (nunca "adicione tudo") e dê push na branch principal, seguindo a convenção de git do
-  projeto. Relate os caminhos e o commit, e pare.
-- **Revisão externa:** rode pelo procedimento de `references/external-review.md`. Ao receber o
-  relatório, o coordenador o analisa como abaixo, decide o que entra e o que é recusado, aplica,
-  registra no §0.1, e commita e dá push na branch principal **sem pedir aval**. A única parada
-  antes do commit é decisão de negócio nascida da revisão (sem resposta técnica): essa vai ao
-  usuário numa rodada, e o commit vem logo depois da resposta.
-
-**O modelo nomeado decide o mecanismo, nunca o contrário.** Se o harness em que você roda
-oferece esse modelo como subagente, despache a revisão como subagente, sem orquestrador. Se não
-oferece (outro fornecedor, outro CLI, um agente do catálogo do orquestrador), a revisão sobe por
-orquestração multi-agente: com Orca, a skill `orchestration` (terminal no CLI daquele agente,
-task, dispatch, espera por `worker_done`), e confira no TUI que o modelo que subiu é o pedido,
-como em `orchestrating-execute`. Sem mecanismo que alcance o modelo, diga isso ao usuário e
-pergunte; nunca troque pelo modelo mais próximo que o harness tem. Troca silenciosa entrega
-outra revisão com o nome da que ele pediu.
-
-**Agente fora do harness sobe SEMPRE pela skill `orchestration`, nunca em modo headless.**
-`codex exec` (ou outro CLI) rodando em segundo plano pelo shell alcança o modelo, mas o usuário não
-vê o agente trabalhar nem pode intervir. Terminal visível no orquestrador é o mecanismo, não uma
-opção.
-
-**A revisão nunca entra no grafo do plano.** Não existe tarefa `S0 — revisão do plano`, nem
-"bloqueia a onda 1". O executor lê o grafo como lista de trabalho, e uma revisão ali dentro vira a
-primeira coisa que ele despacha, tenha o usuário pedido ou não. Medido em 2026-09-22: um plano com
-a revisão no grafo, executado sem pedido de revisão, abriu o ciclo com um revisor no ar e nenhum
-worker. Gate (`S<n>`) é outra coisa: revisa código já escrito, antes de um passo irreversível, e
-mora na seção acima.
-
-Duas coisas fazem a revisão render, e as duas custam pouco:
-
-- **Peça a refutação das suas afirmações de carga, nomeadas.** Não mande "revise o plano".
-  Liste as três ou quatro afirmações que sustentam o desenho e peça para tentarem derrubar cada
-  uma, com `arquivo:linha`. Cada afirmação chega com a consulta do falsificador já rodada e a
-  contagem dela; o que você pede é o que essa consulta não viu, não a primeira execução dela.
-  A pergunta mais produtiva, sempre a última: *"o que está faltando
-  aqui que eu não teria como notar, porque fui eu que escrevi?"*
-- **Diga o que o revisor NÃO tem.** Se ele não tem acesso ao banco, ele vai marcar como
-  hipótese aquilo que você consegue medir em uma query. Resolva essas hipóteses você mesmo em
-  vez de descartá-las: foi assim que duas "hipóteses não verificadas" viraram fatos decisivos
-  em 2026-08-26, uma confirmando um bloqueador e outra derrubando um risco inventado.
-
-O veredito da revisão entra no plano, com o que foi aceito, o que foi recusado e por quê. Plano
-revisado sem registro da revisão obriga a próxima pessoa a refazer o mesmo trabalho. Registre
-também o custo de cada bloqueador aceito: documental, decisão do usuário ou redesenho. É esse
-número, não o veredito, que diz se a spec e o plano estavam sãos.
-
-Procedimento, mandato read-only, e como verificar depois que o revisor realmente não escreveu: `references/external-review.md`.
-
-**Ao receber o relatório, não valide os bloqueadores por deferência.** Verifique cada um você mesmo, separe o que é buraco real do que é decisão de negócio, decida você o que é técnico (aceitar, recusar, redimensionar, com o porquê no §0.1), aplique o aceito reescrevendo no lugar o critério, o contrato ou o passo que ele contradiz, nunca como anexo embaixo do texto antigo (`references/external-review.md`, passo 5), e leve só as decisões de negócio ao usuário com resumo e recomendação, **numa rodada de perguntas antes do commit**: plano não é entregue nem commitado com decisão do usuário em aberto, nem como "pendente" com recomendação ao lado. Medido em 13/10/2026: um plano saiu commitado com duas decisões nascidas da revisão externa, e o usuário o recusou como não fechado. Um revisor competente ainda erra de tamanho: superdimensiona o que não tem usuário e subdimensiona o que já está quebrado.
-
-### A revisão externa roda UMA vez. Nova rodada só com autorização explícita do usuário
-
-**Regra dura:** a revisão adversarial de spec e plano roda **uma vez** por pedido do usuário.
-Depois de incorporar os achados, commite e dê push (seção acima) e, no relato depois do push,
-diga o que mudou e que outra rodada só roda se ele pedir. A pergunta não segura o commit. Nunca
-despache a rodada 2 por conta própria, nem que o veredito tenha sido BLOQUEADO,
-nem que a mudança tenha sido grande, e nem que o próprio plano, escrito por você, diga "rodada 2
-antes do C0". Isso inclui não escrever no plano um gate de revisão repetida que o usuário não
-pediu. Um revisor bloqueando não autoriza nada; quem autoriza nova rodada é o usuário. Os gates
-**de implementação** do plano (ex.: S1, antes de migração e deploy) são outra coisa: estão no
-plano que o usuário aprovou e rodam uma vez cada, com a mesma regra para repetição.
-
-Medido em 22/09/2026: o usuário pediu uma revisão
-adversarial da spec e do plano. Ela veio BLOQUEADA com 4 achados reais, todos incorporados. Em
-seguida o coordenador escreveu no plano "rodada 2 antes do C0" e despachou sozinho uma segunda
-revisão no modelo mais caro. O usuário interrompeu: *"eu não pedi pra rodar outra revisão, não
-era pra você ter rodado"*. O certo era incorporar, commitar e relatar *"os 4 achados entraram
-assim; outra rodada só se você pedir"*.
-
-## Fase 4 — fecho
-
-Escreva os passos do coordenador entre as ondas e depois da última: o que ele aplica, verifica, commita e deploya, em ordem, com o comando.
-
-Termine com os portões de entrega do projeto. Descubra quais são (ver abaixo) em vez de assumir: pode ser deploy, migration, bundle OTA, build nativo, publicação em loja. E inclua a documentação que este projeto exige atualizar no mesmo commit da mudança, se exigir. E escreva a saída de "em validação": tipo de entrega, prazo e o cron de verificação (seção *Saída de "em validação"*, em *Onde salvar*).
-
-## Auto-revisão antes de entregar
-
-Duas listas, e a primeira é a que faltava. Estrutura impecável em cima de fato falso continua
-sendo plano falso.
-
-**Pergunta de julgamento aprova o próprio texto; coluna vazia não.** Medido em 25/09/2026: dos
-11 bloqueadores que a revisão externa achou num plano, **6 já eram cobertos por regras desta
-skill** que o autor não aplicou (traçado, no-op, contrato mais restrito que o requisito). Mais
-regra em prosa não teria pegado nenhum. O que pegou foram as verificações mecânicas: o `grep` de
-FR e a tabela de afirmações de carga. Por isso, antes das listas: o plano tem as tabelas
-obrigatórias preenchidas, sem célula vazia (afirmações de carga §0.1, ownership §3, traçado §3.1,
-rastreabilidade §5.1)? Célula vazia é item aberto, não detalhe.
-
-**Tamanho — o primeiro item, e é mecânico:** o plano mais a evidência que ele arquiva já passou do
-tamanho do diff que ele planeja? Então ele está planejando mais de uma família, ou arquivando
-sonda. Recorte antes de entregar (ver *Um pedido, uma família* e *Sonda não é evidência*).
-
-**Verdade — cada item vale um `ls` ou uma query:**
-
-- Todo fato do plano tem etiqueta `[MEDIDO:]`, `[LIDO:]` ou `[SUPOSTO:]`?
-- Nenhum `[SUPOSTO:]` sustenta a implementação de uma tarefa? (se sustenta: medir agora, ou
-  virar o primeiro passo da tarefa com "se der diferente, PARE e escale")
-- Toda coluna, flag ou campo citado teve a **semântica conferida na linha real**, e não
-  deduzida do nome? Campo derivado de mais de uma origem: uma conferência por origem?
-- Para cada fix: com o código de hoje, ele muda alguma coisa — ou é **no-op que passa verde**?
-- Todo caso que o plano promete que vai disparar um critério novo foi rodado contra esse
-  critério?
-- Todo caminho, comando e subcomando do plano existe? (inclusive os dos passos do coordenador)
-  Todo arquivo NOVO cita o irmão existente e a configuração que o descobre?
-- O que é emergente está na **watchlist**, com método de verificação, em vez de prometido?
-- As **afirmações de carga** estão listadas, e cada uma passou por refutação TENTADA, não por
-  citação que a confirma? A linha traz a **contagem do falsificador**, não a que confirma?
-- Toda invariante que o plano promete preservar tem o caminho de exceção procurado, e os
-  **testes existentes** daquele arquivo lidos?
-- Para cada comportamento que o plano REMOVE: os emissores foram contados pelos três lados,
-  chamadores da função, literal do texto **e** literal nos dados (template, configuração, seed)?
-  Validação ou gate novo sobre saída existente contou como remoção, com a medição no histórico
-  persistido? Os testes que hoje afirmam o comportamento têm dono e decisão na matriz?
-- Toda tarefa que mexe em detector de texto tem a amostra de falso positivo medida e a lista de
-  variações escrita no `Pronto quando`?
-- Toda receita copiada de outro contexto teve a pré-condição dela conferida aqui?
-- Todo passo novo inserido em pipeline existente foi posicionado depois de ler **até o fim** do
-  fluxo, e não pelo nome da abstração?
-- As linhas reais das entidades afetadas foram olhadas, e não só a contagem?
-
-**Estrutura:**
-
-- **Mecânico, e é o único desta lista que devolve número em vez de opinião:** todo `FR-n` da spec
-  aparece em pelo menos uma tarefa, e toda tarefa tem `Pronto quando` copiado de um cenário — ou
-  a marca explícita *"infra, sem FR"*?
-
-  ```bash
-  for n in $(grep -o 'FR-[0-9]\+' <spec> | sort -u -V); do
-    printf '%-6s plano=%s\n' "$n" "$(grep -cw "$n" <plano>)"
-  done
-  ```
-
-  **`-w` não é enfeite:** sem ele `FR-1` casa dentro de `FR-10`, e o requisito que ninguém citou
-  aparece como coberto — o falso passe cai justamente no FR de número baixo, que costuma ser o
-  comportamento central da feature.
-
-  Os outros itens são de julgamento, e julgamento aprova o que ele mesmo escreveu. `plano=0` é um
-  requisito que nenhum worker vai ver. Rode antes de entregar o plano, e de novo no preflight da
-  execução.
-- Toda tarefa tem nível, dono e dependências explícitas?
-- Todo arquivo tocado aparece na matriz de ownership, com um dono só, e todo arquivo das
-  células do traçado (§3.1) está na matriz?
-- Toda célula da última coluna do traçado que descreve algo que uma pessoa vê (tela, painel,
-  relatório) tem um arquivo e um dono, e não só uma frase?
-- Nenhuma responsabilidade aparece em duas tarefas, mesmo sem colisão de arquivo?
-- A ordem das ondas segue dependência de **comportamento**, com o que LIGA a mudança por
-  último e reversível?
-- Nenhum passo de validação tem item que você já sabe que vai falhar por causa de tarefa
-  posterior?
-- Todo contrato de que dois ou mais workers dependem está escrito literal e datado de antes da onda 1?
-- Quando há coordenação assíncrona, o contrato inclui estados, identidade e confirmação
-  entre donos? A tarefa indica peças reais/simuladas e quem executa a primeira prova integrada?
-- Nenhum contrato é mais restrito que o FR que implementa? Se é, a decisão está na spec, com autoria?
-- O gate é um por plano (ou um por produção, se o plano vai em etapas e diz por quê), antes do
-  passo irreversível, sobre o candidato integrado, e nenhuma onda tem gate próprio?
-- Todo par "não pode junto" tem a razão escrita?
-- As ondas são trilhas, não camadas por profundidade? Toda trilha com mais de uma tarefa tem
-  coordenador secundário, ou o §2.1 diz em uma linha por que não é seguro? Dependência cruzada
-  resolvida por contrato, ponto de integração ou mudança de trilha, sem fundir trilhas inteiras?
-- Com onda em worktree própria: há tabela de papéis, todo arquivo tocado por duas ondas está no
-  "não pode junto" com o trecho de cada uma, e a ordem de integração está nos passos do
-  coordenador?
-- Algum worker precisa rodar comando que este projeto proíbe delegar?
-- O caminho crítico está marcado?
-- A estimativa está em tokens e tempo de relógio, sem "dias" ou "semanas", e o tempo saiu dos
-  tokens de saída do caminho crítico, não do total?
-- Sobrou placeholder de modelo, e nenhum modelo nomeado?
-- A tabela de níveis tem a linha `Gate / Advisor` com `<MODELO_GATE>`, e o §7 traz o orçamento do
-  advisor (uma consulta por veredito de gate)?
-- A revisão externa da spec e do plano está FORA do grafo (nenhum `S0`, nenhum "bloqueia a onda
-  1"), e o §0.1 registra a revisão feita ou "não solicitada"?
-- Nenhuma decisão do usuário está em aberto (nem "pendente" com recomendação)? Toda decisão de
-  negócio que sobrou, inclusive as que a revisão externa criou, foi perguntada e está registrada;
-  autorização de execução (ação externa, escrita em dado) fica escrita como pedida na hora, não como
-  decisão aberta. Ciclo sem `spec-interview` é onde isso escapa: ninguém aplicou o fechamento dela.
+| **Direta** | Mudança delimitada, um dono: você lista os arquivos e a prova antes de começar, e ela se desfaz com um revert | Não é plano. Faça. Se ajudar, cinco linhas no chat |
+| **Mínima** | Um defeito ou uma família, um dono da decisão, nenhum contrato novo entre tarefas. Pode ter migração ou deploy **se o projeto já tem portão próprio para isso** | Plano mínimo de uma tela. Sem ondas, sem gate, sem revisão externa |
+| **Parcial** | Duas ou mais tarefas com donos diferentes, **ou** um contrato que uma tarefa produz e outra consome | Níveis, ownership e `Pronto quando` por tarefa. Sem ondas nem gate |
+| **Completa** | Passo irreversível **sem** portão próprio do projeto, **ou** invariante de segurança, permissão ou isolamento entre clientes, **ou** trabalho de verdade paralelo, de vários agentes em arquivos disjuntos | Fases 2 a 8, com um gate antes do passo irreversível |
+
+- **O critério é o risco, não a superfície.** Publicar se desfaz republicando. Migração ou deploy
+  que já passa por um portão do projeto (roteiro com aval, script que recusa suíte vermelha) não
+  sobe a escala sozinho: cite o portão no plano.
+- **Na dúvida entre duas escalas, a menor.** Suba quando o motivo aparecer (um segundo dono, um
+  contrato novo, um dado que não volta atrás) e diga que subiu. Escolher a maior "por segurança"
+  é o erro mais comum desta skill: custa spec, plano, revisão e gate para uma mudança de um arquivo.
+- **Teto de tamanho.** Plano mínimo cabe numa tela (umas 40 linhas); parcial, em umas 200. Em
+  qualquer escala, plano mais evidência maior que o diff que ele planeja é sinal de duas famílias
+  ou de sonda arquivada: recorte antes de entregar.
+- **Um plano por família** (mesma causa, mesmo dono da decisão). Relatório com vários achados é
+  recortado antes de escrever. Mais de uns dez requisitos é alerta de duas famílias.
+- **Protótipo, investigação e pergunta de viabilidade não são plano.** Responda ou construa.
+
+O **plano mínimo**, cada item com `arquivo:linha` ou consulta: (1) causa, com a evidência que a
+mostra; (2) arquivos que mudam; (3) quem mais lê ou emite isto; (4) teste que falha com o fix
+neutralizado; (5) camada de prova, a mais barata que exercita o consumidor real; (6) publicação e
+rollback, citando o portão do projeto. Precisou de dois donos ou de contrato novo para escrever o
+item 3: suba.
+
+## 2. Evidência: do problema e da solução
+
+- Leia a spec inteira, abra os arquivos que ela promete tocar e consulte o estado real do dado
+  (schema, policy, **contagem**). Guarde o snapshot fora do repositório. Só é evidência o que outra
+  pessoa refaz: a consulta, os parâmetros, o SHA e o resultado cru. Sonda exploratória não é.
+- Bloqueador que você não reproduziu no código ou no dado é hipótese: escreva como hipótese.
+- **Valide a spec para execução paralela:** contrato ausente, matriz de consumidores nas duas
+  direções (quem lê e quem emite), decisão sem a alternativa descartada. Faltou, conserte a spec
+  e diga ao usuário o que mudou.
+- **Todo fato do plano leva etiqueta:** `[MEDIDO: comando → resultado]`, `[LIDO: arquivo:linha]`
+  ou `[SUPOSTO: o que o falsifica]`. Fato de que uma tarefa depende não fica suposto: meça agora,
+  ou ele vira o primeiro passo da tarefa com "se der diferente, PARE e escale".
+- Fato que sustenta uma decisão levada ao usuário mede-se **antes** de perguntar.
+- Norma citada não é fato: regra de documentação que decide uma tarefa vira `[MEDIDO:]` contra o
+  código antes de entrar no plano.
+- **Afirmações de carga** (as que derrubam o desenho se forem falsas, quase sempre um "nunca", um
+  "só" ou um "continua garantido") vão para a tabela do §0.1 com o falsificador em uma frase, a
+  consulta que **conta** o falsificador no universo inteiro e o número, mesmo zero. Citação que
+  confirma não fecha a linha, e amostra escolhida pelo defeito não refuta um "nunca".
+- **Confira as classes de erro pelo nome** (`references/classes-de-erro.md`): semântica de campo;
+  fix que é no-op; caso prometido que não dispara o critério; caminho ou comando que não existe;
+  invariante prometida; emissores do que se remove; receita copiada; passo novo em pipeline; ação
+  com vários executores; gatilhos do módulo substituído; peça nova em hospedeiro; "mesma função"
+  sem paridade; fixture que o produtor não emite; log com leitor por tempo; escritor único;
+  template global copiado no provisionamento; detector de texto; alvo único; privilégio herdado.
+- O que não se decide no plano (escolha do modelo, interação entre peças que ainda não existem,
+  corrida de tempo real) vai para a **watchlist**, com o método de verificação.
+- Cenário escrito e não executado é hipótese. Vermelho e verde só contam com a causa inspecionada.
+- **Fato externo é sonda, e sonda não se adia em silêncio.** Resposta de API de terceiro ou
+  comportamento de modelo de que o desenho depende vira uma chamada real **antes** da primeira
+  tarefa de código que o consome, como passo do coordenador. Adiar é decisão do usuário e fica
+  escrita no plano: o que fica sem prova, e quais tarefas passam a carregar `[SUPOSTO:]`.
+
+## 3. Decompor
+
+- **Nível por tarefa** (complexa, média, baixa) pelo custo do erro somado à profundidade de
+  raciocínio, nunca pelo tamanho. Na dúvida entre dois níveis, suba. O plano escreve
+  `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` e `<MODELO_GATE>`; quem atribui é o usuário.
+- **Um arquivo, um dono.** Duas tarefas no mesmo arquivo: junte, parta o arquivo ou serialize.
+  "Depois concilia" não é saída. Arquivo que todos só leem não é conflito: diga isso.
+- **A matriz sai do traçado (§3.1), não da memória:** uma linha por requisito, uma coluna por
+  salto (onde nasce, quem transporta, quem decide, quem emite, efeito observável), `arquivo:linha`
+  em cada célula. Célula vazia é salto sem dono. A última coluna, quando é algo que uma pessoa vê,
+  leva o arquivo que renderiza e o dono dele, não uma frase.
+- **Entram na matriz:** o teste existente que afirma o comportamento que muda (reescrever e
+  renomear, nunca apagar); a **fonte** de todo arquivo gerado, com o comando que regenera; e todo
+  arquivo novo, com o irmão existente e a configuração que o descobre.
+- Releia as descrições procurando a mesma responsabilidade em duas tarefas.
+- **Contratos congelados antes da onda 1**, escritos literal em bloco de código, pelo coordenador:
+  tipos, request e response, chaves, props de fronteira, fixture. Ordem de eventos também é
+  contrato (estados, identidade da execução, quem confirma). Campo derivado tem tabela por origem.
+  O contrato não é mais restrito que o requisito que implementa.
+- **Leia cada regra do contrato contra as outras:** ação exigida sob uma condição que já não vale;
+  duas exigências sobre o mesmo campo; comportamento de API externa "documentado" sem a
+  documentação dizer; ação de código escondida numa tabela de riscos. Worker obediente não resolve
+  contradição, escala.
+- **`Pronto quando` é o cenário de aceitação do requisito, copiado da spec**, com a camada de prova
+  mais barata que exercita o consumidor real e preserva o mecanismo sob risco (liste as peças reais
+  e as simuladas). Tarefas em tabela compacta carregam as colunas `FR` e `Pronto quando`.
+- Risco de ordem de eventos ou de integração: a primeira prova do percurso crítico roda na
+  integração real assim que as dependências existem, antes de ampliar variantes.
+- **Tela.** Tarefa que entrega interface com referência visual aprovada (spec §8.3) leva no
+  `Pronto quando` a comparação lado a lado com a referência, estado a estado. O plano põe um passo
+  do coordenador "comparação de tela" **antes** do passo que integra ou publica o front, e esse
+  passo só roda com o arquivo de comparação de cada tarefa de tela presente. Spec com interface e
+  sem referência visual nem dispensa registrada: volte à spec antes de planejar.
+
+## 4. Grafo
+
+- **Ondas são trilhas, não camadas.** Trilha é um grupo de tarefas ligadas por dependência, com
+  poucas arestas para os outros grupos. A onda termina onde o coordenador precisa agir (git,
+  migração, deploy, publicação).
+- Trilha com mais de uma tarefa vira onda paralela com worktree e coordenador secundário, sempre
+  que for seguro; quando não é, o §2.1 diz "Ondas paralelas: não, porque …". Dependência cruzada
+  se resolve congelando em C0, com ponto de integração, ou movendo a consumidora. Não funda trilhas.
+- Escreva sempre: o grafo em ASCII, o que roda junto, o que **não** roda junto com a razão de cada
+  par, e o caminho crítico.
+- **Estimativa em tokens, nunca em dias:** totais, de saída, e relógio ≈ saída do caminho crítico
+  ÷ vazão do modelo, mais as esperas fixas. Sem teto fixo de workers.
+- **Ordene por dependência de comportamento:** primeiro o aditivo e inerte, depois o que entrega,
+  por último a chave que liga, reversível em uma linha. Passo de validação com item que você já
+  sabe que vai falhar por causa de tarefa posterior: reordene.
+- Com worktrees: tabela de papéis (só o principal integra, publica, roda ponta a ponta, migra e
+  escreve em dado), arquivos que duas ondas tocam com o trecho de cada, ordem de integração, e o
+  que a worktree nova precisa para nascer.
+
+## 5. Gate e advisor
+
+- **Um gate por plano**, sobre o candidato integrado, imediatamente antes do primeiro passo
+  irreversível. Segundo gate só com segundo passo irreversível de superfície própria, ou produção
+  em etapas decidida no plano. Nunca um por onda. Escala mínima e parcial: sem gate.
+- Gate é tarefa com nível, dono e "bloqueia C<z>" no título. BLOQUEIA pede correção com teste, não
+  segunda rodada.
+- Declare o modelo e o orçamento do advisor na linha `Gate / Advisor`. No §7: aceitação
+  observável, limites técnicos, tokens e saldo pago já autorizado, num estado corrente único.
+- Revisão da spec ou do plano nunca é tarefa do grafo: nenhum `S0`, nenhum "bloqueia a onda 1".
+
+## 6. Fecho do plano
+
+- Passos do coordenador entre as ondas e depois da última, em ordem, com o comando. Termine com os
+  portões de entrega do projeto e a documentação que acompanha a mudança no mesmo commit.
+- **Saída de "em validação":** tipo de entrega (só interface, ou com backend), prazo (14 ou 30
+  dias) e cron de verificação com os sinais de funcionamento e de bug. Mudança que envia algo a
+  pessoas reais leva também uma leitura curta de 7 dias.
+- **Registro do ciclo.** O plano termina com o bloco `## Registro do ciclo`
+  (`references/registro-do-ciclo.md`), com a parte da spec e a do plano preenchidas agora. É o que
+  permite medir depois se o processo melhorou; número que você não sabe é `nd`, nunca chute.
+- Onde salvar: a convenção do projeto. Com pastas por estado, o plano nasce em "a fazer".
+
+## 7. Pré-voo: antes de mostrar o plano a alguém
+
+Quem escreveu o plano é o pior revisor dele, e pergunta de julgamento aprova o próprio texto. Por
+isso a conferência é mecânica e de olhos novos, nesta ordem (`references/pre-voo.md`):
+
+1. **`scripts/plan-lint.py <plano> --spec <spec>`**, na pasta desta skill. Erro se conserta, não se
+   explica. Escala mínima com arquivo de plano para aqui.
+2. **Verificador de contexto limpo** (parcial e completa): um agente que não escreveu o plano relê
+   cada linha citada, roda de novo cada consulta de falsificador e faz o grep de quem lê e de quem
+   emite o que muda. O brief está pronto na referência.
+3. **Corrija no lugar.** Correção substitui o texto contradito, nunca é anexada embaixo dele.
+   Anote os dois números no registro do ciclo.
+4. A lista de julgamento que sobra está em `references/auto-revisao.md`.
+
+## 8. Pare e pergunte: revisão externa ou commit e push
+
+- Plano escrito, pré-voo limpo e nenhuma decisão do usuário em aberto: **pare, sem commitar.** Uma
+  pergunta, duas opções, a recomendada primeiro.
+- **Escala completa:** recomende a revisão externa, dizendo o que este plano tem de caro, e peça o
+  modelo. **Mínima e parcial:** recomende commit e push; revisão externa só se o usuário pedir.
+- Usuário já nomeou o modelo no pedido: rode sem perguntar. O modelo nomeado decide o mecanismo:
+  subagente do harness, ou orquestração com terminal visível. Nunca headless, nunca troca
+  silenciosa de modelo.
+- **A revisão roda uma vez.** Nova rodada só com autorização explícita do usuário. Peça a refutação
+  das afirmações de carga, nomeadas, e as regressões prováveis por tarefa; diga o que o revisor
+  não tem.
+- **Ao receber o relatório:** confira cada bloqueador você mesmo (recusar com prova também é
+  triagem; aceitar tudo por deferência não é), separe o técnico da decisão de negócio, leve as
+  decisões de negócio ao usuário numa rodada **antes** do commit, registre aceitos, recusados e o
+  custo de cada um (documental, decisão, redesenho), e commite e dê push sem novo aval.
+- Nenhum worker sobe daqui: implementar exige pedido explícito, e a skill é `orchestrating-execute`.
 
 ## Regras do projeto: de onde saem
 
-Esta skill é genérica de propósito. O que a torna afiada em cada repositório vem de lá, não daqui.
-
-Leia `CLAUDE.md` e `AGENTS.md` do projeto, e `.claude/plan-profile.md` se existir. Procure especificamente por:
-
-- o que subagente **não** pode rodar neste checkout;
-- se branch e worktree só entram a pedido;
-- como mudança de schema é aplicada, e o que a torna irreversível;
-- quais são os portões de entrega;
-- que documentação precisa acompanhar a mudança no mesmo commit;
-- convenções de idioma, de commit e de nomeação.
-
-Se o projeto não tiver esses arquivos, pergunte ao usuário estas coisas antes de escrever o plano. Elas mudam o grafo, não são detalhe.
-
-## Onde salvar
-
-Siga a convenção do projeto. Procure planos anteriores (`docs/plans/`, `docs/**/plans/`, `plans/`) e imite o caminho e o formato de nome que já existem. Se não houver nenhum, use `docs/plans/AAAA-MM-DD-<topico>.md` e diga ao usuário que você criou a convenção.
-
-Se o projeto guarda planos em pastas por estado (a fazer / em validação / feito), o plano novo nasce em "a fazer", ao lado da spec. Quem o move para "em validação" é o fecho de `orchestrating-execute`; para "feito", quem lê o veredito do cron de verificação. Plano só de interface pula "em validação" (seção abaixo). Plano que ainda não rodou fora de "a fazer" some da lista de trabalho.
-
-### Saída de "em validação": tipo, prazo e cron de verificação
-
-"Em validação" sem data vira depósito. Medido em 2026-10-26: 52 planos parados lá, e 27 deles
-já estavam em produção com usuários reais usando, esperando uma prova visual que ninguém ia
-colher. Por isso o plano decide **na escrita** como vai sair de lá, em três campos da seção de
-fecho (modelo em `references/plan-template.md`, passo 6 do fecho):
-
-**1. Tipo de entrega.** Decide se o plano passa por "em validação":
-
-| Tipo | Exemplos | Caminho |
-| --- | --- | --- |
-| **Só interface** | tela, visual, animação, texto, layout, sem regra nem dado novo | o usuário valida antes de produção; publicado em produção, vai **direto para "feito"** no mesmo commit que registra a publicação. Sem prazo, sem cron |
-| **Interface com backend** ou **só backend** | tela que grava ou lê dado novo, endpoint, migração, rotina agendada, webhook, pagamento, integração, cálculo, saída de IA | vai para "em validação" com prazo e cron agendado |
-
-Na dúvida, é o segundo: se um erro só apareceria no dado ou no log, não na tela, há backend.
-
-**2. Prazo.** `sai até AAAA-MM-DD`, contado da chegada a produção: **14 dias** por padrão,
-**30 dias** quando o efeito precisa de ciclo longo para aparecer (uso semanal, renovação de
-assinatura, métrica de retenção, rotina mensal) ou quando o plano promete uma medição nessa data.
-Escreva o motivo da escolha em uma linha.
-
-**3. Cron de verificação.** Especifique no plano, para ser agendado no MESMO commit do fecho, nunca
-deixado pendente (`orchestrating-execute`, *Cron de verificação: nunca pendente*: skill `cron-orca`, modelo
-intermediário Claude Sonnet 5.5), gateado pela data e pelo `deploy_sha` da chegada a
-produção (no ambiente com Orca, pela skill `cron-orca`; sem ele, pelo agendador que o projeto
-usar). Ele roda na data do prazo, gateado pela data para não subir agente antes, e responde a
-pergunta do critério: *o que foi implementado está funcionando em produção, sem bug?*
-O plano deixa escrito:
-
-- **Sinais de funcionamento:** 1 a 3 consultas agregadas que provam uso real (linhas novas por
-  dia, usuários distintos, eventos de sucesso). Consulta pronta, com o filtro que exclui contas
-  de teste e do dono.
-- **Sinais de bug:** onde o erro apareceria (evento de erro do app, log da função, chamado de
-  suporte, falha recorrente, valor fora da faixa esperada) e o limite que conta como bug.
-- **Saída:** o relatório com o veredito (*funcionando*, *bug*, *sem uso*) e a evidência
-  numérica. O cron **não** move arquivo nem commita: quem move é a sessão que lê o veredito.
-
-**Leitura curta, quando a mudança envia algo a pessoas reais.** Se o que foi implementado manda
-push, WhatsApp, e-mail ou qualquer mensagem a usuários, o plano especifica uma **segunda leitura,
-7 dias depois de a mudança ficar ligada para elas** (se estiver atrás de uma chave desligada, a
-contagem começa ao ligar, não no deploy). Ela não mede sucesso, mede dano: envio duplicado (mesma
-pessoa, mesmo tipo e dia), fora da janela de horário, no idioma errado, a quem já tinha feito a
-ação que o aviso cobra. O limite de cada checagem é zero. O cron do prazo continua existindo; a
-leitura curta é o alarme precoce. Sem ela, o aviso errado só seria visto no dia do prazo, com gente de verdade já
-tendo recebido (medido em 03/11/2026: o plano de uma funcionalidade de notificações trazia só o
-cron de 30 dias, e a leitura de 7 dias nasceu de um pedido do usuário depois do fecho).
-
-No prazo, o veredito decide o destino. O plano nunca fica sem decisão:
-
-| Veredito | Destino |
-| --- | --- |
-| Funcionando: em produção, usado, sem sinal de bug | "feito", com a evidência na linha de estado (`feito em AAAA-MM-DD: <evidência>`) |
-| Bug | abre a correção; o plano fica e ganha prazo novo e cron novo, contados da correção em produção |
-| Sem uso ou não entregue (atrás de chave desligada, só para admin, parcial) | pergunte ao usuário: feito como está, abandonado, ou prazo novo com o que falta. Uma prorrogação só; na segunda, a decisão é feito ou abandonado |
-
-Planos que já estão em "em validação" sem tipo nem cron se revisam em lote: separe os de só
-interface já em produção e os com uso real evidente, que saem sem consulta, e gaste checagem
-leve (1 a 3 consultas) só onde falta evidência.
-
-Esqueleto pronto para copiar: `references/plan-template.md`.
-
-Depois de escrever, e sem nenhuma decisão do usuário em aberto, **não commite ainda**: pare e pergunte *revisão externa ou commit e push* (Fase 3, seção da revisão externa). Com a resposta, siga até o push sem nova parada. Não suba worker nem implemente: só com pedido explícito do usuário, e a skill então é `orchestrating-execute`.
+Esta skill é genérica de propósito. Leia `CLAUDE.md` e `AGENTS.md` do projeto e
+`.claude/plan-profile.md` se existir, procurando: o que subagente não pode rodar; se branch e
+worktree só entram a pedido; como mudança de schema é aplicada e o que a torna irreversível; quais
+são os portões de entrega (são eles que tiram um passo irreversível da escala completa); que
+documentação acompanha a mudança; convenções de idioma, commit e nomeação. Sem esses arquivos,
+pergunte ao usuário antes de escrever: essas respostas mudam o grafo.
 
 ## Documentação viva
 
-Esta skill melhora com o uso, e melhorá-la faz parte da implementação quando o ciclo mostrou um
-furo **dela**: o achado da revisão adversarial que o plano deveria ter pegado, o desvio que a
-execução pagou. É opcional, e só vale quando o furo custou e vai custar de novo.
+Esta skill melhora com o uso, quando o ciclo mostrou um furo **dela** que custou e vai custar de novo.
 
-- **Melhore antes de acrescentar.** Procure a seção que já cobre o assunto e aperte-a; linha nova
-  só se nada cobre. Esta skill não cresce indefinidamente.
-- **A regra fica aqui; o caso vai para `references/`.** Este arquivo é carregado inteiro em todo
-  plano, inclusive no mínimo. Aqui entra a regra com uma linha de lastro (data e número); a
-  narrativa do caso, quando precisa ser longa, vai para `references/classes-de-erro.md` ou para
-  uma referência nova, com um ponteiro de uma linha.
-- **Conceito, não caso.** Antes de escrever, leia o `AGENTS.md` da raiz do plugin: nada de nome de
-  tabela, cliente, ciclo ou caminho do projeto onde a lição foi paga.
-- **Escreva no clone git de onde a skill foi carregada** (a pasta deste arquivo). Se ela não é
-  repositório git (cópia de cache de instalação), não edite: deixe o texto proposto no relatório.
-- **Não commite nem dê push.** Avise o usuário no relatório final, como follow-up: arquivo, seção
-  e uma linha do porquê. Quem confere e commita é ele.
+- **Verificação antes de prosa.** Defeito que uma checagem mecânica pegaria vira checagem em
+  `scripts/plan-lint.py` ou linha no brief do verificador, não parágrafo novo.
+- **Este arquivo tem teto.** `scripts/check-skills.sh`, na raiz do plugin, recusa `SKILL.md` acima
+  de 19 mil caracteres, porque o que passa disso some depois de uma compactação. Regra nova entra
+  em uma linha aqui e o caso medido vai para `references/`. Melhore antes de acrescentar.
+- **Conceito, não caso:** leia o `AGENTS.md` da raiz do plugin antes de escrever.
+- **Escreva no clone git do plugin:** a pasta desta skill, se ela for um repositório git; senão o
+  caminho gravado em `~/.config/planning-workflow/clone`. Sem nenhum dos dois, deixe o texto
+  proposto no relatório.
+- **Commit e push no mesmo trabalho:** rode `scripts/check-skills.sh`, commite só os caminhos que
+  mudou, dê push na branch principal e rode `scripts/sync-harnesses.sh` se existir. Diga ao
+  usuário o commit em uma linha. O histórico do git é o backup: desfazer é um `git revert`.

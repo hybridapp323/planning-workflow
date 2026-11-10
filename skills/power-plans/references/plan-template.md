@@ -33,6 +33,8 @@ tentada e o resultado. Quem executar e descobrir que uma delas é falsa **para e
 A linha só fecha com a contagem do falsificador. Contagem que confirma a afirmação mede outra
 coisa e não fecha a linha.
 
+**Pré-voo:** lint <n erros na primeira rodada> · verificador <n achados confirmados> (`pre-voo.md`).
+
 **Revisão externa:** <quem revisou, quando, caminho do relatório> · <N bloqueadores: n documentais, n decisão do usuário, n redesenho; N aceitos>
 · <o que foi recusado e por quê>. Se o usuário não pediu revisão, escreva "não solicitada". O
 campo é registro, não pendência: revisão da spec ou do plano não é tarefa do grafo (§2).
@@ -201,8 +203,8 @@ para correção. Segunda rodada só com autorização do usuário, para mudança
 
 ## 5.1 Rastreabilidade (mecânica, não decorativa)
 
-Preencha **depois** de escrever as tarefas, e **rode o grep** — não confie na leitura, que é
-justamente o que aprova o próprio texto.
+Preencha **depois** de escrever as tarefas, e **rode o `plan-lint.py`** — não confie na leitura,
+que é justamente o que aprova o próprio texto.
 
 | FR | Cenário que vira o "Pronto quando" | Tarefa |
 | --- | --- | --- |
@@ -210,13 +212,11 @@ justamente o que aprova o próprio texto.
 | FR-2 | <...> | T5 |
 
 ```bash
-for n in $(grep -o 'FR-[0-9]\+' <spec> | sort -u -V); do
-  printf '%-6s plano=%s\n' "$n" "$(grep -cw "$n" <plano>)"
-done
+python3 <pasta da skill>/scripts/plan-lint.py <plano> --spec <spec>
 ```
 
-Qualquer `plano=0` é um requisito que nenhum worker vai ver. **`-w` não é enfeite:** sem ele `FR-1` casa dentro de `FR-10`, e o requisito que ninguém
-citou aparece como coberto. Medido no próprio ciclo que originou este item.
+Requisito que nenhuma tarefa cita é um requisito que nenhum worker vai ver. O lint acusa esse e os
+outros defeitos mecânicos (`pre-voo.md`).
 
 E os **casos de borda da spec (§5 de lá) são itens de trabalho, não documentação**: cada linha
 recebe uma tarefa dona, ou a marca *"sem código, já coberto por FR-n"*. Linha de borda sem dono é
@@ -227,6 +227,7 @@ comportamento que a spec descreveu certo e ninguém implementou.
 Só o coordenador roda estes. Nenhum worker.
 
 ### C0 — antes da onda 1
+0. <E0, só se o desenho depende de fato externo: a chamada real à API ou ao modelo de terceiro, com o resultado cru. Adiar é decisão do usuário, escrita aqui, e as tarefas que dependiam ganham `[SUPOSTO:]`>
 1. <verificar árvore limpa>
 2. <escrever os contratos congelados de §4>
 3. <commitar spec, plano e contratos, com caminhos explícitos>
@@ -235,6 +236,7 @@ Só o coordenador roda estes. Nenhum worker.
 1. <integrar as entregas da onda 1 e aceitar cada uma com casos seus>
 2. <conferir que os contratos de §4 não mudaram>
 3. <com ondas em worktrees: integrar o branch de cada onda na ordem de §2.3, com o rebase feito pela onda; suíte por nome depois de cada integração>
+4. <com tarefa de tela e referência visual aprovada: comparação lado a lado de cada uma, gravada em `comparacao-T<n>.md` na pasta do plano. Sem o arquivo de cada tarefa de tela, o front não é integrado nem publicado>
 
 ### C2 — depois de S1 (nunca antes)
 1. <aplicar migration>
@@ -244,7 +246,7 @@ Só o coordenador roda estes. Nenhum worker.
 ### C<n> — fecho
 1. <lint, testes>
 2. <commit>
-3. Portões de entrega deste projeto: <deploy? bundle? build nativo? publicação?>
+3. Portões de entrega do projeto: <deploy? bundle? build nativo? publicação?>
 4. Documentação viva que precisa acompanhar: <quais arquivos>
 5. Mover plano e spec para <em validação> (pastas de estado do projeto, se houver) e reescrever as referências ao caminho antigo
 6. Saída de <em validação> (power-plans, *Saída de "em validação"*):
@@ -274,13 +276,17 @@ autorizada ou verba adicional continuam com o usuário.
 | <correção fica no sintoma ou repete a mesma família> | advisor `ADV-n` no modelo/esforço de `Gate / Advisor`; uma consulta por veredito/episódio, com decisão e contraprova offline em §7 |
 | <freio técnico de candidatas/tentativas atingido> | consultar advisor automaticamente; não perguntar só pela contagem, zerar tentativas ou elevar quota paga |
 | <muitos testes verdes sem jornada aceita> | critério observável e prova integrada explícitos; campanha completa na candidata estabilizada |
+
+## Registro do ciclo
+
+<copie o bloco de `registro-do-ciclo.md`; preencha agora a parte da spec e a do plano, e deixe a de execução para o fecho. Desconhecido é `nd`>
 ```
 
 ---
 
 ## Notas sobre o esqueleto
 
-**"Pronto quando" é cópia, não paráfrase.** Verificável não basta: *"quando `bunx vitest run
+**"Pronto quando" é cópia, não paráfrase.** Verificável não basta: *"quando `<runner> run
 caminho/x.test.ts` passar"* é verificável e ainda assim não diz **o que** o teste tem de afirmar —
 quem escreve o teste decide isso, pelo que entendeu. Cole o cenário da spec dentro do critério e as
 duas coisas viram a mesma. E se você compactar as tarefas numa tabela em vez de um bloco por

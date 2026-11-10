@@ -9,32 +9,20 @@ plano* e *Etiqueta de procedência* do `SKILL.md`.
 
 ### As classes que morderam de verdade — confira estas por nome
 
-1. **Semântica de coluna, flag ou campo. NUNCA infira pelo nome.** `created_at` de uma tabela
+1. **Semântica de coluna, flag ou campo. NUNCA infira pelo nome.** A data de criação de uma linha
    de auditoria parece "quando aconteceu" e significa "quando fechou". Abra a linha e compare
    com um caso conhecido. Um projeto medido tinha uma família inteira de bugs assim
    (um booleano cujo nome descreve o que o cliente **disse**, lido como "o que o estágio
    **entregou**"). O plano de 26/08 reproduziu, na
    camada de planejamento, exatamente o defeito que ele fora escrito para corrigir.
 
-   A verificação inteira é **uma query**, e ela devolve o veredito sem interpretação:
-
-   ```sql
-   select a.created_at, a.processing_time_ms,
-          a.created_at - (a.processing_time_ms||' ms')::interval as turno_comecou,
-          (select max(m.created_at) from messages m
-             where m.conversation_id = a.conversation_id
-               and m.direction = 'inbound' and m.created_at < a.created_at) as ultimo_inbound
-   from ai_audit_logs a
-   where a.conversation_id = '<a conversa do caso>' order by a.created_at;
-   ```
-
-   Resultado real do turno auditado: `created_at 22:58:15.38`, `processing_time_ms 14493`,
-   `turno_comecou 22:58:00.888`, e o inbound engolido em `22:58:02.586`. Ou seja: o inbound é
-   **posterior ao início** do turno (logo invisível ao motor, e recuperável) mas **anterior ao
-   `created_at`** por 13,0 s — cortar no `created_at` o classificaria como "já visto" e o fix
-   não faria nada. Nos seis turnos da conversa o atraso variou de 6,5 s a 36,3 s, e dois vieram
-   com `processing_time_ms = 0`, caso de borda que sozinho já obriga a exigir que a linha de
-   auditoria **emoldure** o outbound.
+   A verificação inteira é **uma consulta**, e ela devolve o veredito sem interpretação: para
+   o caso conhecido, ponha lado a lado a coluna suspeita, o instante que você acha que ela
+   representa (derivado de outro campo) e o evento real mais próximo. Resultado no turno
+   auditado: a coluna marcava 13,0 s **depois** do evento que o fix precisava recuperar; cortar
+   por ela o classificaria como "já visto" e o fix não faria nada. Nas seis linhas do caso o
+   atraso variou de 6,5 s a 36,3 s, e duas vieram com o campo de duração zerado, caso de borda
+   que sozinho já muda o desenho.
 
 2. **O fix é no-op?** Antes de escrever a tarefa, pergunte: com o código de hoje, esta
    mudança altera alguma coisa? Um corte que já exclui o alvo, um guard que já não dispara,

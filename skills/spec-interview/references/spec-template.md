@@ -97,8 +97,13 @@ Esta seção é a fonte do contrato congelado, não o substitui.
 
 ### 8.3 Referência e comportamento visual (só se houver interface afetada)
 
+Condição que vale (uma das três): `<referência aprovada e exercitada pelo usuário em AAAA-MM-DD |
+decisões visuais fechadas na entrevista, listadas abaixo | referência dispensada pelo usuário
+porque …>`.
+
 Referência aprovada: `<arquivo, versão e variantes>`. Governa: `<composição / conteúdo /
-movimento>`. Adaptações permitidas: `<diferenças aprovadas e decisão do §9>`.
+movimento>`. Adaptações permitidas: `<diferenças aprovadas e decisão do §9>`. Se a referência
+mudar depois (protótipo novo), esta seção muda junto: é ela que o plano e o aceite seguem.
 
 | Elemento / ação | Posição, grupo e destaque | Estado em que aparece | FR |
 | --- | --- | --- | --- |
@@ -181,3 +186,14 @@ ainda precisa ser medido, sem obrigar a reler tudo.
 "completar o template" é o defeito que este esqueleto existe para evitar: ela parece rigor e
 esconde o que faltou perguntar. Duas linhas honestas ("não há estado anterior: a tabela é nova")
 valem mais que um parágrafo genérico.
+
+**Três coisas do esqueleto não são opcionais** (requisito com id e cenário, critério com número e
+baseline, e a matriz de quem consome e emite), porque em prosa a regra não segurou. Medido em
+2026-09-02: de duas specs arquiteturais do mesmo ciclo, uma saiu com 14 seções e a outra com 4, sem
+decisão com autoria nem alternativa descartada.
+
+**Exemplo é asserção, não ilustração.** Toda tabela de valores de referência é calculada a partir da
+regra que a spec enuncia, com a coluna intermediária à mostra. Medido em 2026-09-03: uma tabela de 6
+perfis de referência trazia 3 linhas que nenhuma regra única de arredondamento produzia; passou pela
+leitura do usuário e só caiu na implementação, quando um worker calculou os 6 e escalou em vez de
+dobrar o código para caber na tabela.

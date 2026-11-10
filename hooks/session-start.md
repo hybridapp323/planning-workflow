@@ -1,22 +1,20 @@
 ## Ciclo de trabalho — plugin `planning-workflow`
 
-**Decida a skill antes da primeira ferramenta.** A checagem vem antes de explorar o código, antes de responder, e antes de fazer pergunta de esclarecimento — porque é a skill que diz *como* explorar e *o que* perguntar.
+**Comece pelo tamanho do pedido, não pela skill.** A maior parte dos pedidos não precisa de spec nem de plano.
 
-| Se o pedido é | Skill |
+| O pedido é | Faça |
 | --- | --- |
-| Ideia, feature nova, componente novo, mudança de comportamento, escopo ainda aberto | `spec-interview` |
-| Bug, teste falhando, erro, comportamento inesperado, "não funciona" | `systematic-debugging` |
-| Spec pronta, o próximo passo é planejar a implementação | `power-plans` |
+| Mudança delimitada: você consegue dizer os arquivos e a prova antes de começar, e ela se desfaz com um revert | **Direto, sem skill.** Leia o que vai tocar, diga em 3 a 5 linhas o que vai fazer e como prova, e faça. Sem spec, sem arquivo de plano, sem revisão externa |
+| Bug, teste falhando, erro, "não funciona" | `systematic-debugging` |
+| Feature nova grande, subsistema novo, ou pedido com **escopo ainda aberto** (daria para implementar de duas formas bem diferentes sem contrariar nada do que foi dito) | `spec-interview` |
+| Spec fechada de trabalho com vários donos, contrato entre tarefas, ou passo irreversível sem portão próprio do projeto | `power-plans` |
 | Plano pronto **e o usuário pediu explicitamente para executar** | `orchestrating-execute` |
 
-Se há chance real de uma delas se aplicar, invoque — e diga qual e por quê. Descobrir no meio do caminho que o pedido era maior do que parecia **sobe** para a skill; nada desce.
+Protótipo, investigação e pergunta ("dá pra…?", "por que…?") não abrem spec nem plano: responda, ou construa o protótipo.
 
-Estes pensamentos são racionalização, não análise:
+**Na dúvida entre dois caminhos, comece pelo mais leve e suba quando aparecer o motivo:** um segundo dono, um contrato que outra tarefa consome, um dado que não volta atrás. Diga que subiu e por quê. Tamanho do diff, número de arquivos e "é em produção" não são motivo.
 
-- "isso é simples demais para precisar de processo";
-- "deixa eu só olhar o código primeiro";
-- "eu já sei o que fazer aqui";
-- "preciso de mais contexto antes de decidir";
-- "faço uma pergunta rápida antes".
+- **Você está inflando se:** o documento que vai escrever é maior que a mudança; o usuário já descreveu o pedido por inteiro e você abre entrevista; o plano teria uma tarefa só.
+- **Você está encolhendo se:** não sabe dizer o que fica de fora; a mudança mexe em dado que não se desfaz e o projeto não tem portão para isso; dois agentes vão trabalhar ao mesmo tempo.
 
-Nada disso vale quando o usuário mandou explicitamente pular, ou quando você é um subagente executando uma tarefa já delimitada.
+Nada disso vale quando o usuário mandou usar ou pular uma skill, ou quando você é um subagente executando uma tarefa já delimitada.

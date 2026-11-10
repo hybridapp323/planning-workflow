@@ -49,9 +49,17 @@ inteira descoberta na fase de plano, onde a mesma pergunta já custa uma reescri
 - jornadas principais, em ordem
 - estados de erro, vazio, carregando, parcial
 - acessibilidade, idioma, fuso horário (se há interface)
-- **referência visual aprovada, se houver:** arquivo e versão; quais aspectos ela governa
-  (composição, conteúdo, movimento) e quais adaptações são permitidas. Código existente
-  não autoriza substituir silenciosamente uma decisão nova aprovada.
+- **referência visual, sempre que há tela:** uma de três condições tem de valer e ficar
+  escrita no §8.3. (1) Protótipo ou tela existente aprovado **e exercitado** pelo usuário, com
+  arquivo e versão, os aspectos que governa (composição, conteúdo, movimento) e as adaptações
+  permitidas; (2) decisões visuais fechadas na entrevista: onde a tela vive, navegação, o que
+  aparece em cada estado, ações e destaque, textos; (3) referência dispensada pelo usuário,
+  com a razão. Código existente não autoriza substituir em silêncio uma decisão nova
+  aprovada. Medido em 11/2026, em dois projetos: com protótipo aprovado e não conferido, uma
+  área inteira foi refeita; em outras três features com protótipo, vieram de 10 a 13 commits
+  de ajuste depois da entrega, parte por divergência do protótipo; e dez decisões de produto e
+  reversões de um ciclo nasceram de o usuário ver a tela pronta. Aprovar olhando a primeira
+  prancha não é exercitar: peça que ele percorra os estados.
 - **posição e hierarquia das ações:** grupo ao qual pertencem, ordem, destaque e estados
   em que aparecem. "Dentro da tela" não define agrupamento nem peso visual.
 - **transições, quando afetadas:** origem, destino, sequência, condição de conclusão e
@@ -80,6 +88,11 @@ transições passaram com duplicação visual e reinício indevido encontrados n
 ### Integrações e dependências externas
 
 - cada serviço externo, e o que acontece quando ele falha, demora ou muda de versão
+- **fato externo de que o desenho depende** (o que a API de terceiro aceita e devolve, o que um
+  modelo gera): é sonda, não premissa. Uma chamada real agora, ou o primeiro passo do plano,
+  antes do código que a consome. Documentação do fornecedor não substitui a chamada. Medido em
+  11/2026: de nove fatos de API e de modelo que viraram correção num ciclo, quatro a sonda
+  planejada teria pego; ela foi adiada na largada e os nove só apareceram no teste ponta a ponta.
 - formatos de importação e exportação
 - **quem mais consome e quem mais emite** o que muda (a matriz bidirecional da spec)
 

@@ -51,7 +51,7 @@ Complete cada fase antes da seguinte.
 
 3. **Veja o que mudou.** Diff, commits recentes, dependência nova, config, diferença de ambiente.
 
-4. **Instrumente as fronteiras, em sistema de várias camadas.** Quando o fluxo passa por vários componentes (front → edge function → banco, CI → build → assinatura), **antes de propor conserto** adicione log em cada fronteira: o que entra no componente, o que sai, se a config/variável de ambiente propagou, qual o estado em cada camada. Rode **uma vez** para juntar evidência de **onde** quebra, e só então investigue aquele componente.
+4. **Instrumente as fronteiras, em sistema de várias camadas.** Quando o fluxo passa por vários componentes (front → função de servidor → banco, CI → build → assinatura), **antes de propor conserto** adicione log em cada fronteira: o que entra no componente, o que sai, se a config/variável de ambiente propagou, qual o estado em cada camada. Rode **uma vez** para juntar evidência de **onde** quebra, e só então investigue aquele componente.
 
 5. **Rastreie o dado para trás.** Quando o erro aparece fundo na pilha, o instinto é consertar onde ele aparece — e isso é tratar sintoma. Vá subindo:
 
@@ -62,7 +62,7 @@ Complete cada fase antes da seguinte.
 
    Se não der para rastrear lendo, instrumente: logue o valor **antes** da operação perigosa (não depois que ela falha), junto com o contexto (parâmetro, ambiente, `new Error().stack` para a cadeia de chamada completa). Em teste, use a saída de erro direta do runtime — logger pode estar suprimido.
 
-**Regra dura deste projeto:** para bug, a causa vem de evidência concreta — query, log, ou o código-fonte lido — antes de escrever plano ou editar arquivo. Suspeita raciocinada não é causa raiz.
+**Regra dura:** para bug, a causa vem de evidência concreta — query, log, ou o código-fonte lido — antes de escrever plano ou editar arquivo. Suspeita raciocinada não é causa raiz.
 
 ### Fase 2 — padrão
 
@@ -99,6 +99,8 @@ Complete cada fase antes da seguinte.
    ao usuário apenas por atingir três a cinco candidatas. Se a atribuição for desconhecida,
    defina-a uma vez; não invente modelo. Produto, aceite de residual, ação sem autorização
    ou verba paga adicional continuam com o usuário. Diagnóstico focal precede campanha completa.
+   Em depuração avulsa, fora de um ciclo de plano e sem modelo de gate escolhido, a consulta é ao
+   usuário: leve a causa observada, as tentativas e as alternativas, e pare de tentar.
 
 ### Depois da causa raiz: defesa em camadas
 
@@ -165,7 +167,7 @@ Se a investigação mostrar que é mesmo ambiental, dependente de timing, ou ext
 
 Quando uma sessão de depuração revelar uma armadilha nova deste tipo de sistema — uma camada que engole erro em silêncio, um log que mente, uma ferramenta cuja saída parece dizer o contrário do que diz — ela entra aqui **no mesmo trabalho**. Critério de entrada: **custou tempo real**, e vai custar de novo.
 
-Como escrever: melhore a seção que já cobre o assunto antes de acrescentar linha; siga o `AGENTS.md` da raiz do plugin (conceito, não caso); escreva no clone git de onde a skill foi carregada (sem git, deixe a proposta no relatório); **não commite nem dê push**, avise o usuário como follow-up com arquivo e seção.
+Como escrever: melhore a seção que já cobre o assunto antes de acrescentar linha (este arquivo tem teto de 19 mil caracteres, conferido por `scripts/check-skills.sh`); siga o `AGENTS.md` da raiz do plugin (conceito, não caso); escreva no clone git do plugin (a pasta desta skill, se for repositório git; senão o caminho em `~/.config/planning-workflow/clone`; sem nenhum, deixe a proposta no relatório). **Commit e push no mesmo trabalho:** rode `scripts/check-skills.sh`, commite só os caminhos que mudou, dê push na branch principal, rode `scripts/sync-harnesses.sh` se existir e diga ao usuário o commit em uma linha. O histórico do git é o backup.
 
 ---
 

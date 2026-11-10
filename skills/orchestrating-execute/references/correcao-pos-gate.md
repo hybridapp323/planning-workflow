@@ -190,14 +190,14 @@ e a segunda se responde lendo o contrato ao lado do teste, não rodando a suíte
 
 ## Documento de ciclo: toda afirmação precisa do comando que a produziu
 
-Mesmo ciclo, medido quando dois workers derrubaram duas afirmações minhas no
-documento de congelamento. Eu tinha escrito que uma tarefa tornara um parâmetro
+Mesmo ciclo, medido quando dois workers derrubaram duas afirmações do coordenador no
+documento de congelamento. Ele tinha escrito que uma tarefa tornara um parâmetro
 obrigatório em três transportes, e que um varredor estava vermelho por ter achado
 um vazamento real. Nenhuma das duas era verdade: o parâmetro entrou em dois dos
-três, e o varredor estava vermelho por `NotFound` de caminho URL-encoded.
+três, e o varredor estava vermelho por um erro de caminho.
 
-A causa não foi descuido de redação. Eu escrevi **o que a tarefa deveria ter
-feito**, a partir do brief que eu mesmo redigi, em vez do que a árvore mostrava.
+A causa não foi descuido de redação. O coordenador escreveu **o que a tarefa deveria ter
+feito**, a partir do brief que ele mesmo redigiu, em vez do que a árvore mostrava.
 É o mesmo erro que a Fase 0.5 do `power-plans` existe para impedir, e as duas
 afirmações mereciam `[SUPOSTO:]`, não `[MEDIDO:]`.
 
