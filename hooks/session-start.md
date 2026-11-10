@@ -10,7 +10,7 @@
 | Spec fechada de trabalho com vários donos, contrato entre tarefas, ou passo irreversível sem portão próprio do projeto | `power-plans` |
 | Plano pronto **e o usuário pediu explicitamente para executar** | `orchestrating-execute` |
 
-Protótipo, investigação e pergunta ("dá pra…?", "por que…?") não abrem spec nem plano: responda, ou construa o protótipo.
+Protótipo, investigação e pergunta ("dá pra…?", "como funciona…?") não abrem spec nem plano: responda, ou construa o protótipo. Pergunta sobre algo que parece quebrado ("por que não disparou?") é a linha do bug.
 
 Falta **uma ou duas decisões** num pedido delimitado, mesmo que seja "qual dos dois caminhos"? Isso não é escopo aberto: pergunte numa mensagem só, com a sua recomendação, e siga direto, sem skill.
 
