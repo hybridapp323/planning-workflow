@@ -54,8 +54,14 @@ não espera aprovação: decisões fechadas, spec escrita, plano escrito, direto
 
 ## Fase 1 — contexto, antes da primeira pergunta
 
-Leia o estado do projeto: arquivos que o pedido toca, `CLAUDE.md` / `AGENTS.md`,
-`.claude/plan-profile.md` se existir, commits recentes e docs de decisão.
+Antes de perguntar, levante o estado do projeto.
+
+**Pesquisa é de subagente; a sua janela é da entrevista.** Explorar código, ler documentação,
+histórico e docs de decisão, e buscar na web vão para subagentes de contexto limpo, em paralelo,
+cada um com uma pergunta estreita e resposta com `arquivo:linha`. Você lê direto só as regras do
+projeto (`CLAUDE.md` / `AGENTS.md`, `.claude/plan-profile.md` e o que elas mandam ler antes) e a
+linha que sustenta uma decisão: resumo de subagente é pista. Sem subagente no harness, leia só o
+necessário.
 
 **Feature com tela só fecha com referência visual.** Decisão de tela não se toma em texto: o
 usuário decide vendo. Antes de fechar a spec (ou o design curto, na limitada) de qualquer coisa com interface, uma destas três
@@ -70,9 +76,7 @@ pergunte só o que estiver ausente ou em conflito, sem reabrir a aprovação.
 **Fato externo é sonda, não premissa.** Resposta de API de terceiro ou comportamento de modelo
 de que o desenho depende se mede com uma chamada real, agora ou como primeiro passo do plano.
 
-**Fato é trabalho seu, decisão é do usuário.** Se uma pergunta da rodada precisa de um fato do ambiente — o que a tabela tem hoje, quantos usuários caem nesse caso, se aquele componente já existe — despache um subagente de contexto limpo para descobrir. Nunca pergunte ao usuário o que você mesmo pode olhar.
-
-Não bloqueie: só as perguntas que dependem de uma busca em andamento esperam; faça o resto da rodada agora.
+**Fato é trabalho seu, decisão é do usuário.** Fato que uma pergunta da rodada precisa (o que a tabela tem hoje, se o componente já existe) também vai para subagente; nunca pergunte ao usuário o que você pode olhar. Não bloqueie: só as perguntas que dependem de uma busca em andamento esperam; faça o resto da rodada agora.
 
 ### Questione o caminho antes de abrir a árvore
 
@@ -143,7 +147,7 @@ Detalhe e casos medidos: `references/profundidade.md`.
 
 ## Fase 3 — o design
 
-No caminho arquitetural, a escolha entre **2 a 3 abordagens** é uma decisão da árvore como qualquer outra: entra numa rodada, com os trade-offs no texto de cada opção e a recomendada primeiro. Não é uma apresentação à parte que espera aval.
+No caminho arquitetural, a escolha entre **2 a 3 abordagens** é uma decisão da árvore como qualquer outra: entra numa rodada, com os trade-offs no texto de cada opção e a recomendada primeiro.
 
 Quando a fronteira esvaziar e a varredura não acusar categoria ausente, o design vai direto para a spec, sem apresentação por seções e sem perguntar "está de pé?". Se, ao montar o design, você descobrir uma decisão que ninguém tomou, ela não entra no design: volta como rodada de perguntas, e a spec espera. Cubra: arquitetura, componentes, fluxo do dado, tratamento de erro, e como se testa.
 
@@ -164,9 +168,9 @@ Além do design, a spec registra **o que foi descartado, e por quê** (sem isso,
 Releia com olhos frios e conserte na hora:
 
 1. **Placeholder** — sobrou "TBD", "a definir", seção vazia, requisito vago?
-2. **Contradição** — alguma seção briga com outra? A arquitetura bate com a descrição das features? Resposta de rodada que invalidou uma frase anterior **substitui** a frase; nada contraditório sobrevive "para contexto".
+2. **Contradição** — alguma seção briga com outra? Resposta de rodada que invalidou uma frase anterior **substitui** a frase; nada contraditório sobrevive "para contexto".
 3. **Escopo** — isso cabe em um plano de implementação só, ou precisa ser decomposto?
-4. **Ambiguidade** — algum requisito comporta duas leituras? Escolha uma e escreva explícito. Procure token a token, pela lista de *Placeholders* de `references/coverage-scan.md`: adjetivo sem número, verbo sem objeto mensurável, recurso sem o que acontece quando falha, o mesmo conceito com dois nomes.
+4. **Ambiguidade** — algum requisito comporta duas leituras? Escolha uma e escreva explícito. Procure token a token, pela lista de *Placeholders* de `references/coverage-scan.md`.
 5. **Decisão órfã** — sobrou decisão marcada "assumida por mim" que devia ter virado pergunta? Se sim, pare a escrita e faça a rodada: não há aprovação depois para pegá-la.
 6. **Rastreabilidade** — todo FR tem cenário de aceitação e uma linha em "como se prova"? Todo SC tem número e baseline?
 7. **Exemplo é asserção** — toda tabela de valores de referência foi **calculada** pela regra que a
@@ -186,7 +190,7 @@ A spec não espera aval do usuário. Conferência fechada, **mostre no chat, em 
 ## Estado terminal
 
 - **Sonda, direta e limitada:** o que a tabela de caminhos diz, pelo fluxo normal do projeto. Sem documento de plano.
-- **Arquitetural:** decisões fechadas, spec escrita e conferida → invoque **`power-plans`** direto, sem esperar aval, e nenhuma outra skill. Não invoque skill de implementação, de design de front-end, nem de execução. `power-plans` é o próximo passo, ponto.
+- **Arquitetural:** decisões fechadas, spec escrita e conferida → invoque **`power-plans`** direto, sem esperar aval, e nenhuma outra skill. Não invoque skill de implementação, de design de front-end, nem de execução.
 
 ## Sinais de que você está se enganando
 

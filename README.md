@@ -15,8 +15,8 @@ decisão técnica o agente toma e avisa.
 ## As quatro skills
 
 - **`spec-interview`**: entrevista em rodadas até a ideia fechar. Pergunta a fronteira inteira por
-  rodada com a recomendação em cada pergunta, traz o que o usuário não pensou, busca sozinha os
-  fatos que estão no código ou no banco, e nada escreve enquanto sobrar decisão de produto em
+  rodada com a recomendação em cada pergunta, traz o que o usuário não pensou, pesquisa código e
+  documentação por subagentes (a janela do agente fica para a entrevista), e nada escreve enquanto sobrar decisão de produto em
   aberto. O tamanho da obra decide só o documento (sonda, direta, limitada, arquitetural): obra
   pequena termina num design curto no chat, obra grande numa spec escrita. Antes do plano, um
   leitor de contexto limpo confere a spec como quem vai construir, e o que for decisão de produto
