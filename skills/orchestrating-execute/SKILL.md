@@ -78,13 +78,14 @@ sozinho: releia a referência da fase em que você está antes de continuar.
 
 ## 2. Atribuição de modelo
 
-- **Antes de criar qualquer terminal**, pergunte modelo e esforço para Complexa, Média, Baixa,
+- **Antes de criar qualquer terminal**, pergunte só o MODELO de Complexa, Média, Baixa,
   Gate / Advisor e, com ondas em worktrees, Coordenador de onda. Nunca assuma nem herde de outro
-  plano. Atribuição por tarefa em vez de por nível: aceite.
+  plano. Atribuição por tarefa em vez de por nível: aceite. **Esforço não se pergunta** (regra do
+  usuário, 10/11/2026): você decide pela regra abaixo, salvo o que ele nomear.
 - Esforço nomeado pelo usuário vale para o ciclo inteiro, e esforço que ele fixou para um modelo
   (configuração, memória) também é nomeado. Sem isso, você escolhe por tarefa entre `medium` e
   `xhigh`: baixa e média em `medium` (`high` se a média produz contrato); complexa em `high`,
-  `xhigh` só quando ela carrega o que o plano não pôde resolver. Gate e advisor: esforço do usuário.
+  `xhigh` só quando ela carrega o que o plano não pôde resolver. Gate e advisor: o nomeado; sem nome, o mais alto do CLI.
 - **Smoke de cada modelo antes do primeiro terminal:** uma chamada de uma linha, no mesmo CLI do
   worker. Confira também a cota, quando o CLI a informa: cota no fim vira aviso ao usuário antes
   da onda, não troca de modelo no meio dela.

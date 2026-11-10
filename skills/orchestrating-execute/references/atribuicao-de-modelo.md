@@ -4,14 +4,14 @@ Referência da skill `orchestrating-execute`. Leia antes de criar o primeiro ter
 
 ## Portão de atribuição de modelo
 
-**Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível:
+**Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível. **Não pergunte o esforço** (regra do usuário, 10/11/2026: "você é o coordenador, você decide"); use o esforço que ele nomear no pedido ou fixou para um modelo, e decida o resto pela seção *Esforço* abaixo:
 
 | Nível | Modelo | Esforço |
 | --- | --- | --- |
-| Complexa | ? | ? (vazio: você decide por tarefa) |
-| Média | ? | ? (vazio: você decide por tarefa) |
-| Baixa | ? | ? (vazio: você decide por tarefa) |
-| Gate / Advisor | ? | ? (sempre do usuário) |
+| Complexa | ? | só se nomeado; senão você decide por tarefa |
+| Média | ? | só se nomeado; senão você decide por tarefa |
+| Baixa | ? | só se nomeado; senão você decide por tarefa |
+| Gate / Advisor | ? | o nomeado; sem nome, o mais alto que o CLI aceita |
 | Coordenador de onda | ? (só com ondas em worktrees separadas) | |
 
 O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` / `<MODELO_GATE>` justamente para essa decisão ser tomada aqui, com o custo e a disponibilidade do dia na mesa. Nunca assuma, nunca herde do plano anterior, e não comece a onda 1 com um nível ainda em aberto.
@@ -51,9 +51,9 @@ workers em `max`.
      ou difícil não basta; o plano já a desmontou.
    - **Reparo:** volta no esforço da tarefa original. Sobe um degrau uma vez, com o motivo
      escrito na task, se a tarefa já voltou duas vezes no aceite.
-3. **Gate e advisor ficam fora disso:** o esforço deles é do usuário, e pode ser `max` ou acima.
+3. **Gate e advisor ficam fora disso:** o esforço deles é o que o usuário nomeou, e pode ser `max` ou acima.
    Rodam uma ou duas vezes por ciclo, e o trabalho deles é achar o que ninguém decidiu; é aí que
-   o esforço máximo se paga (`references/correcao-pos-gate.md`). Linha vazia: pergunte.
+   o esforço máximo se paga (`references/correcao-pos-gate.md`). Sem esforço nomeado: o mais alto que o CLI aceita, sem perguntar.
 
 O esforço sobe pelo argumento que o CLI do worker aceita (alguns embutem no id do modelo; ver
 `references/orca-traps.md`) e se confere no rodapé do TUI junto com o modelo, na mesma leitura.
