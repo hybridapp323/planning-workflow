@@ -18,7 +18,9 @@ decisão técnica o agente toma e avisa.
   rodada com a recomendação em cada pergunta, traz o que o usuário não pensou, busca sozinha os
   fatos que estão no código ou no banco, e nada escreve enquanto sobrar decisão de produto em
   aberto. O tamanho da obra decide só o documento (sonda, direta, limitada, arquitetural): obra
-  pequena termina num design curto no chat, obra grande numa spec escrita. Feature com tela só fecha com referência visual exercitada
+  pequena termina num design curto no chat, obra grande numa spec escrita. Antes do plano, um
+  leitor de contexto limpo confere a spec como quem vai construir, e o que for decisão de produto
+  volta ao usuário. Feature com tela só fecha com referência visual exercitada
   pelo usuário, decisões visuais fechadas ou dispensa escrita.
 - **`power-plans`**: o plano de implementação, com o aparato na medida do risco (direto, mínimo,
   parcial, completo): evidência antes de plano, um dono por arquivo, contratos congelados, grafo

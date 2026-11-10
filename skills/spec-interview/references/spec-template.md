@@ -123,6 +123,9 @@ da referência medida ou de decisão explícita; não são inventados para preen
 
 As assumidas são a lista de revisão do usuário.
 
+Conferência do construtor: <data>, <n> perguntas do leitor de contexto limpo, <n> de produto
+(respondidas pelo usuário na rodada <n>).
+
 ## 10. Alternativas descartadas
 
 Sempre inclui a mais simples e a de não fazer.

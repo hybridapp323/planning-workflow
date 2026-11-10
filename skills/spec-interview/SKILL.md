@@ -147,13 +147,13 @@ No caminho arquitetural, a escolha entre **2 a 3 abordagens** é uma decisão da
 
 Quando a fronteira esvaziar e a varredura não acusar categoria ausente, o design vai direto para a spec, sem apresentação por seções e sem perguntar "está de pé?". Se, ao montar o design, você descobrir uma decisão que ninguém tomou, ela não entra no design: volta como rodada de perguntas, e a spec espera. Cubra: arquitetura, componentes, fluxo do dado, tratamento de erro, e como se testa.
 
-**Desenhe para isolamento:** unidades pequenas, com um propósito claro cada, conversando por interface bem definida, testáveis em separado. Para cada uma, você tem que conseguir responder: o que faz, como se usa, de que depende.
+**Desenhe para isolamento:** unidades pequenas, de propósito claro, com interface definida e testáveis em separado; de cada uma você sabe dizer o que faz, como se usa e de que depende.
 
 **Em código que já existe:** siga os padrões que estão lá; refatoração não relacionada fica fora.
 
 ## Fase 4 — escrever a spec (só no caminho arquitetural)
 
-Salve seguindo a convenção do projeto: procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite caminho e formato de nome. Sem nenhuma, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga que criou a convenção. Se o projeto guarda specs em pastas por estado (a fazer / em validação / feito), a spec nasce em "a fazer" e anda junto com o plano dela.
+Salve seguindo a convenção do projeto: procure specs anteriores (`docs/specs/`, `docs/**/specs/`, `specs/`) e imite caminho e formato de nome. Sem nenhuma, use `docs/specs/AAAA-MM-DD-<topico>-design.md` e diga que criou a convenção. Se o projeto guarda specs em pastas por estado, a spec nasce em "a fazer" e anda junto com o plano dela.
 
 Esqueleto pronto para copiar: `references/spec-template.md`. Copie a estrutura, não o conteúdo; corte seção que a feature não usa e diga que cortou. Três coisas do esqueleto não são opcionais, porque o plano vai citá-las: requisito com id (`FR-n`) e pelo menos um cenário de aceitação (*dado / quando / então*); critério de sucesso com id (`SC-n`), número e baseline; e a lista de quem mais consome e emite o que muda, nas duas direções.
 
@@ -169,31 +169,31 @@ Releia com olhos frios e conserte na hora:
 4. **Ambiguidade** — algum requisito comporta duas leituras? Escolha uma e escreva explícito. Procure token a token, pela lista de *Placeholders* de `references/coverage-scan.md`: adjetivo sem número, verbo sem objeto mensurável, recurso sem o que acontece quando falha, o mesmo conceito com dois nomes.
 5. **Decisão órfã** — sobrou decisão marcada "assumida por mim" que devia ter virado pergunta? Se sim, pare a escrita e faça a rodada: não há aprovação depois para pegá-la.
 6. **Rastreabilidade** — todo FR tem cenário de aceitação e uma linha em "como se prova"? Todo SC tem número e baseline?
-7. **Exemplo é asserção, não ilustração** — toda tabela de valores de referência foi
-   **calculada** a partir da regra que a spec enuncia, com a coluna intermediária à mostra? Regra
-   mais exemplos escritos à mão se contradizem sem ninguém notar lendo (caso medido nas notas de
-   `references/spec-template.md`).
+7. **Exemplo é asserção** — toda tabela de valores de referência foi **calculada** pela regra que a
+   spec enuncia, com a coluna intermediária à mostra (caso medido em `references/spec-template.md`)?
 8. **Tela** — se há interface, o §8.3 diz qual das três condições da Fase 1 vale?
 
-Conserte inline. Não precisa revisar de novo.
+Conserte inline.
+
+### Conferência do construtor, antes do plano
+
+Auto-revisão feita, despache um subagente de contexto limpo, em modelo intermediário, com o brief de `references/conferencia-do-construtor.md`: ele lê a spec como quem vai planejar sem poder falar com ninguém, e lista onde teria de chutar. O que já estava respondido entra na spec; o técnico você decide e marca como assumido; **o que for de produto volta ao usuário numa rodada única, e o plano espera.**
 
 ### Sem portão de aprovação: direto para o plano
 
-A spec não espera aval do usuário. Auto-revisão feita, **mostre no chat, em até dez linhas, o que ele pode querer contestar**: as decisões marcadas "assumida por mim", o que ficou fora de escopo e, se há tela, a referência que governa. Não é pedido de aval e você não espera resposta: é a lista de revisão dele. Diga onde a spec está e invoque `power-plans` no mesmo turno. Se o usuário pedir mudança na spec depois, mude, refaça a auto-revisão e ajuste o plano junto.
+A spec não espera aval do usuário. Conferência fechada, **mostre no chat, em até dez linhas, o que ele pode querer contestar**: as decisões marcadas "assumida por mim", o que ficou fora de escopo e, se há tela, a referência que governa. Não é pedido de aval e você não espera resposta: é a lista de revisão dele. Diga onde a spec está e invoque `power-plans` no mesmo turno. Se o usuário pedir mudança na spec depois, mude, refaça a auto-revisão e ajuste o plano junto.
 
 ## Estado terminal
 
 - **Sonda, direta e limitada:** o que a tabela de caminhos diz, pelo fluxo normal do projeto. Sem documento de plano.
-- **Arquitetural:** decisões fechadas e spec escrita → invoque **`power-plans`** direto, sem esperar aval, e nenhuma outra skill. Não invoque skill de implementação, de design de front-end, nem de execução. `power-plans` é o próximo passo, ponto.
+- **Arquitetural:** decisões fechadas, spec escrita e conferida → invoque **`power-plans`** direto, sem esperar aval, e nenhuma outra skill. Não invoque skill de implementação, de design de front-end, nem de execução. `power-plans` é o próximo passo, ponto.
 
 ## Sinais de que você está se enganando
 
 | Pensamento | Realidade |
 | --- | --- |
 | "Tem muita pergunta, melhor abrir a spec" | Quem pede spec é o tamanho da obra, não o número de perguntas. Obra pequena: pergunte tudo, design curto no chat, e faça. |
-| "O design é óbvio, começo enquanto ele lê" | No caminho arquitetural, implementação só com pedido explícito. Spec e plano prontos não são pedido. |
 | "Falta uma decisão, mas escrevo a spec e ele corrige depois" | Spec não começa com decisão aberta. Não há aprovação depois para pegá-la: faça a rodada. |
-| "Eu conheço esse tipo de app, então é direta" | Direta mede o repositório. Projeto novo não tem fluxo existente: é arquitetural. |
 | "Cresceu, mas já estou quase acabando" | Complexidade escondida sobe o caminho no meio do trabalho. Pare e diga. |
 | "Isso é detalhe, decido na implementação" | Se muda o que o usuário vê, o dado ou o custo, é decisão dele tomada às escondidas. Pergunte, em qualquer caminho. |
 | "Já tenho o suficiente pra escrever a spec" | Suficiente para escrever não é o critério. Rode o teste de fechamento. |

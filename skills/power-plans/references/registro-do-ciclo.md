@@ -21,6 +21,7 @@ registro_do_ciclo:
     rodadas_de_perguntas: 0
     decisoes_do_usuario: 0
     decisoes_assumidas: 0
+    conferencia: {perguntas: nd, de_produto: nd}   # conferência do construtor; nd se não rodou
     referencia_visual: nao_se_aplica   # exercitada | aprovada | dispensada | nao_se_aplica
   plano:
     linhas: 0
@@ -57,6 +58,8 @@ registro_do_ciclo:
 - **Número desconhecido é `nd`, nunca chute.** Um zero inventado estraga a medição mais que um vazio.
 - **Conte no momento do fato.** Emenda de contrato e escalação se contam quando acontecem, no
   documento do ciclo; o fecho só copia o total. Reconstituir de memória no fim subconta.
+- `conferencia` conta o que o leitor de contexto limpo perguntou sobre a spec pronta, e quantas
+  dessas perguntas eram de produto e voltaram ao usuário.
 - `decisoes_assumidas` conta as marcadas "assumida por mim" na spec. `bloqueadores.recusados`
   conta os que a triagem refutou com prova.
 - `escalacoes.que_o_plano_respondia`: a pergunta do worker cuja resposta devia estar no plano.
