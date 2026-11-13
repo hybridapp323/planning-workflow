@@ -73,19 +73,35 @@ credencial colada>.
 3. QUEM MAIS LÊ E QUEM MAIS EMITE. Para cada função, campo, tabela, evento, texto ou arquivo que
    o plano muda ou remove: procure leitores e emissores no código, nos testes e nos dados
    (template, configuração, seed). Liste os que não estão na matriz de ownership nem no traçado.
+   Chave ou opção que desliga uma exigência conta como remoção: procure todo ponto que exige e
+   todo texto que manda exigir (instrução de modelo, template, mensagem), em todos os caminhos,
+   partindo do comportamento e não do nome da chave.
 4. ORDEM. Compare os passos do coordenador com o script ou roteiro real de publicação e de
    migração do projeto: o que o plano publica cobre tudo que importa o que mudou? Algum passo liga
    um comportamento antes de o código dele existir, ou depende de algo que só nasce num passo
    posterior?
 5. CONTRATOS. Leia cada regra dos contratos congelados contra as outras e contra os requisitos da
    spec: contradição, regra inexecutável, contrato mais restrito ou mais frouxo que o requisito,
-   caso que o contrato não cobre.
+   caso que o contrato não cobre. Leia a frase de cada requisito ao lado da frase do contrato que
+   o implementa e liste toda condição que só o contrato tem.
+6. CENÁRIOS DE VÁRIOS PASSOS. Para cada cenário de aceitação com mais de uma interação: percorra
+   o código de hoje passo a passo e escreva em que estado o sistema está em cada passo. Aponte o
+   passo em que a regra da tarefa não é alcançada (o gatilho sai num estado e a regra trata em
+   outro), o termo que classifica a entrada e não tem definição na spec, e o cenário sem as
+   entradas literais.
 
 Responda em tabela, do mais grave ao menos grave, só o confirmado com evidência, no máximo 15:
 achado | evidência (arquivo:linha ou saída do comando) | classe (fato errado, consumidor esquecido,
-contradição, ordem, prova que não prova, contrato incompleto). Depois, "conferido e correto" (o que
+contradição, ordem, prova que não prova, contrato incompleto, cenário que não chega na regra). Depois, "conferido e correto" (o que
 você abriu e estava certo) e "não conferível". Sem opinião sobre o desenho.
 ```
+
+**Plano com mais de uma trilha: um verificador por trilha**, em paralelo, cada um com o brief
+acima mais a linha *"confira só a trilha <X>; leia o resto para contexto"*. O teto de 15 achados
+vale por verificador. Medido em 11/2026: num plano de cinco trilhas e 51 tarefas, o pré-voo
+devolveu 51 achados e a revisão externa mais 7, e os dois requisitos que depois custaram correção
+em cadeia passaram sem nenhum. Os itens 3, 5 e 6 acima pegam os dois; num plano desse tamanho,
+só chegam a cada requisito se cada trilha tiver o seu leitor.
 
 ## 3. Depois do pré-voo
 

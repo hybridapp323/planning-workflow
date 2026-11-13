@@ -80,7 +80,7 @@ de que o desenho depende se mede com uma chamada real, agora ou como primeiro pa
 
 ### Questione o caminho antes de abrir a árvore
 
-O pedido costuma chegar como um **caminho**, não como um **objetivo**. Depois de ler o contexto, escreva em uma linha o objetivo por trás do pedido (se o usuário não disse o para quê, essa é a primeira pergunta, aberta, sem opções) e confira se o caminho pedido é o mais barato até ele. Se existe um que chega lá com uma fração do esforço, ou se o pedido contraria decisão já registrada no projeto, apresente o trade-off e a recomendação **antes** de qualquer pergunta sobre o como. Não fabrique alternativa para parecer crítico; se o usuário reafirma o caminho, registre a decisão com a alternativa descartada e siga. Pedido com vários subsistemas independentes: diga isso de saída e decomponha, um ciclo por peça. Detalhe: `references/profundidade.md`.
+O pedido costuma chegar como um **caminho**, não como um **objetivo**. Depois de ler o contexto, escreva em uma linha o objetivo por trás do pedido (se o usuário não disse o para quê, essa é a primeira pergunta, aberta, sem opções) e confira se o caminho pedido é o mais barato até ele. Se existe um que chega lá com uma fração do esforço, ou se o pedido contraria decisão já registrada no projeto, apresente o trade-off e a recomendação **antes** de qualquer pergunta sobre o como. Não fabrique alternativa; se o usuário reafirma o caminho, registre a decisão com a descartada e siga. Pedido com vários subsistemas independentes: diga isso de saída e decomponha, um ciclo por peça; "tudo junto" decide a entrega, não o número de specs (pergunte). Detalhe: `references/profundidade.md`.
 
 ## Fase 2 — as rodadas
 
@@ -176,8 +176,6 @@ Releia com olhos frios e conserte na hora:
 7. **Exemplo é asserção** — toda tabela de valores de referência foi **calculada** pela regra que a
    spec enuncia, com a coluna intermediária à mostra (caso medido em `references/spec-template.md`)?
 8. **Tela** — se há interface, o §8.3 diz qual das três condições da Fase 1 vale?
-
-Conserte inline.
 
 ### Conferência do construtor, antes do plano
 

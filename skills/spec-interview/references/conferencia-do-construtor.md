@@ -51,6 +51,18 @@ de melhoria do desenho.
 Se não sobrar nada importante, responda só: "nada importante em aberto".
 ```
 
+### Spec grande: um leitor por trilha
+
+O brief foi medido em specs de até uns 350 linhas. Acima disso, ou quando a spec se divide em
+trilhas que ela mesma chama de independentes, despache **um leitor por trilha**, em paralelo, cada
+um com o mesmo brief mais uma linha: *"leia a spec inteira, mas liste só as perguntas da trilha
+<X>"*. O teto de dez perguntas vale por leitor. Continua sendo uma rodada só: as perguntas de
+produto de todos os leitores voltam ao usuário juntas.
+
+Medido em 11/2026: uma spec de 700 linhas, cinco trilhas e cerca de 30 requisitos, com um leitor
+só, devolveu 4 perguntas, nenhuma sobre o requisito que depois custou três correções em cadeia. A
+atenção de um leitor se reparte pelo documento inteiro; o teto de dez perguntas, também.
+
 ## O que fazer com a resposta
 
 Confira cada pergunta antes de aceitar, como faria com um revisor: o leitor pode ter deixado de

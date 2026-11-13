@@ -59,7 +59,9 @@ Decida antes de escrever, e diga ao usuário qual escolheu e por quê.
   qualquer escala, plano mais evidência maior que o diff que ele planeja é sinal de duas famílias
   ou de sonda arquivada: recorte antes de entregar.
 - **Um plano por família** (mesma causa, mesmo dono da decisão). Relatório com vários achados é
-  recortado antes de escrever. Mais de uns dez requisitos é alerta de duas famílias.
+  recortado antes de escrever. Mais de uns dez requisitos, ou trilhas que a spec chama de
+  independentes: recorte, ou pergunte ao usuário antes de escrever ("tudo junto" decide a
+  entrega, não o número de planos).
 - **Protótipo, investigação e pergunta de viabilidade não são plano.** Responda ou construa.
 
 O **plano mínimo**, cada item com `arquivo:linha` ou consulta: (1) causa, com a evidência que a
@@ -76,7 +78,10 @@ item 3: suba.
 - Bloqueador que você não reproduziu no código ou no dado é hipótese: escreva como hipótese.
 - **Valide a spec para execução paralela:** contrato ausente, matriz de consumidores nas duas
   direções (quem lê e quem emite), decisão sem a alternativa descartada. Faltou, conserte a spec
-  e diga ao usuário o que mudou.
+  e diga ao usuário o que mudou. Conserto que define ou aperta o que o usuário vê (um termo de
+  comportamento sem definição, dois requisitos que se contradizem) é pergunta a ele, não aviso.
+- **Cenário de vários passos se percorre no código de hoje antes de virar tarefa** (classe 13):
+  o estado em cada passo, e quem é dono da passagem entre o passo que emite e o que trata.
 - **Todo fato do plano leva etiqueta:** `[MEDIDO: comando → resultado]`, `[LIDO: arquivo:linha]`
   ou `[SUPOSTO: o que o falsifica]`. Fato de que uma tarefa depende não fica suposto: meça agora,
   ou ele vira o primeiro passo da tarefa com "se der diferente, PARE e escale".

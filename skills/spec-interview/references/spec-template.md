@@ -43,6 +43,23 @@ que está incluído vem com a razão.
 
 Um por bloco, testável, com id estável, e pelo menos um cenário de aceitação cada.
 
+Dois casos pedem mais que um cenário de uma linha (categorias da varredura de cobertura):
+
+- **Requisito atrás de chave ou opção:** um cenário com ela ligada por caminho que ela alcança,
+  e um com ela desligada.
+- **Requisito de vários passos** (conta, repete, espera, muda de estado entre interações): a
+  tabela de casos do termo que classifica a entrada, o roteiro passo a passo e o cenário com as
+  entradas literais.
+
+```
+| Entrada real | Conta como <termo>? | Decidido por |
+| --- | --- | --- |
+| "<fala ou evento tirado do histórico>" | sim / não | usuário, rodada <n> |
+
+| Passo | Estado na entrada | O que chega | Quem decide (código ou modelo) | O que é contado | Estado na saída |
+| --- | --- | --- | --- | --- | --- |
+```
+
 ### FR-1 — <título>
 
 <o que o sistema faz, em uma frase que dá para testar>

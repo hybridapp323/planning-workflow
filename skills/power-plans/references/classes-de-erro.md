@@ -84,6 +84,16 @@ plano* e *Etiqueta de procedência* do `SKILL.md`.
    mandavam citar números, e 153 de 209 respostas do mês tinham dígito. Nenhum documento
    tinha olhado a saída atual, e duas tarefas paralelas teriam implementado contratos
    incompatíveis.
+   **Chave ou opção que DESLIGA uma exigência também é remoção**, mesmo escrita como chave nova.
+   "Com a chave, o sistema não pede mais X" tem os mesmos emissores de qualquer remoção: cada
+   ponto do código que exige X, em todos os caminhos que chegam nele, e cada texto que manda
+   exigir (instrução de modelo, template, mensagem). Quem parte do cenário de exemplo da spec
+   inventaria só o caminho do exemplo. A busca parte do comportamento ("quem pede X?"), não da
+   chave. Medido em 11/2026: o requisito dizia "entrega sem pedir o dado"; o contrato da chave
+   saiu como "quando o usuário pede a entrega, não exige o dado". O caminho em que a entrega sai
+   sem pedido e a instrução-base do modelo, que mandava pedir o dado, ficaram fora. A tarefa
+   passou no aceite com todos os testes verdes e caiu no teste ponta a ponta; custou uma tarefa
+   de correção e a reescrita de um teste que travava o defeito.
 7. **Receita copiada de outro contexto.** Reaproveitar um procedimento documentado é certo, e
    ele vem com pré-condições que ninguém reescreve junto. Antes de colar, escreva o que a
    receita **assumia** e confirme que vale aqui. Medido: um `update ... set stage_id = null`
@@ -171,6 +181,20 @@ plano* e *Etiqueta de procedência* do `SKILL.md`.
     - valor carregado de uma rodada para outra mantém a hora em que foi **medido**, nunca a da
       rodada que o carregou: renovar a hora encurta o intervalo e infla a taxa (o dobro, numa
       rodada perdida), o que vira alarme falso.
+
+    **Antes de escrever a tarefa, percorra o cenário no código de hoje.** Para cada cenário de
+    aceitação com mais de uma interação, escreva uma linha por passo: em que estado o sistema
+    está quando o passo chega, qual trecho trata aquele passo naquele estado, o que fica gravado.
+    `[LIDO:]` de um trecho que trata a regra num estado não prova que o cenário chega nesse
+    estado. O sintoma que se reconhece cedo: uma tarefa **emite** o gatilho (a pergunta, o aviso)
+    num estado, outra **trata** a resposta em outro, e nenhuma é dona da passagem entre os dois.
+    Medido em 11/2026: a tarefa da regra citava corretamente o trecho que já aplicava a paciência
+    de duas tentativas, mas esse trecho só rodava no estado seguinte; a pergunta era feita um
+    estado antes, e o plano ainda congelou que a tentativa feita ali não contava. O cenário
+    "ignora duas vezes, então encaminha" estava no `Pronto quando` com prova unitária por ramo.
+    Custou três correções em cadeia depois da integração, cada uma descoberta só no teste ponta a
+    ponta pago, e cada correção foi provada do jeito que o plano devia ter pedido: os passos
+    reais do cenário pela camada que grava e relê o estado.
 
 14. **Remover um evento/linha de log exige procurar leitores por TEMPO, não só por chave.** O
     grep pela chave que só a linha "duplicada" carregava (`idempotent_skip_notify`) deu zero

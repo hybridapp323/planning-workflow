@@ -42,3 +42,18 @@ Não fabrique alternativa para parecer crítico: se o caminho pedido já é o me
 Vale no caminho **arquitetural** sempre e na **limitada** quando o pedido contraria um fato do projeto. Sonda não passa por aqui.
 
 **Se o pedido tem vários subsistemas independentes** ("uma plataforma com chat, arquivos, cobrança e analytics"), diga isso imediatamente, antes de gastar perguntas refinando detalhe. Ajude a decompor: quais são as peças independentes, como se relacionam, em que ordem. Cada peça ganha o próprio ciclo spec → plano → implementação.
+
+**"Quero tudo junto" decide a entrega, não o número de specs.** Quando o usuário pede as peças
+entregues de uma vez, pergunte as duas coisas em separado, com a sua recomendação: a publicação é
+única? E o trabalho segue em uma spec ou em uma por peça, com a entrega combinada no fim? Diga o
+custo de cada opção: uma spec só reparte a entrevista, a conferência e a revisão por todas as
+peças, e a peça mais delicada recebe a mesma atenção que a mais simples. O mesmo vale quando a
+spec, já no meio, passa de uns dez requisitos ou você se pega escrevendo "trilhas independentes":
+pare e pergunte antes de continuar. Se o usuário mantém tudo numa spec, registre a decisão e rode
+a conferência do construtor por trilha.
+
+Medido em 11/2026: o usuário respondeu "tudo junto, em paralelo se for seguro" sobre a entrega, e
+isso foi lido como uma spec e um plano. Saíram cerca de 30 requisitos em cinco trilhas e um plano
+de 51 tarefas e mais de 5 mil linhas, escrito em menos de quatro horas. O pré-voo e a revisão
+externa devolveram 58 achados, e as correções caíram em outros requisitos; os dois requisitos que
+depois custaram correção em cadeia passaram por todas as leituras sem achado nenhum.

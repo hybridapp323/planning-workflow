@@ -71,6 +71,38 @@ Preencha estes itens a partir da referência e do fluxo real; só lacunas e conf
 perguntas. A prova deve observar a integração afetada: em 2026-10-09, testes que simulavam
 transições passaram com duplicação visual e reinício indevido encontrados no app real.
 
+### Comportamento em vários passos
+
+Só se algum requisito conta, repete, espera ou muda de estado entre uma interação e a seguinte
+(conversa, assistente de várias telas, nova tentativa, cadência). É a categoria que o cenário de
+uma linha esconde: *"dado que ele ignora a pergunta duas vezes, então encaminha"* passa por
+testável e não diz o que tem de ser construído.
+
+- **termo de comportamento tem tabela de casos.** Toda palavra da regra que classifica uma
+  entrada ("desvio", "sem resposta", "inativo", "insistiu") vem com seis a oito entradas reais,
+  tiradas do histórico, cada uma marcada *conta* ou *não conta*. A marcação é decisão do usuário,
+  porque muda o que ele vê: vai numa rodada, com a sua recomendação por linha. Regra que usa um
+  verbo e cenário que usa outro ("desvia" na regra, "ignora" no cenário) são duas definições, e
+  nenhuma está fechada.
+- **roteiro passo a passo**, uma linha por interação: estado na entrada, o que chega, quem decide
+  (código ou modelo), o que é contado, estado na saída. O passo que **emite** o gatilho e o passo
+  que **trata** a resposta têm de estar no mesmo estado, ou a transição entre eles está escrita.
+  Dois requisitos que tocam a mesma regra em estados diferentes são contradição até o roteiro
+  mostrar como um chega no outro.
+- **quem executa cada parte da regra.** "Repete uma vez e depois encaminha": a repetição é do
+  código ou fica por conta do modelo? O que fica por conta do modelo é tendência, não garantia,
+  e a spec diz qual das duas vale.
+- **cenário de aceitação com as entradas literais**, uma por passo, e o estado inicial. "Ignora
+  duas vezes" não é entrada: é o resumo de duas entradas que ninguém escolheu.
+
+Medido em 11/2026: uma regra de duas linhas ("responde, refaz a pergunta uma vez; no segundo
+desvio, encaminha") não definia o termo, usava outro verbo no cenário, e era escrita para um
+estado do fluxo enquanto outro requisito fazia a pergunta um estado antes. A spec passou por
+auto-revisão, leitor de contexto limpo, pré-voo e revisão externa do plano. Depois da integração
+custou três correções em cadeia, um quarto achado no gate e três consultas ao advisor, e o que
+conta como desvio acabou decidido pelo coordenador no meio da execução, sem nunca ter sido
+perguntado ao usuário.
+
 ### Não-funcionais
 
 - latência e throughput, com número
@@ -128,6 +160,14 @@ o plano apertou a regra além da spec sem decisão de ninguém.
   chamadores da função canônica e pelo texto literal emitido (os dois acham coisas diferentes)
 - os **gatilhos** do módulo substituído: quando ele agia sem ninguém pedir, cada um com
   decisão escrita: mantido, removido porque X, coberto por Y
+- **chave ou opção que desliga uma exigência é remoção, não novidade.** "Com a chave, o sistema
+  deixa de pedir X" pede o mesmo inventário: todo ponto que exige X e todo texto que manda exigir
+  (instrução de modelo, template, mensagem), em todos os caminhos e não só no do exemplo. E o
+  requisito ganha cenário com a chave **ligada**, um por caminho; cenário só do padrão preservado
+  prova que nada mudou, não que a chave funciona. Medido em 11/2026: a spec dizia "entrega sem
+  pedir o dado" e só tinha cenário da chave desligada; o plano implementou a chave para o caminho
+  em que o usuário pede a entrega, e o caminho sem pedido e a instrução-base do modelo seguiram
+  exigindo o dado até o teste ponta a ponta.
 
 ### Restrições e trade-offs
 
@@ -149,6 +189,9 @@ o plano apertou a regra além da spec sem decisão de ninguém.
 - TBD, "a definir", "etc.", "e afins"
 - adjetivo sem número: rápido, robusto, intuitivo, "em tempo real", grande, muitos, poucos
 - "por padrão", "provavelmente", "algo como"
+- requisito com verbo e sem objeto mensurável ("o sistema deve suportar X")
+- recurso citado sem o que acontece quando ele falha, está vazio ou demora
+- palavra que classifica uma entrada sem tabela de casos (ver *Comportamento em vários passos*)
 
 ## O que a varredura não é
 

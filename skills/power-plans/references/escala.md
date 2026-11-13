@@ -50,6 +50,11 @@ mais bem consertada por estar junto. O urgente sai já; o resto segue a cadênci
 definir. Vale para a spec que chega: spec que junta famílias sem relação é recortada no mesmo
 passo (Fase 0, *Validar a spec*), e cada família segue com o seu plano.
 
-Número de requisitos é **alerta, não bloqueio**: passou de uns dez, confira se não são duas famílias.
+Número de requisitos é **alerta que vira pergunta**: passou de uns dez, ou a spec se divide em
+trilhas que ela mesma chama de independentes, recorte em um plano por família. Se o usuário pediu
+tudo junto, isso decide a entrega, não o número de planos: pergunte, com o custo à mostra, se o
+trabalho segue em um plano por trilha com a entrega combinada no fim, ou num plano só. Plano
+único com mais de uma família fica escrito como decisão dele, e o pré-voo roda um verificador
+por trilha (medição em `pre-voo.md`).
 Mudanças que precisam ser atômicas ficam juntas mesmo assim, e o plano diz por quê. Medido no mesmo
 projeto: requisitos por ciclo subiram de 5 para 45 em um mês, sempre juntando o relatório inteiro.

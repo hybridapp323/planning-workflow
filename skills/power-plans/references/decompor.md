@@ -121,6 +121,11 @@ literal, formando par com corridas de rua.
 
 **Contrato não é mais restrito que o FR que implementa.** Se o plano aperta uma regra que a
 spec enuncia mais solta, isso é decisão com autoria na spec, não detalhe técnico do plano.
+Confira lendo a frase do requisito ao lado da frase do contrato: toda condição que o contrato
+tem e o requisito não tem ("quando o usuário pede", "só no estado X", "na primeira vez") é
+aperto. Aperto que muda o que o usuário vê volta a ele como pergunta **antes** de congelar; não
+se resolve no plano nem num conserto da spec feito por você. O cenário de aceitação não é o
+teto do requisito: se a frase do FR é mais larga que o exemplo, vale a frase.
 
 **Contrato tem de ser executável inteiro: leia cada regra contra as outras antes de congelar.**
 Worker obediente não resolve contradição, escala, e cada escalação é um worker parado esperando o
@@ -153,6 +158,18 @@ prosa, ele é reinventado por quem despacha.
 **o que** o teste tem de afirmar — quem escreve o teste decide, pelo que entendeu. *"Dado o aviso
 visível, quando tocar Desfazer, então **aquela linha** é apagada"* é o mesmo critério com a
 semântica dentro, e é a diferença entre apagar por identidade e apagar por predicado.
+
+**O oráculo afirma o efeito que o requisito exige, não o mecanismo que o produz hoje.** Tarefa
+que escreve teste ou cenário diz o que cada um afirma em termos de efeito: o estado em que o
+sistema fica, o dado gravado, o que foi entregue. Qual função ou ferramenta foi chamada, por
+qual caminho, e o texto literal de uma saída de modelo só entram quando são o comportamento
+sob teste. Nome que designa duas coisas (um estado e uma ferramenta com o mesmo nome) é escrito
+por extenso no plano. E cenário pago novo roda uma vez sozinho, com o vermelho ou o verde lido,
+antes de entrar num lote. Medido em 11/2026: de seis correções de oráculo num ciclo, três
+exigiam a ferramenta ou o estado do caminho antigo, e reprovaram o comportamento novo correto
+quando a correção passou a produzir o mesmo efeito por outro caminho; duas exigiam o texto
+literal do modelo e reprovaram paráfrase correta; uma misturava as duas coisas. Cada uma custou
+uma rodada no ambiente pago.
 
 Medido em 2026-09-03: a spec tinha 13 FRs, cada um com cenário
 executável, e cobria corretamente virada de meia-noite, duplicação de fórmula e semântica de

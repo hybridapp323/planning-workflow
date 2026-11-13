@@ -170,7 +170,8 @@ estão em `references/classes-de-erro.md`: **leia a classe inteira quando ela se
 5. **Invariante que você promete preservar:** caminho de exceção procurado e testes existentes lidos;
    se é isolamento, as escritas que mudam o pertencimento também.
 6. **Emissores do comportamento que você REMOVE:** chamadores, literal no código e literal nos
-   dados; gate novo sobre saída existente é remoção.
+   dados; gate novo sobre saída existente é remoção, e chave que desliga uma exigência também
+   (todo ponto que exige e todo texto que manda exigir, em todos os caminhos).
 7. **Receita copiada de outro contexto:** a pré-condição dela vale aqui?
 8. **Passo novo em pipeline existente:** leia do ponto de inserção até o fim do fluxo.
 9. **Tarefa que adia, segura ou bloqueia uma ação:** o ponto único antes dos efeitos; ação com
@@ -180,7 +181,8 @@ estão em `references/classes-de-erro.md`: **leia a classe inteira quando ela se
 12. **"Importar a mesma função" não é paridade** quando a entrada é preparada no chamador.
 13. **Teste do consumidor com campo que o produtor real não emite:** a fixture vem do produtor.
     Vale também quando o produtor é a rodada anterior do próprio sistema: cenário de várias
-    rodadas prova-se pela camada que grava e relê o estado entre elas.
+    rodadas prova-se pela camada que grava e relê o estado entre elas, e antes de virar tarefa é
+    percorrido no código de hoje, passo a passo, com o estado de cada passo escrito.
 14. **Remover evento ou linha de log:** procure leitores por tempo (`desc`, `limit 1`, `max`).
 15. **Escritor único prometido:** inventário dos sites de escrita de hoje, incluindo gatilhos e jobs.
 16. **Linha nova em template, seed ou catálogo global:** o provisionamento de tenant a copia;
