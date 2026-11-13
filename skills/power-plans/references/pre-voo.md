@@ -90,7 +90,14 @@ credencial colada>.
    outro), o termo que classifica a entrada e não tem definição na spec, e o cenário sem as
    entradas literais.
 
-Responda em tabela, do mais grave ao menos grave, só o confirmado com evidência, no máximo 15:
+Antes da tabela, a cobertura dos itens 5 e 6, uma linha cada, mesmo quando não há achado:
+- por requisito da spec no seu alcance: a frase do requisito, a frase do contrato ou da tarefa que
+  o implementa, e as condições que só a segunda tem ("nenhuma" vale);
+- por cenário de aceitação com mais de uma interação: o estado em cada passo e se a regra é
+  alcançada.
+Requisito ou cenário sem linha conta como não conferido.
+
+Depois responda em tabela, do mais grave ao menos grave, só o confirmado com evidência, no máximo 15:
 achado | evidência (arquivo:linha ou saída do comando) | classe (fato errado, consumidor esquecido,
 contradição, ordem, prova que não prova, contrato incompleto, cenário que não chega na regra). Depois, "conferido e correto" (o que
 você abriu e estava certo) e "não conferível". Sem opinião sobre o desenho.
@@ -102,6 +109,14 @@ vale por verificador. Medido em 11/2026: num plano de cinco trilhas e 51 tarefas
 devolveu 51 achados e a revisão externa mais 7, e os dois requisitos que depois custaram correção
 em cadeia passaram sem nenhum. Os itens 3, 5 e 6 acima pegam os dois; num plano desse tamanho,
 só chegam a cada requisito se cada trilha tiver o seu leitor.
+
+**A linha de cobertura existe porque o teto de achados esconde o que não foi conferido.** Medido
+em 11/2026, uma rodada de cada, sobre o mesmo plano já escrito e sem dizer ao verificador o que
+procurar: sem a cobertura, ele devolveu 15 achados e o aperto de um requisito pelo contrato não
+apareceu em lugar nenhum; com ela, o aperto apareceu na linha daquele requisito, e o cenário de
+vários passos que não chegava na regra apareceu com o estado de cada passo. Nas duas rodadas
+ficou de fora um texto de instrução de modelo que mandava exigir o que a chave desligava: o
+item 3 ainda depende de o verificador procurar pelo comportamento.
 
 ## 3. Depois do pré-voo
 
