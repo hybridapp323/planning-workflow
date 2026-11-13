@@ -159,18 +159,6 @@ prosa, ele é reinventado por quem despacha.
 visível, quando tocar Desfazer, então **aquela linha** é apagada"* é o mesmo critério com a
 semântica dentro, e é a diferença entre apagar por identidade e apagar por predicado.
 
-**O oráculo afirma o efeito que o requisito exige, não o mecanismo que o produz hoje.** Tarefa
-que escreve teste ou cenário diz o que cada um afirma em termos de efeito: o estado em que o
-sistema fica, o dado gravado, o que foi entregue. Qual função ou ferramenta foi chamada, por
-qual caminho, e o texto literal de uma saída de modelo só entram quando são o comportamento
-sob teste. Nome que designa duas coisas (um estado e uma ferramenta com o mesmo nome) é escrito
-por extenso no plano. E cenário pago novo roda uma vez sozinho, com o vermelho ou o verde lido,
-antes de entrar num lote. Medido em 11/2026: de seis correções de oráculo num ciclo, três
-exigiam a ferramenta ou o estado do caminho antigo, e reprovaram o comportamento novo correto
-quando a correção passou a produzir o mesmo efeito por outro caminho; duas exigiam o texto
-literal do modelo e reprovaram paráfrase correta; uma misturava as duas coisas. Cada uma custou
-uma rodada no ambiente pago.
-
 Medido em 2026-09-03: a spec tinha 13 FRs, cada um com cenário
 executável, e cobria corretamente virada de meia-noite, duplicação de fórmula e semântica de
 campo nulo. O plano citava **6 dos 13 FRs zero vezes** e não tinha **nenhum** `Pronto quando` —
@@ -185,6 +173,18 @@ descanso ganharam 300 ml que não existiam.
 
 Compactar tarefas em tabela é legítimo, densidade ajuda. Mas então **a tabela carrega as colunas
 `FR` e `Pronto quando`**. O formato é escolha sua; as duas colunas não são.
+
+**O oráculo afirma o efeito que o requisito exige, não o mecanismo que o produz hoje.** Tarefa
+que escreve teste ou cenário diz o que cada um afirma em termos de efeito: o estado em que o
+sistema fica, o dado gravado, o que foi entregue. Qual função ou ferramenta foi chamada, por
+qual caminho, e o texto literal de uma saída de modelo só entram quando são o comportamento
+sob teste. Nome que designa duas coisas (um estado e uma ferramenta com o mesmo nome) é escrito
+por extenso no plano. E cenário pago novo roda uma vez sozinho, com o vermelho ou o verde lido,
+antes de entrar num lote. Medido em 11/2026: de seis correções de oráculo num ciclo, três
+exigiam a ferramenta ou o estado do caminho antigo, e reprovaram o comportamento novo correto
+quando a correção passou a produzir o mesmo efeito por outro caminho; duas exigiam o texto
+literal do modelo e reprovaram paráfrase correta; uma misturava as duas coisas. Cada uma custou
+uma rodada no ambiente pago.
 
 **O `Pronto quando` diz também a CAMADA de prova, da mais barata para a mais cara.** Primeiro a
 que exercita o consumidor real sem custo por execução: teste de unidade ou replay do fluxo sobre o

@@ -52,8 +52,8 @@ spec, já no meio, passa de uns dez requisitos ou você se pega escrevendo "tril
 pare e pergunte antes de continuar. Se o usuário mantém tudo numa spec, registre a decisão e rode
 a conferência do construtor por trilha.
 
-Medido em 11/2026: o usuário respondeu "tudo junto, em paralelo se for seguro" sobre a entrega, e
-isso foi lido como uma spec e um plano. Saíram cerca de 30 requisitos em cinco trilhas e um plano
+Medido em 11/2026: perguntado sobre a entrega, o usuário pediu todas as peças de uma vez, e isso
+foi lido como uma spec e um plano. Saíram cerca de 30 requisitos em cinco trilhas e um plano
 de 51 tarefas e mais de 5 mil linhas, escrito em menos de quatro horas. O pré-voo e a revisão
 externa devolveram 58 achados, e as correções caíram em outros requisitos; os dois requisitos que
 depois custaram correção em cadeia passaram por todas as leituras sem achado nenhum.
