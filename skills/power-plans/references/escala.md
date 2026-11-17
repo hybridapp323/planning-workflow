@@ -66,7 +66,7 @@ acontece: de uma spec fechada, todos os planos são escritos no mesmo ciclo, ant
 execução, e cada requisito dela tem tarefa em algum deles. O `plan-lint.py --spec` acusa
 requisito sem tarefa; "roteiro" ou "esboço" de uma parte não conta como tarefa.
 
-Três coisas parecem motivo para adiar e não são:
+Quatro coisas parecem motivo para adiar e não são:
 
 - **"O usuário escolheu entregar em fatias."** Fatia é ordem de entrega. Dentro de um plano ela é
   uma sequência de ondas, cada uma com a chave que a liga em produção. Decisão de entrega nunca é
@@ -78,7 +78,24 @@ Três coisas parecem motivo para adiar e não são:
 - **"São requisitos demais para um plano."** Isso pede a pergunta do parágrafo acima, com o custo
   à mostra, e um verificador por trilha no pré-voo. Não pede decidir sozinho.
 
+- **"A revisão externa mandou redesenhar esta parte."** Bloqueador de redesenho pede o redesenho
+  agora, não um recorte que tira a parte do plano e a deixa como "design em aberto". Feche o
+  desenho no mesmo ciclo (investigue o que o revisor mostrou que faltava, reescreva a spec e as
+  tarefas) e só então entregue. Se o conjunto ficar grande demais para um plano, são dois planos,
+  os dois fechados.
+
+**Dois planos do mesmo pedido são uma execução só.** Cada um declara, na tabela de papéis, o
+coordenador principal (o mesmo nos dois) e o seu coordenador secundário; diz o que roda em
+paralelo com o outro plano e o único ponto em que espera por ele; e, quando a entrega ao usuário
+final é uma (um passo irreversível para os dois), diz em qual dos planos moram esse passo, o gate
+dele e a verificação depois.
+
 Medido em 11/2026: spec fechada de 23 requisitos, com entrega em três fatias decidida pelo usuário
 na entrevista. O autor do plano anunciou o plano detalhado só da primeira fatia e um roteiro curto
 das outras duas, sem perguntar, citando a regra dos dez requisitos e o risco de âncora velha. O
 usuário recusou na hora: plano adiado é plano que o executor escreve.
+
+Medido de novo em 11/2026: a revisão externa devolveu doze bloqueadores, cinco deles de redesenho
+na mesma família. O autor recortou em dois, entregou o plano da primeira parte e deixou a segunda
+como spec aberta. O usuário recusou ("ia me entregar faltando pedaço") e pediu os dois planos
+fechados, em paralelo, com coordenador principal e secundários, e uma entrega só no fim.

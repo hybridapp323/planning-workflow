@@ -216,6 +216,9 @@ isso a conferência é mecânica e de olhos novos, nesta ordem (`references/pre-
   triagem; aceitar tudo por deferência não é), separe o técnico da decisão de negócio, leve as
   decisões de negócio ao usuário numa rodada **antes** do commit, registre aceitos, recusados e o
   custo de cada um (documental, decisão, redesenho), e commite e dê push sem novo aval.
+- **Bloqueador de redesenho se redesenha neste ciclo.** Nunca vira recorte com parte "em aberto".
+  Dois planos do mesmo pedido saem os dois fechados, com o mesmo coordenador principal, um
+  secundário cada e o paralelismo entre eles escrito (`references/escala.md`).
 - Nenhum worker sobe daqui: implementar exige pedido explícito, e a skill é `orchestrating-execute`.
 
 ## Regras do projeto: de onde saem
