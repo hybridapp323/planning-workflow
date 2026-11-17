@@ -16,7 +16,7 @@ Rubrica completa com exemplos e casos de fronteira: `references/complexity-rubri
 
 Na dúvida entre dois níveis, suba. O modelo mais forte numa tarefa média custa menos que o retrabalho de uma complexa mal feita.
 
-**O plano nunca nomeia modelo.** Escreve `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` e `<MODELO_GATE>` como placeholder. Quem atribui é o usuário, na hora de executar, porque a escolha depende de custo, disponibilidade e humor do dia, não do plano.
+**O plano nunca nomeia modelo.** Escreve `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` e `<MODELO_GATE>` como placeholder. Quem atribui é o coordenador, na hora de executar, entre os modelos que o usuário listar, porque a escolha depende de custo, disponibilidade e humor do dia, não do plano.
 
 ### Ownership de arquivo
 

@@ -110,7 +110,7 @@ item 3: suba.
 
 - **Nível por tarefa** (complexa, média, baixa) pelo custo do erro somado à profundidade de
   raciocínio, nunca pelo tamanho. Na dúvida entre dois níveis, suba. O plano escreve
-  `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` e `<MODELO_GATE>`; quem atribui é o usuário.
+  `<MODELO_COMPLEXA>`, `<MODELO_MEDIA>`, `<MODELO_BAIXA>` e `<MODELO_GATE>`; quem atribui é o coordenador, entre os modelos que o usuário listar.
 - **Um arquivo, um dono.** Duas tarefas no mesmo arquivo: junte, parta o arquivo ou serialize.
   "Depois concilia" não é saída. Arquivo que todos só leem não é conflito: diga isso.
 - **A matriz sai do traçado (§3.1), não da memória:** uma linha por requisito, uma coluna por

@@ -4,26 +4,27 @@ Referência da skill `orchestrating-execute`. Leia antes de criar o primeiro ter
 
 ## Portão de atribuição de modelo
 
-**Antes de criar qualquer terminal**, pergunte ao usuário qual modelo vai em cada nível. **Não pergunte o esforço** (regra do usuário, 10/11/2026: "você é o coordenador, você decide"); use o esforço que ele nomear no pedido ou fixou para um modelo, e decida o resto pela seção *Esforço* abaixo:
+**Antes de criar qualquer terminal**, monte a tabela abaixo você mesmo. **Não pergunte modelo nem esforço** (regra do usuário, 10/11/2026: "você é o coordenador, você decide"; estendida em 17/11/2026 a modelo: ele só lista os modelos). O usuário lista os modelos que quer usar; você decide qual vai em cada nível ou tarefa. Use o esforço que ele nomear no pedido ou fixou para um modelo, e decida o resto pela seção *Esforço* abaixo:
 
 | Nível | Modelo | Esforço |
 | --- | --- | --- |
-| Complexa | ? | só se nomeado; senão você decide por tarefa |
-| Média | ? | só se nomeado; senão você decide por tarefa |
-| Baixa | ? | só se nomeado; senão você decide por tarefa |
-| Gate / Advisor | ? | o nomeado; sem nome, o mais alto que o CLI aceita |
-| Coordenador de onda | ? (só com ondas em worktrees separadas) | |
+| Complexa | você escolhe entre os listados | só se nomeado; senão você decide por tarefa |
+| Média | você escolhe entre os listados | só se nomeado; senão você decide por tarefa |
+| Baixa | você escolhe entre os listados | só se nomeado; senão você decide por tarefa |
+| Gate / Advisor | o nomeado; sem nome, o mais forte dos listados | o nomeado; sem nome, o mais alto que o CLI aceita |
+| Coordenador de onda | você escolhe entre os listados (só com ondas em worktrees separadas) | |
 
-O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` / `<MODELO_GATE>` justamente para essa decisão ser tomada aqui, com o custo e a disponibilidade do dia na mesa. Nunca assuma, nunca herde do plano anterior, e não comece a onda 1 com um nível ainda em aberto.
+O plano vem com `<MODELO_COMPLEXA>` / `<MODELO_MEDIA>` / `<MODELO_BAIXA>` / `<MODELO_GATE>` justamente para essa decisão ser tomada aqui, por você, com o custo e a disponibilidade do dia na mesa. Nunca herde do plano anterior, e não comece a onda 1 com um nível ainda em aberto. **Mais de um modelo listado:** divida as tarefas entre eles (força do modelo, custo, cota, risco), mesmo dentro de um nível, e anote no documento do ciclo qual modelo ficou com qual tarefa e por quê, em uma linha. Pergunte só quando o pedido não nomeia modelo nenhum.
 
 **A linha `Gate / Advisor` é uma só, de propósito.** O advisor (seção *O advisor*, abaixo) roda
 no mesmo modelo que o usuário escolheu para o gate, e não existe sem essa linha preenchida.
-Peça-a quando o plano tem gate, ou quando o usuário pediu revisão; se ele já nomeou o modelo no
-pedido ("use tal modelo para a revisão adversarial"), use esse e não pergunte de novo. Plano sem
+Preencha-a quando o plano tem gate, ou quando o usuário pediu revisão; se ele já nomeou o modelo no
+pedido ("use tal modelo para a revisão adversarial"), use esse; sem nome, escolha o mais forte
+dos listados, sem perguntar. Plano sem
 gate e sem revisão pedida: deixe a linha vazia e pergunte só se um gatilho do advisor disparar.
 Nunca herde o modelo de Complexa para esse papel.
 
-Se o usuário atribuir um modelo por tarefa em vez de por nível, aceite: a granularidade é dele.
+Se o usuário atribuir um modelo por tarefa ou por nível, aceite: o que ele fixou vale como está.
 
 ### Esforço: do usuário quando ele nomeia, seu por tarefa quando não
 

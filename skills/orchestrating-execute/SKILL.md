@@ -1,8 +1,8 @@
 ---
 name: orchestrating-execute
 description: >-
-  Executa um plano de implementação multi-agente já escrito: pergunta ao usuário
-  qual modelo vai em cada nível de complexidade, roda os passos que só o
+  Executa um plano de implementação multi-agente já escrito: distribui entre os
+  modelos que o usuário listou (modelo e esforço por tarefa, sem perguntar), roda os passos que só o
   coordenador pode rodar, sobe os workers onda por onda respeitando o grafo,
   aceita cada entrega com casos próprios e para no gate antes de qualquer passo
   irreversível. Use quando existir um plano pronto e o usuário disser "vamos
@@ -34,7 +34,8 @@ sozinho: releia a referência da fase em que você está antes de continuar.
 
 ## Regras que valem a execução inteira
 
-1. **O time é do usuário.** Modelo e esforço atribuídos por nível valem até o fim, reparos
+1. **O time é do usuário, a distribuição é sua.** O usuário só lista os modelos; você decide qual
+   faz qual tarefa e com qual esforço, sem trazer a decisão a ele. Vale até o fim, reparos
    inclusive. Nunca introduza modelo que ele não listou: faltou cobrir um caso, pergunte.
 2. **O irreversível é seu.** Git, mudança de schema, deploy e publicação são passos do
    coordenador. Worker não roda git.
@@ -78,10 +79,13 @@ sozinho: releia a referência da fase em que você está antes de continuar.
 
 ## 2. Atribuição de modelo
 
-- **Antes de criar qualquer terminal**, pergunte só o MODELO de Complexa, Média, Baixa,
-  Gate / Advisor e, com ondas em worktrees, Coordenador de onda. Nunca assuma nem herde de outro
-  plano. Atribuição por tarefa em vez de por nível: aceite. **Esforço não se pergunta** (regra do
-  usuário, 10/11/2026): você decide pela regra abaixo, salvo o que ele nomear.
+- **Antes de criar qualquer terminal**, monte a atribuição você mesmo, a partir dos modelos que o
+  usuário listou no pedido. **Nem modelo nem esforço se perguntam** (regra do usuário, 17/11/2026:
+  ele só lista os modelos). Ele citou mais de um para o mesmo nível, ou menos que os níveis? Você
+  divide as tarefas entre eles (força do modelo, custo, cota, risco da tarefa) e registra a
+  divisão no documento do ciclo, uma linha por tarefa. Pergunte só se o pedido não nomeia modelo
+  nenhum, nunca assuma nem herde de outro plano. Atribuição que o usuário fixou (por nível ou por
+  tarefa) vale como está.
 - Esforço nomeado pelo usuário vale para o ciclo inteiro, e esforço que ele fixou para um modelo
   (configuração, memória) também é nomeado. Sem isso, você escolhe por tarefa entre `medium` e
   `xhigh`: baixa e média em `medium` (`high` se a média produz contrato); complexa em `high`,
