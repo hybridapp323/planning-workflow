@@ -60,8 +60,12 @@ Decida antes de escrever, e diga ao usuário qual escolheu e por quê.
   ou de sonda arquivada: recorte antes de entregar.
 - **Um plano por família** (mesma causa, mesmo dono da decisão). Relatório com vários achados é
   recortado antes de escrever. Mais de uns dez requisitos, ou trilhas que a spec chama de
-  independentes: recorte, ou pergunte ao usuário antes de escrever ("tudo junto" decide a
-  entrega, não o número de planos).
+  independentes: **pergunte** ao usuário antes de recortar ("tudo junto" decide a entrega, não o
+  número de planos).
+- **Recortar nunca é adiar.** Spec fechada sai planejada inteira neste ciclo: todo requisito tem
+  tarefa antes de qualquer execução. Entrega em fatias é ordem dentro do plano (ondas, e a chave
+  que liga cada fatia), nunca "esta parte agora, o resto se planeja depois": o que fica para
+  depois é planejado pelo executor, sem a entrevista (`references/escala.md`).
 - **Protótipo, investigação e pergunta de viabilidade não são plano.** Responda ou construa.
 
 O **plano mínimo**, cada item com `arquivo:linha` ou consulta: (1) causa, com a evidência que a

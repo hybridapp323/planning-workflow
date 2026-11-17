@@ -58,3 +58,27 @@ trabalho segue em um plano por trilha com a entrega combinada no fim, ou num pla
 por trilha (medição em `pre-voo.md`).
 Mudanças que precisam ser atômicas ficam juntas mesmo assim, e o plano diz por quê. Medido no mesmo
 projeto: requisitos por ciclo subiram de 5 para 45 em um mês, sempre juntando o relatório inteiro.
+
+### Recortar não é adiar
+
+Recorte decide **quantos documentos** de plano existem. Não decide **quando** o planejamento
+acontece: de uma spec fechada, todos os planos são escritos no mesmo ciclo, antes de qualquer
+execução, e cada requisito dela tem tarefa em algum deles. O `plan-lint.py --spec` acusa
+requisito sem tarefa; "roteiro" ou "esboço" de uma parte não conta como tarefa.
+
+Três coisas parecem motivo para adiar e não são:
+
+- **"O usuário escolheu entregar em fatias."** Fatia é ordem de entrega. Dentro de um plano ela é
+  uma sequência de ondas, cada uma com a chave que a liga em produção. Decisão de entrega nunca é
+  autorização para planejar só a primeira.
+- **"Plano parado envelhece."** Verdade, e o remédio é revalidar as âncoras antes de executar a
+  onda (`orchestrating-execute`), não deixar de escrever. Tarefa com linha deslocada se conserta
+  em minutos; tarefa que não existe é desenhada por quem executa, sem a entrevista, sem a
+  conferência e sem o usuário.
+- **"São requisitos demais para um plano."** Isso pede a pergunta do parágrafo acima, com o custo
+  à mostra, e um verificador por trilha no pré-voo. Não pede decidir sozinho.
+
+Medido em 11/2026: spec fechada de 23 requisitos, com entrega em três fatias decidida pelo usuário
+na entrevista. O autor do plano anunciou o plano detalhado só da primeira fatia e um roteiro curto
+das outras duas, sem perguntar, citando a regra dos dez requisitos e o risco de âncora velha. O
+usuário recusou na hora: plano adiado é plano que o executor escreve.
