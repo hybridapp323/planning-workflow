@@ -90,10 +90,20 @@ paralelo com o outro plano e o único ponto em que espera por ele; e, quando a e
 final é uma (um passo irreversível para os dois), diz em qual dos planos moram esse passo, o gate
 dele e a verificação depois.
 
+**Fatiar a entrega só vale quando cada fatia chega a alguém.** Antes de recomendar entrega em
+fatias (na entrevista ou no plano), responda: quem usa a fatia 1 enquanto a 2 não existe? Se tudo
+fica atrás de uma chave desligada até o aceite final, ninguém, e fatiar só obriga a escrever o
+comportamento provisório da fatia incompleta (o botão que ainda não faz, o caminho que cai no
+fluxo antigo), que depois é jogado fora. Nesse caso o plano é um só, a entrega é uma só, e a
+ordem vem do grafo: trilhas em paralelo, com coordenador principal e secundários, e só espera o
+que depende de verdade.
+
 Medido em 11/2026: spec fechada de 23 requisitos, com entrega em três fatias decidida pelo usuário
 na entrevista. O autor do plano anunciou o plano detalhado só da primeira fatia e um roteiro curto
 das outras duas, sem perguntar, citando a regra dos dez requisitos e o risco de âncora velha. O
-usuário recusou na hora: plano adiado é plano que o executor escreve.
+usuário recusou na hora: plano adiado é plano que o executor escreve. Na mesma conversa a
+entrega em fatias também caiu: tinha sido recomendação do agente na entrevista, e a feature inteira
+ficava atrás de uma chave desligada até a validação.
 
 Medido de novo em 11/2026: a revisão externa devolveu doze bloqueadores, cinco deles de redesenho
 na mesma família. O autor recortou em dois, entregou o plano da primeira parte e deixou a segunda
