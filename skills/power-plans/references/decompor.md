@@ -108,6 +108,16 @@ e a condição que libera a próxima etapa. Inclua interrupção e retorno com e
 Flag alterada não prova efeito observado: indique qual confirmação a fronteira requer.
 Para interface com referência aprovada, vincule esse contrato ao §8.3 da spec.
 
+**Toda operação que grava tem quatro respostas escritas no contrato:** quem pode fazê-la sobre
+aquele objeto (o filtro por dono, não só a checagem de entrada, quando o servidor lê com
+privilégio total); qual é a chave de repetição; o que o chamador recebe quando a gravação
+confirma e a resposta se perde; e o que acontece com dois pedidos iguais ao mesmo tempo. Faltou
+uma, o worker inventa, e o teste de repetir a chave direto no banco não percorre o caminho.
+Efeito para fora (aviso, e-mail, cobrança) nasce como linha pendente na mesma transação da
+mudança, com dono da entrega e da retomada. Medido em 2026-11-18: de 12 bloqueadores de uma
+revisão externa, 8 eram uma dessas respostas ausente, em contratos que já tinham tipos e ações
+congelados e tinham passado por cinco verificadores.
+
 Quem escreve é o coordenador, num passo próprio antes de despachar qualquer worker, e commita. Não delegue a um worker o contrato de que os outros dependem.
 
 Escreva literal, em bloco de código completo. Contrato descrito em prosa é contrato não congelado.
